@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import { useOpenCandidateCount } from "@/lib/domain/store";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { DemoControls } from "./demo-controls";
-import { ThemeToggle } from "./theme-toggle";
 
 const NAV = [
   { href: "/inbox", label: "Inbox", icon: Inbox, key: "G I" },
@@ -79,7 +78,6 @@ export function Rail() {
       </ul>
       <div className="mt-auto flex flex-col items-center gap-1">
         <DemoControls />
-        <ThemeToggle />
       </div>
     </nav>
   );
