@@ -1,4 +1,4 @@
-import type { CatalogItem, CatalogKind, ContactRole, ID, SessionState } from "./types";
+import type { CatalogItem, CatalogKind, ID, SessionState } from "./types";
 
 /** Rows of one catalogue, active first by sort order. Archived rows are kept only when `includeArchived`. */
 export function catalogOf(catalog: CatalogItem[], kind: CatalogKind, includeArchived = false): CatalogItem[] {
@@ -18,6 +18,7 @@ export const CATALOG_KIND_META: Record<CatalogKind, { title: string; singular: s
   sessionOutcome: { title: "Session outcomes", singular: "outcome", hint: "What a session produced. Picked once per session on the feedback form.", hasKeywords: false, hasMinutes: false },
   technology: { title: "Technologies", singular: "technology", hint: "Languages, tools and platforms. Keywords let the AI suggest them from invite text.", hasKeywords: true, hasMinutes: false },
   useCaseType: { title: "Use-case types", singular: "use-case type", hint: "How use cases are classified for reporting. Keywords let the AI pre-select a type.", hasKeywords: true, hasMinutes: false },
+  contactRole: { title: "Contact roles", singular: "contact role", hint: "Roles a client contact can hold. Keywords let the AI read roles out of invite text (e.g. \"PO: Jane Doe\").", hasKeywords: true, hasMinutes: false },
 };
 
 export const SESSION_STATE_LABELS: Record<SessionState, string> = {
@@ -29,16 +30,6 @@ export const SESSION_STATE_LABELS: Record<SessionState, string> = {
   ignored: "Ignored",
 };
 
-export const CONTACT_ROLE_LABELS: Record<ContactRole, string> = {
-  productOwner: "Product owner",
-  projectManager: "Project manager",
-  architect: "Architect",
-  engineeringManager: "Engineering manager",
-  executiveSponsor: "Executive sponsor",
-  engineer: "Engineer",
-};
-
-export const CONTACT_ROLES = Object.keys(CONTACT_ROLE_LABELS) as ContactRole[];
 
 export const FIELD_LABELS: Record<string, string> = {
   title: "Title",

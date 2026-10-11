@@ -34,9 +34,12 @@ pnpm e2e        # needs `pnpm exec playwright install chromium` once; starts its
 - Seed data lives in `lib/mock/seed.ts` and `lib/mock/calendar.ts`; fixtures are relative to Monday of the
   current week. Bump `SCHEMA_VERSION` in `ops.ts` when the persisted shape changes so stale IndexedDB data resets.
 - Reference data lives in one `state.catalog` array of `CatalogItem { kind, … }` (kinds: sessionType, sessionOutcome,
-  technology, useCaseType), seeded from `CATALOG` in `lib/mock/seed.ts` and edited via `upsertCatalogItem`/`moveCatalogItem`.
+  technology, useCaseType, contactRole), seeded from `CATALOG` in `lib/mock/seed.ts` and edited via `upsertCatalogItem`/`moveCatalogItem`.
   Never hard-code these lists in UI; use `catalogOf(state.catalog, kind)`. The classifier caps any event without a format
   match at `NO_TYPE_CAP` (review bucket); extraction never guesses a type.
+- Entry dropdowns must offer "Other…": use `Combobox` (with `onCreate`), `SelectWithOther` or `ToggleGroupWithOther`
+  from `components/common/other-option.tsx`; `onCreate` persists via `store.createCatalogItem/createClient/createTeam/
+  createPerson` and returns the id to select. Required fields render `<RequiredMark />` (red, 1.5×) via `FieldRow required`.
 - Use cases are inline on the session (`session.useCases: UseCase[]`); their technologies roll up into
   `session.technologyIds` via `updateUseCase`. The home page is `/` (Today); `/inbox` is secondary.
 - Palette: no purple. Tokens (`--ai`, `--success`, `--warning`, `--surface`, shadcn base) are defined once in

@@ -228,6 +228,15 @@ const USE_CASE_TYPE_SPECS: CatalogSpec[] = [
   ["devops", "Devops work", ["devops", "ci/cd", "pipeline credentials", "jenkins", "github actions", "terraform", "deployment"], null],
 ];
 
+const CONTACT_ROLE_SPECS: CatalogSpec[] = [
+  ["productOwner", "Product owner", ["po", "product owner"], null],
+  ["projectManager", "Project manager", ["pm", "project manager"], null],
+  ["architect", "Architect", ["architect", "solution architect"], null],
+  ["engineeringManager", "Engineering manager", ["em", "eng manager", "engineering manager"], null],
+  ["executiveSponsor", "Executive sponsor", ["sponsor", "exec sponsor", "executive sponsor"], null],
+  ["engineer", "Engineer", ["engineer", "developer"], null],
+];
+
 function catalogRows(kind: CatalogKind, specs: CatalogSpec[]): CatalogItem[] {
   return specs.map(([id, label, keywords, typicalMinutes, description], i) => ({
     id,
@@ -248,6 +257,7 @@ export const CATALOG: CatalogItem[] = [
   ...catalogRows("sessionOutcome", SESSION_OUTCOME_SPECS),
   ...catalogRows("technology", TECHNOLOGY_SPECS),
   ...catalogRows("useCaseType", USE_CASE_TYPE_SPECS),
+  ...catalogRows("contactRole", CONTACT_ROLE_SPECS),
 ];
 
 export const SESSION_TYPES = CATALOG.filter((c) => c.kind === "sessionType");

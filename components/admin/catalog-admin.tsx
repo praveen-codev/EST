@@ -11,13 +11,14 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MemberAvatar } from "@/components/common/marks";
+import { RequiredMark } from "@/components/common/other-option";
 import { CATALOG_KIND_META, catalogOf } from "@/lib/domain/labels";
 import { useCurrentMember, useHydrated, useStore } from "@/lib/domain/store";
 import type { CatalogItem, CatalogKind } from "@/lib/domain/types";
 import { fmtAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-const KINDS: CatalogKind[] = ["sessionType", "sessionOutcome", "useCaseType", "technology"];
+const KINDS: CatalogKind[] = ["sessionType", "sessionOutcome", "useCaseType", "technology", "contactRole"];
 
 export function CatalogAdmin() {
   const hydrated = useHydrated();
@@ -75,6 +76,7 @@ function CatalogTable({ kind, canEdit }: { kind: CatalogKind; canEdit: boolean }
       case "sessionOutcome": return state.sessions.filter((s) => s.outcomeId === id).length;
       case "technology": return state.sessions.filter((s) => s.technologyIds.includes(id)).length;
       case "useCaseType": return state.sessions.reduce((n, s) => n + s.useCases.filter((u) => u.useCaseTypeId === id).length, 0);
+      case "contactRole": return state.sessions.reduce((n, s) => n + s.contacts.filter((c) => c.role === id).length, 0);
     }
   };
   const cols = meta.hasKeywords
@@ -119,7 +121,7 @@ function CatalogRow({ kind, row, index, count, usage, canEdit, cols }: { kind: C
 
   const commit = () => {
     const nextKeywords = keywords.split(",").map((k) => k.trim()).filter(Boolean);
-    const nextMinutes = meta.hasMinutes ? Number(minutes) || row.typicalMinutes : row.typicalMinutes;
+    const nextMinutes: number | null = meta.hasMinutes ? Number(minutes) || row.typicalMinutes : row.typicalMinutes;
     const changed = label.trim() !== row.label || description !== row.description || nextMinutes !== row.typicalMinutes || nextKeywords.join("|") !== row.keywords.join("|");
     if (!changed || !label.trim()) return;
     state.upsertCatalogItem(kind, row.id, { label: label.trim(), description, keywords: nextKeywords, typicalMinutes: nextMinutes });
@@ -200,7 +202,7 @@ function NewRow({ kind, cols }: { kind: CatalogKind; cols: string }) {
   return (
     <form onSubmit={(e) => { e.preventDefault(); add(); }} className={cn("grid items-center gap-3 border-t bg-muted/20 px-4 py-3", cols)}>
       <Plus className="size-4 text-muted-foreground" />
-      <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder={`New ${meta.singular}`} aria-label={`New ${meta.singular} label`} className="h-8" />
+      <div className="flex items-center gap-1"><Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder={`New ${meta.singular}`} aria-label={`New ${meta.singular} label`} className="h-8" /><RequiredMark /></div>
       <Input value={extra} onChange={(e) => setExtra(e.target.value)} placeholder={meta.hasKeywords ? "keywords, comma separated (label is added automatically)" : "description"} aria-label={`New ${meta.singular} ${meta.hasKeywords ? "keywords" : "description"}`} className={cn("h-8", meta.hasKeywords && "font-mono text-xs")} />
       {meta.hasMinutes && <div className="flex items-center gap-1 text-xs"><Input type="number" min={15} step={15} value={minutes} onChange={(e) => setMinutes(e.target.value)} aria-label="New format typical minutes" className="h-8 w-16 text-xs" /> min</div>}
       <span />

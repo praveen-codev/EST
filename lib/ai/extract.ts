@@ -1,5 +1,5 @@
 import { stableId } from "@/lib/domain/ids";
-import { catalogOf, CONTACT_ROLE_LABELS } from "@/lib/domain/labels";
+import { catalogOf } from "@/lib/domain/labels";
 import type {
   CatalogItem,
   Client,
@@ -47,22 +47,21 @@ export interface ExtractionResult {
 /** Fields whose suggestions are individual items appended to a list on accept. */
 export const ITEM_FIELDS: ReadonlySet<SuggestionField> = new Set(["coFacilitatorIds", "contacts", "technologyIds", "useCases"]);
 
-/** Role prefix (case-insensitive) followed by a capitalised full name (case-sensitive). */
-const ROLE_PREFIXES: Array<[RegExp, ContactRole]> = [
-  [/\b(?:po|product owner)\b\s*[:\-–]?\s*/gi, "productOwner"],
-  [/\b(?:pm|project manager)\b\s*[:\-–]?\s*/gi, "projectManager"],
-  [/\barchitect\b\s*[:\-–]?\s*/gi, "architect"],
-  [/\b(?:em|eng(?:ineering)? manager)\b\s*[:\-–]?\s*/gi, "engineeringManager"],
-  [/\b(?:exec(?:utive)? )?sponsor\b\s*[:\-–]?\s*/gi, "executiveSponsor"],
-];
 const CAPITALISED_NAME = /^([A-Z][\w'-]+(?:\s+[A-Z][\w'-]+){1,2})/;
 
-function* roleMentions(description: string): Generator<{ name: string; role: ContactRole; excerpt: string }> {
-  for (const [re, role] of ROLE_PREFIXES) {
-    for (const m of description.matchAll(re)) {
-      const rest = description.slice(m.index! + m[0].length);
-      const name = rest.match(CAPITALISED_NAME)?.[1];
-      if (name) yield { name: name.trim(), role, excerpt: `${m[0].trim()} ${name.trim()}` };
+/**
+ * "PO: Jane Doe", "Architect Raj Patel" — a role keyword from the contact-roles catalogue
+ * (case-insensitive) followed by a capitalised full name (case-sensitive).
+ */
+function* roleMentions(description: string, roles: CatalogItem[]): Generator<{ name: string; role: ContactRole; excerpt: string }> {
+  for (const role of roles) {
+    for (const keyword of role.keywords) {
+      const re = new RegExp(`\\b${escapeRegExp(keyword)}\\b\\s*[:\\-–]?\\s*`, "gi");
+      for (const m of description.matchAll(re)) {
+        const rest = description.slice(m.index! + m[0].length);
+        const name = rest.match(CAPITALISED_NAME)?.[1];
+        if (name) yield { name: name.trim(), role: role.id, excerpt: `${m[0].trim()} ${name.trim()}` };
+      }
     }
   }
 }
@@ -236,6 +235,8 @@ export function extract(n: NormalizedEvent, ctx: EngineContext): ExtractionResul
   const externalPeople = n.external.map((a) => resolvePerson(a.email, a.name));
 
   /* ── Contacts ── */
+  const contactRoles = catalogOf(ctx.catalog, "contactRole");
+  const roleLabel = (role: ContactRole) => contactRoles.find((r) => r.id === role)?.label ?? role;
   const seenContacts = new Map<string, DraftSuggestion>();
   const addContact = (person: Person, role: ContactRole, confidence: number, evidence: Evidence[]) => {
     const key = `${person.id}:${role}`;
@@ -247,10 +248,10 @@ export function extract(n: NormalizedEvent, ctx: EngineContext): ExtractionResul
       return;
     }
     const value: SessionContact = { personId: person.id, role };
-    add("contacts", value, `${person.name} · ${CONTACT_ROLE_LABELS[role]}`, confidence, evidence);
+    add("contacts", value, `${person.name} · ${roleLabel(role)}`, confidence, evidence);
     seenContacts.set(key, out[out.length - 1]!);
   };
-  for (const { name, role, excerpt } of roleMentions(n.description)) {
+  for (const { name, role, excerpt } of roleMentions(n.description, contactRoles)) {
     const person =
       externalPeople.find((p) => p.name.toLowerCase() === name.toLowerCase()) ??
       [...personByEmail.values()].find((p) => p.name.toLowerCase() === name.toLowerCase() && (!client || p.clientId === client.id));
@@ -276,7 +277,7 @@ export function extract(n: NormalizedEvent, ctx: EngineContext): ExtractionResul
         addContact(p, role, Math.min(0.9, 0.7 + 0.07 * stat.count), [
           {
             source: "history.people",
-            excerpt: `Recorded as ${CONTACT_ROLE_LABELS[role]} on ${stat.count} ${client.name} session${stat.count > 1 ? "s" : ""}`,
+            excerpt: `Recorded as ${roleLabel(role)} on ${stat.count} ${client.name} session${stat.count > 1 ? "s" : ""}`,
             attribution: `by ${names.slice(0, 2).join(" & ")}`,
           },
         ]);

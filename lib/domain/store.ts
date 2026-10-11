@@ -13,7 +13,9 @@ import {
   addUseCase,
   initialState,
   mergeDuplicate,
+  findCatalogByLabel,
   moveCatalogItem,
+  newCatalogId,
   openCandidatesFor,
   rerunAI,
   restoreCandidate,
@@ -62,8 +64,11 @@ export interface Actions {
   addUseCase: (sessionId: ID, draft?: Partial<UseCase>) => void;
   updateUseCase: (sessionId: ID, useCaseId: ID, patch: Partial<Omit<UseCase, "id">>) => void;
   removeUseCase: (sessionId: ID, useCaseId: ID) => void;
+  /** Ad-hoc "Other…" entry: saves to the reference table (or reuses a same-label row) and returns the id to select. */
+  createCatalogItem: (kind: CatalogKind, label: string) => ID;
   createPerson: (name: string, clientId: ID | null) => ID;
   createClient: (name: string) => ID;
+  createTeam: (name: string, clientId: ID) => ID;
   setScenario: (scenario: ScenarioId) => void;
   resetDemo: () => void;
   toggleReasoning: () => void;
@@ -125,6 +130,24 @@ export const useStore = create<Store>()(
       addUseCase: (sessionId, draft) => setState((s) => addUseCase(pickData(s), sessionId, s.currentMemberId, draft)),
       updateUseCase: (sessionId, useCaseId, patch) => setState((s) => updateUseCase(pickData(s), sessionId, useCaseId, patch, s.currentMemberId)),
       removeUseCase: (sessionId, useCaseId) => setState((s) => removeUseCase(pickData(s), sessionId, useCaseId, s.currentMemberId)),
+      createCatalogItem: (kind, label) => {
+        const data = pickData(getState());
+        const existing = findCatalogByLabel(data, kind, label);
+        if (existing) {
+          if (existing.archived) setState(upsertCatalogItem(data, kind, existing.id, { archived: false }, getState().currentMemberId));
+          return existing.id;
+        }
+        const id = newCatalogId(data, label);
+        setState(upsertCatalogItem(data, kind, null, { label: label.trim() }, getState().currentMemberId));
+        return id;
+      },
+      createTeam: (name, clientId) => {
+        const existing = getState().teams.find((t) => t.clientId === clientId && t.name.toLowerCase() === name.trim().toLowerCase());
+        if (existing) return existing.id;
+        const id = freshId("team");
+        setState((s) => ({ teams: [...s.teams, { id, clientId, name: name.trim(), keywords: [name.trim().toLowerCase()] }] }));
+        return id;
+      },
       createPerson: (name, clientId) => {
         const id = freshId("per");
         setState((s) => ({ people: [...s.people, { id, name, clientId, email: null, role: null }] }));

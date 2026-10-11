@@ -12,15 +12,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Combobox } from "@/components/common/combobox";
+import { RequiredMark, SelectWithOther, ToggleGroupWithOther } from "@/components/common/other-option";
 import { ConfidenceRing } from "@/components/common/confidence-ring";
 import { ClientMark, MemberAvatar, PersonAvatar } from "@/components/common/marks";
 import { AiBadge } from "@/components/common/sparkle";
-import { catalogOf, CONTACT_ROLE_LABELS, CONTACT_ROLES, SESSION_STATE_LABELS } from "@/lib/domain/labels";
+import { catalogLabel, catalogOf, SESSION_STATE_LABELS } from "@/lib/domain/labels";
 import { useHydrated, useStore } from "@/lib/domain/store";
 import { sessionVM } from "@/lib/domain/selectors";
-import type { ContactRole, SessionState, Suggestion, UseCase } from "@/lib/domain/types";
+import type { SessionState, Suggestion, UseCase } from "@/lib/domain/types";
 import { durationMin, fmtDayLong, fmtDuration, fmtTimeRange } from "@/lib/format";
 import { useShortcuts } from "@/lib/hooks/use-shortcuts";
 import { cn } from "@/lib/utils";
@@ -93,6 +93,7 @@ export function SessionWorkspace() {
   const outcomes = catalogOf(state.catalog, "sessionOutcome", true).filter((t) => !t.archived || t.id === session.outcomeId);
   const technologies = catalogOf(state.catalog, "technology");
   const useCaseTypes = catalogOf(state.catalog, "useCaseType");
+  const contactRoles = catalogOf(state.catalog, "contactRole", true);
   const highConfidencePending = vm.pending.filter((s) => s.confidence >= 0.5).length;
   const useCaseDrafts = pending("useCases");
 
@@ -153,16 +154,21 @@ export function SessionWorkspace() {
 
         {/* 1 · Basics */}
         <Section step={1} title="Confirm the basics" subtitle="Prefilled from the invite and from teammates' sessions with this client. Approve or change.">
-          <FieldRow id="clientId" label="Client" provenance={session.provenance.clientId} pending={pending("clientId")} onAccept={accept} onReject={reject}>
-            <Combobox value={session.clientId} options={state.clients.map((c) => ({ value: c.id, label: c.name, hint: c.industry ?? undefined, icon: <ClientMark client={c} size="sm" /> }))} placeholder="Choose a client" onChange={(v) => patch({ clientId: v, teamId: null })} onCreate={(name) => patch({ clientId: state.createClient(name), teamId: null })} clearable />
+          <FieldRow id="clientId" label="Client" required provenance={session.provenance.clientId} pending={pending("clientId")} onAccept={accept} onReject={reject}>
+            <Combobox value={session.clientId} options={state.clients.map((c) => ({ value: c.id, label: c.name, hint: c.industry ?? undefined, icon: <ClientMark client={c} size="sm" /> }))} placeholder="Choose a client" onChange={(v) => patch({ clientId: v, teamId: null })} onCreate={(name) => state.createClient(name)} otherPlaceholder="New client name…" clearable />
           </FieldRow>
           <FieldRow id="teamId" label="Team" provenance={session.provenance.teamId} pending={pending("teamId")} onAccept={accept} onReject={reject}>
-            <Combobox value={session.teamId} options={teams.map((t) => ({ value: t.id, label: t.name }))} placeholder={session.clientId ? "Choose a team" : "Pick a client first"} onChange={(v) => patch({ teamId: v })} clearable emptyText="No teams recorded for this client yet" />
+            <Combobox value={session.teamId} options={teams.map((t) => ({ value: t.id, label: t.name }))} placeholder={session.clientId ? "Choose a team" : "Pick a client first"} onChange={(v) => patch({ teamId: v })} onCreate={session.clientId ? (name) => state.createTeam(name, session.clientId!) : undefined} otherPlaceholder="New team name…" clearable emptyText="No teams recorded for this client yet" />
           </FieldRow>
-          <FieldRow id="sessionType" label="Format" provenance={session.provenance.sessionType} pending={pending("sessionType")} onAccept={accept} onReject={reject}>
-            <ToggleGroup type="single" variant="outline" size="sm" value={session.sessionType ?? ""} onValueChange={(v) => v && patch({ sessionType: v })} className="flex-wrap">
-              {formats.map((t) => <ToggleGroupItem key={t.id} value={t.id} className="text-xs">{t.label}{t.archived ? " (archived)" : ""}</ToggleGroupItem>)}
-            </ToggleGroup>
+          <FieldRow id="sessionType" label="Format" required provenance={session.provenance.sessionType} pending={pending("sessionType")} onAccept={accept} onReject={reject}>
+            <ToggleGroupWithOther
+              ariaLabel="Session format"
+              value={session.sessionType}
+              options={formats.map((t) => ({ value: t.id, label: `${t.label}${t.archived ? " (archived)" : ""}`, hint: t.description }))}
+              onChange={(v) => patch({ sessionType: v })}
+              onCreate={(label) => state.createCatalogItem("sessionType", label)}
+              otherPlaceholder="New format, e.g. Lunch & learn"
+            />
           </FieldRow>
           <FieldRow id="facilitatorId" label="Facilitator" provenance={session.provenance.facilitatorId} pending={pending("facilitatorId")} onAccept={accept} onReject={reject}>
             <div className="flex flex-wrap items-center gap-2">
@@ -183,18 +189,25 @@ export function SessionWorkspace() {
                 <div key={`${c.personId}:${c.role}`} className="flex items-center gap-2 text-sm">
                   <PersonAvatar person={c.person} size="sm" />
                   <span className="font-medium">{c.person.name}</span>
-                  <Select value={c.role} onValueChange={(role) => patch({ contacts: session.contacts.map((x) => (x.personId === c.personId && x.role === c.role ? { ...x, role: role as ContactRole } : x)) })}>
-                    <SelectTrigger size="sm" className="h-6 w-auto gap-1 rounded-full text-[11px]" aria-label={`Role for ${c.person.name}`}><SelectValue /></SelectTrigger>
-                    <SelectContent>{CONTACT_ROLES.map((r) => <SelectItem key={r} value={r}>{CONTACT_ROLE_LABELS[r]}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <SelectWithOther
+                    size="sm"
+                    ariaLabel={`Role for ${c.person.name}`}
+                    value={c.role}
+                    options={contactRoles.filter((r) => !r.archived || r.id === c.role).map((r) => ({ value: r.id, label: r.label }))}
+                    onChange={(role) => patch({ contacts: session.contacts.map((x) => (x.personId === c.personId && x.role === c.role ? { ...x, role } : x)) })}
+                    onCreate={(label) => state.createCatalogItem("contactRole", label)}
+                    otherPlaceholder="New role…"
+                    className="h-6 w-auto gap-1 rounded-full text-[11px]"
+                  />
                   <button type="button" aria-label={`Remove ${c.person.name}`} onClick={() => patch({ contacts: session.contacts.filter((x) => !(x.personId === c.personId && x.role === c.role)) })} className="text-muted-foreground hover:text-foreground"><X className="size-3.5" /></button>
                 </div>
               ))}
               <Combobox
                 value={null}
-                options={clientPeople.filter((p) => !session.contacts.some((c) => c.personId === p.id)).map((p) => ({ value: p.id, label: p.name, hint: p.role ? CONTACT_ROLE_LABELS[p.role] : undefined }))}
+                options={clientPeople.filter((p) => !session.contacts.some((c) => c.personId === p.id)).map((p) => ({ value: p.id, label: p.name, hint: catalogLabel(state.catalog, p.role) ?? undefined }))}
                 onChange={(v) => { if (!v) return; const person = state.people.find((p) => p.id === v); patch({ contacts: [...session.contacts, { personId: v, role: person?.role ?? "engineer" }] }); }}
-                onCreate={(name) => patch({ contacts: [...session.contacts, { personId: state.createPerson(name, session.clientId), role: "engineer" }] })}
+                onCreate={(name) => { const id = state.createPerson(name, session.clientId); patch({ contacts: [...session.contacts, { personId: id, role: "engineer" }] }); return id; }}
+                otherPlaceholder="Contact's full name…"
                 trigger={<Button variant="outline" size="xs" className="rounded-full">+ contact</Button>}
               />
             </div>
@@ -203,7 +216,7 @@ export function SessionWorkspace() {
 
         {/* 2 · Participants */}
         <Section step={2} title="Participants" subtitle="How many people took part. Known names come from the invite.">
-          <FieldRow id="participantIds" label="Number of participants" provenance={session.provenance.participantsEstimated ?? session.provenance.participantIds} pending={[...pending("participantsEstimated"), ...pending("participantIds")]} onAccept={accept} onReject={reject}>
+          <FieldRow id="participantIds" label="Number of participants" required provenance={session.provenance.participantsEstimated ?? session.provenance.participantIds} pending={[...pending("participantsEstimated"), ...pending("participantIds")]} onAccept={accept} onReject={reject}>
             <div className="flex flex-wrap items-center gap-3">
               <Input type="number" min={0} value={session.participantsEstimated ?? ""} onChange={(e) => patch({ participantsEstimated: e.target.value === "" ? null : Number(e.target.value) })} className="h-10 w-24 text-lg font-semibold tabular-nums" aria-label="Number of participants" placeholder="0" />
               <span className="text-xs text-muted-foreground">people in the room</span>
@@ -214,14 +227,14 @@ export function SessionWorkspace() {
                     <button type="button" aria-label={`Remove ${p.name}`} onClick={() => patch({ participantIds: session.participantIds.filter((x) => x !== p.id) })} className="ml-0.5 text-muted-foreground hover:text-foreground"><X className="size-3" /></button>
                   </span>
                 ))}
-                <Combobox value={null} options={clientPeople.filter((p) => !session.participantIds.includes(p.id)).map((p) => ({ value: p.id, label: p.name }))} onChange={(v) => v && patch({ participantIds: [...session.participantIds, v] })} onCreate={(name) => patch({ participantIds: [...session.participantIds, state.createPerson(name, session.clientId)] })} trigger={<Button variant="outline" size="xs" className="rounded-full">+ known person</Button>} />
+                <Combobox value={null} options={clientPeople.filter((p) => !session.participantIds.includes(p.id)).map((p) => ({ value: p.id, label: p.name }))} onChange={(v) => v && patch({ participantIds: [...session.participantIds, v] })} onCreate={(name) => { const id = state.createPerson(name, session.clientId); patch({ participantIds: [...session.participantIds, id] }); return id; }} otherPlaceholder="Participant's full name…" trigger={<Button variant="outline" size="xs" className="rounded-full">+ known person</Button>} />
               </div>
             </div>
           </FieldRow>
         </Section>
 
         {/* 3 · Use cases */}
-        <Section step={3} title="Use cases" subtitle="One card per thing the team worked on. Each gets a type and the technologies involved." id="field-useCases">
+        <Section step={3} title="Use cases" required subtitle="One card per thing the team worked on. Each gets a type and the technologies involved." id="field-useCases">
           <FieldRow id="technologyIds" label="Technologies in play" provenance={session.provenance.technologyIds} pending={pending("technologyIds")} onAccept={accept} onReject={reject} hint="Suggested from the invite and from teammates' sessions. Use cases pick from these first.">
             <div className="flex flex-wrap gap-1">
               <AnimatePresence initial={false}>
@@ -232,7 +245,7 @@ export function SessionWorkspace() {
                   </motion.span>
                 ))}
               </AnimatePresence>
-              <Combobox value={null} options={technologies.filter((t) => !session.technologyIds.includes(t.id)).map((t) => ({ value: t.id, label: t.label }))} onChange={(v) => v && patch({ technologyIds: [...session.technologyIds, v] })} searchPlaceholder="Search technologies…" trigger={<Button variant="outline" size="xs" className="h-7 rounded-full">+ technology</Button>} />
+              <Combobox value={null} options={technologies.filter((t) => !session.technologyIds.includes(t.id)).map((t) => ({ value: t.id, label: t.label }))} onChange={(v) => v && !session.technologyIds.includes(v) && patch({ technologyIds: [...session.technologyIds, v] })} onCreate={(label) => state.createCatalogItem("technology", label)} otherPlaceholder="New technology, e.g. Ab Initio GDE" searchPlaceholder="Search technologies…" trigger={<Button variant="outline" size="xs" className="h-7 rounded-full">+ technology</Button>} />
             </div>
           </FieldRow>
 
@@ -256,6 +269,8 @@ export function SessionWorkspace() {
                     autoFocus={focusUseCaseId === uc.id}
                     onChange={(p) => state.updateUseCase(session.id, uc.id, p)}
                     onRemove={() => state.removeUseCase(session.id, uc.id)}
+                    onCreateType={(label) => state.createCatalogItem("useCaseType", label)}
+                    onCreateTechnology={(label) => state.createCatalogItem("technology", label)}
                   />
                 ))}
               </AnimatePresence>
@@ -267,13 +282,17 @@ export function SessionWorkspace() {
         </Section>
 
         {/* 4 · Outcome */}
-        <Section step={4} title="Session outcome" subtitle="What the session produced. Configured by your admin.">
-          <FieldRow id="outcomeId" label="Outcome" provenance={session.provenance.outcomeId}>
-            <ToggleGroup type="single" variant="outline" size="sm" value={session.outcomeId ?? ""} onValueChange={(v) => v && patch({ outcomeId: v })} className="flex-wrap">
-              {outcomes.map((o) => (
-                <ToggleGroupItem key={o.id} value={o.id} className="h-9 px-3 text-xs data-[state=on]:bg-success/15 data-[state=on]:text-success" title={o.description}>{o.label}</ToggleGroupItem>
-              ))}
-            </ToggleGroup>
+        <Section step={4} title="Session outcome" required subtitle="What the session produced. Configured by your admin; type your own if none fits.">
+          <FieldRow id="outcomeId" label="Outcome" required provenance={session.provenance.outcomeId}>
+            <ToggleGroupWithOther
+              ariaLabel="Session outcome"
+              value={session.outcomeId}
+              options={outcomes.map((o) => ({ value: o.id, label: `${o.label}${o.archived ? " (archived)" : ""}`, hint: o.description }))}
+              onChange={(v) => patch({ outcomeId: v })}
+              onCreate={(label) => state.createCatalogItem("sessionOutcome", label)}
+              otherPlaceholder="New outcome, e.g. Demo recorded"
+              itemClassName="h-9 px-3 data-[state=on]:bg-success/15 data-[state=on]:text-success"
+            />
           </FieldRow>
         </Section>
 
@@ -326,13 +345,13 @@ export function SessionWorkspace() {
   );
 }
 
-function Section({ step, title, subtitle, children, id }: { step: number; title: string; subtitle: string; children: React.ReactNode; id?: string }) {
+function Section({ step, title, subtitle, children, id, required }: { step: number; title: string; subtitle: string; children: React.ReactNode; id?: string; required?: boolean }) {
   return (
     <section id={id} className="mt-4 scroll-mt-24 rounded-3xl border bg-card px-5 py-3">
       <div className="flex items-start gap-3 border-b pb-2 pt-1">
         <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-foreground text-[10px] font-semibold text-background">{step}</span>
         <div>
-          <h2 className="text-sm font-semibold">{title}</h2>
+          <h2 className="text-sm font-semibold">{title}{required && <RequiredMark />}</h2>
           <p className="text-[11px] text-muted-foreground">{subtitle}</p>
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import { AnimatePresence } from "motion/react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { RequiredMark } from "@/components/common/other-option";
 import type { Provenance, Suggestion } from "@/lib/domain/types";
 import { cn } from "@/lib/utils";
 import { SuggestionChip } from "./suggestion-chip";
@@ -33,6 +34,7 @@ interface FieldRowProps {
   onAccept?: (s: Suggestion) => void;
   onReject?: (s: Suggestion) => void;
   hint?: string;
+  required?: boolean;
   children: React.ReactNode;
   className?: string;
 }
@@ -51,12 +53,12 @@ export function SuggestionChips({ pending, onAccept, onReject, label }: { pendin
   );
 }
 
-export function FieldRow({ id, label, provenance, pending = [], onAccept, onReject, hint, children, className }: FieldRowProps) {
+export function FieldRow({ id, label, provenance, pending = [], onAccept, onReject, hint, required, children, className }: FieldRowProps) {
   return (
     <div id={`field-${id}`} className={cn("grid scroll-mt-24 gap-1.5 py-3 sm:grid-cols-[150px_1fr] sm:gap-4", className)}>
       <div className="flex items-center gap-2 pt-1.5 text-xs font-medium text-muted-foreground">
         <ProvenanceDot provenance={provenance} />
-        <span>{label}</span>
+        <span>{label}{required && <RequiredMark />}</span>
       </div>
       <div className="min-w-0">
         {children}

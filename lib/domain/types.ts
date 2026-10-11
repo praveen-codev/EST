@@ -37,13 +37,8 @@ export interface Team {
   keywords: string[];
 }
 
-export type ContactRole =
-  | "productOwner"
-  | "projectManager"
-  | "architect"
-  | "engineeringManager"
-  | "executiveSponsor"
-  | "engineer";
+/** Id of a row in the admin-managed contact-roles catalogue (productOwner, architect, …). */
+export type ContactRole = string;
 
 export interface Person {
   id: ID;
@@ -58,7 +53,7 @@ export interface Person {
 export type SessionType = string;
 
 /** Admin-managed reference tables. Each kind is one table; rows share a shape. */
-export type CatalogKind = "sessionType" | "sessionOutcome" | "technology" | "useCaseType";
+export type CatalogKind = "sessionType" | "sessionOutcome" | "technology" | "useCaseType" | "contactRole";
 
 export interface CatalogItem {
   id: ID;

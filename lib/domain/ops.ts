@@ -488,6 +488,19 @@ export function slugifyId(label: string): string {
   return base || "item";
 }
 
+/** The id a new catalogue row with this label will receive (stable so callers can select it right away). */
+export function newCatalogId(state: DataState, label: string): ID {
+  let id = slugifyId(label);
+  while (state.catalog.some((t) => t.id === id)) id = `${id}2`;
+  return id;
+}
+
+/** Existing active row of this kind with the same label (case-insensitive), if any — avoids duplicates from "Other…". */
+export function findCatalogByLabel(state: DataState, kind: CatalogKind, label: string): CatalogItem | null {
+  const l = label.trim().toLowerCase();
+  return state.catalog.find((c) => c.kind === kind && c.label.trim().toLowerCase() === l) ?? null;
+}
+
 /** Insert (id = null) or update one row of a catalogue. Keywords are normalised to lower case. */
 export function upsertCatalogItem(state: DataState, kind: CatalogKind, id: ID | null, patch: CatalogPatch, memberId: ID, now = new Date()): DataState {
   const nowIso = now.toISOString();
@@ -504,8 +517,7 @@ export function upsertCatalogItem(state: DataState, kind: CatalogKind, id: ID | 
   }
   const label = (patch.label ?? "").trim();
   if (!label) return state;
-  let newId = slugifyId(label);
-  while (state.catalog.some((t) => t.id === newId)) newId = `${newId}2`;
+  const newId = newCatalogId(state, label);
   const siblings = state.catalog.filter((t) => t.kind === kind);
   const row: CatalogItem = {
     id: newId,

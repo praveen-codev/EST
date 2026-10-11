@@ -136,3 +136,49 @@ test("home shows only today's sessions; the CTA opens a prefilled feedback form 
   await expect(page.getByText("Feedback complete")).toBeVisible();
   await expect(page.getByText(/1 with feedback in/)).toBeVisible();
 });
+
+test("every dropdown accepts an ad-hoc 'Other…' value: saved to the reference table, selected, dropdown closed", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /Enter feedback/ }).first().click();
+  await expect(page).toHaveURL(/\/sessions\//);
+
+  // Toggle group (outcome): Enter saves and selects.
+  await page.locator("#field-outcomeId").getByRole("button", { name: "Other…" }).click();
+  await page.getByRole("textbox", { name: "New outcome, e.g. Demo recorded" }).fill("Demo recorded");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("radio", { name: "Demo recorded" })).toHaveAttribute("data-state", "on");
+
+  // Combobox (technology): the check icon saves, popover closes, chip appears.
+  await page.locator("#field-technologyIds").getByRole("button", { name: "+ technology" }).click();
+  await page.getByRole("option", { name: "Other…" }).click();
+  await page.getByRole("textbox", { name: "New technology, e.g. Ab Initio GDE" }).fill("Ab Initio GDE");
+  await page.getByRole("button", { name: "Save new value" }).click();
+  await expect(page.getByRole("textbox", { name: "New technology, e.g. Ab Initio GDE" })).toHaveCount(0);
+  await expect(page.locator("#field-technologyIds").getByText("Ab Initio GDE")).toBeVisible();
+
+  // Select (use-case type) and contact role.
+  await page.getByRole("button", { name: "Add use case" }).click();
+  await page.getByRole("combobox", { name: "Use case 1 type" }).click();
+  await page.getByRole("option", { name: "Other…" }).click();
+  await page.getByRole("textbox", { name: "New use-case type…" }).fill("Test automation");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("combobox", { name: "Use case 1 type" })).toContainText("Test automation");
+  await page.locator("#field-contacts").getByRole("combobox", { name: /Role for Katrin Vogel/ }).click();
+  await page.getByRole("option", { name: "Other…" }).click();
+  await page.getByRole("textbox", { name: "New role…" }).fill("Data lead");
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#field-contacts").getByRole("combobox", { name: /Role for Katrin Vogel/ })).toContainText("Data lead");
+
+  // Required fields carry the red asterisk.
+  await expect(page.locator("#field-clientId").getByTitle("Required")).toBeVisible();
+  await expect(page.locator("#field-outcomeId").getByTitle("Required")).toBeVisible();
+
+  // The new values are real rows in the admin reference tables.
+  await page.goto("/admin");
+  await page.getByRole("tab", { name: "Session outcomes" }).click();
+  await expect(page.locator('input[value="Demo recorded"]')).toHaveCount(1);
+  await page.getByRole("tab", { name: "Technologies" }).click();
+  await expect(page.locator('input[value="Ab Initio GDE"]')).toHaveCount(1);
+  await page.getByRole("tab", { name: "Contact roles" }).click();
+  await expect(page.locator('input[value="Data lead"]')).toHaveCount(1);
+});
