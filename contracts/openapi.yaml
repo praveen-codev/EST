@@ -118,6 +118,16 @@ paths:
       tags: [Clients]
       requestBody: { required: true, content: { application/json: { schema: { type: object, required: [name], properties: { name: { type: string }, keywords: { type: array, items: { type: string } } } } } } }
       responses: { "201": { content: { application/json: { schema: { $ref: "#/components/schemas/Team" } } }, description: Created } }
+  /teams:
+    get:
+      tags: [Clients]
+      summary: All teams of the organisation (the form filters client-side)
+      responses: { "200": { content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Team" } } } }, description: OK } }
+  /members:
+    get:
+      tags: [Me]
+      summary: Members of the organisation (facilitator pickers)
+      responses: { "200": { content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Member" } } } }, description: OK } }
   /people:
     get:
       tags: [People]
