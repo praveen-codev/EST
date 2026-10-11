@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { OtherInline } from "./other-option";
+import { OtherInline, type Creator } from "./other-option";
 
 export interface ComboOption {
   value: string;
@@ -26,7 +26,7 @@ interface ComboboxProps {
    * Enables ad-hoc entry: an "Other…" row opens an inline box; saving calls `onCreate`,
    * which must persist the value and return the id, and that id is selected immediately.
    */
-  onCreate?: (label: string) => string;
+  onCreate?: Creator;
   otherPlaceholder?: string;
   className?: string;
   size?: "sm" | "default";
@@ -42,8 +42,8 @@ export function Combobox({ value, options, placeholder = "Choose…", searchPlac
   const canCreateFromQuery = onCreate && query.trim() && !options.some((o) => o.label.toLowerCase() === query.trim().toLowerCase());
 
   const close = () => { setOpen(false); setQuery(""); setOther(false); };
-  const saveNew = (label: string) => {
-    const id = onCreate!(label);
+  const saveNew = async (label: string) => {
+    const id = await onCreate!(label);
     onChange(id);
     close();
   };
@@ -87,7 +87,7 @@ export function Combobox({ value, options, placeholder = "Choose…", searchPlac
                   </CommandItem>
                 ))}
                 {canCreateFromQuery && (
-                  <CommandItem value={`__create ${query}`} onSelect={() => saveNew(query.trim())}>
+                  <CommandItem value={`__create ${query}`} onSelect={() => void saveNew(query.trim())}>
                     <Plus className="size-4" /> Save “{query.trim()}” as new
                   </CommandItem>
                 )}

@@ -9,10 +9,19 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
-  webServer: {
-    command: "pnpm dev --port 3100",
-    url: "http://localhost:3100",
-    reuseExistingServer: true,
-    timeout: 120_000,
-  },
+  // Both servers: the Spring Boot API on the local profile (H2, seeded, mock Google) and the Next dev server.
+  webServer: [
+    {
+      command: "cd ../backend && ./gradlew bootRun --args='--spring.profiles.active=local' --quiet",
+      url: "http://localhost:8080/actuator/health",
+      reuseExistingServer: true,
+      timeout: 240_000,
+    },
+    {
+      command: "pnpm dev --port 3100",
+      url: "http://localhost:3100",
+      reuseExistingServer: true,
+      timeout: 120_000,
+    },
+  ],
 });

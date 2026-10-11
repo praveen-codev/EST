@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Combobox } from "@/components/common/combobox";
-import { RequiredMark, SelectWithOther } from "@/components/common/other-option";
+import { RequiredMark, SelectWithOther, type Creator } from "@/components/common/other-option";
 import { Sparkle } from "@/components/common/sparkle";
 import type { CatalogItem, UseCase } from "@/lib/domain/types";
 import { cn } from "@/lib/utils";
@@ -22,8 +22,8 @@ interface Props {
   autoFocus?: boolean;
   onChange: (patch: Partial<Omit<UseCase, "id">>) => void;
   onRemove: () => void;
-  onCreateType: (label: string) => string;
-  onCreateTechnology: (label: string) => string;
+  onCreateType: Creator;
+  onCreateTechnology: Creator;
 }
 
 export function UseCaseCard({ index, useCase, useCaseTypes, technologies, quickTechnologyIds, autoFocus, onChange, onRemove, onCreateType, onCreateTechnology }: Props) {

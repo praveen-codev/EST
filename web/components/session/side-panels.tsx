@@ -6,7 +6,7 @@ import { EyeOff, History, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MemberAvatar } from "@/components/common/marks";
 import { catalogLabel } from "@/lib/domain/labels";
-import type { DataState } from "@/lib/domain/ops";
+import type { DataState } from "@/lib/domain/state";
 import type { SessionVM } from "@/lib/domain/selectors";
 import { fmtDayLabel } from "@/lib/format";
 

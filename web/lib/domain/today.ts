@@ -1,5 +1,5 @@
 import { isSameDay, isBefore, startOfDay, subDays } from "date-fns";
-import type { DataState } from "./ops";
+import type { DataState } from "./state";
 import { candidateItem, sessionItem, type TimelineItem } from "./timeline";
 import type { ID } from "./types";
 

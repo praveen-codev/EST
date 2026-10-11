@@ -22,6 +22,8 @@ export function DemoControls() {
   const setScenario = useStore((s) => s.setScenario);
   const resetDemo = useStore((s) => s.resetDemo);
   const toggleReasoning = useStore((s) => s.toggleReasoning);
+  const devMode = useStore((s) => s.features.devMode);
+  if (!devMode) return null;
   return (
     <Popover>
       <Tooltip>

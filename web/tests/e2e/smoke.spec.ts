@@ -1,8 +1,27 @@
 import { expect, test, type Page } from "@playwright/test";
 
+const API = process.env.API_URL ?? "http://localhost:8080";
+
+/** The API holds state now: every test starts from a freshly re-seeded local database and a signed-in persona. */
+test.beforeEach(async ({ page, request }) => {
+  await request.post(`${API}/api/v1/dev/reset`);
+  await signInAs(page, "alex@cognition.ai");
+});
+
+async function signInAs(page: Page, email: string) {
+  await page.goto("/sign-in");
+  await page.getByRole("button", { name: `Sign in as ${email}` }).click({ timeout: 20_000 });
+  await page.waitForURL((u) => !u.pathname.startsWith("/sign-in"), { timeout: 20_000 });
+}
+
+async function switchPersona(page: Page, name: RegExp) {
+  await page.getByRole("button", { name: /Account menu/ }).click();
+  await page.getByRole("menuitem", { name }).click();
+}
+
 async function waitForInbox(page: Page) {
   await page.goto("/inbox");
-  await expect(page.locator("[data-candidate-id]").first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator("[data-candidate-id]").first()).toBeVisible({ timeout: 30_000 });
 }
 
 async function timelineSessionCount(page: Page) {
@@ -14,7 +33,7 @@ async function timelineSessionCount(page: Page) {
 test.describe.configure({ mode: "serial" });
 
 test("capture workflow: sync → one-click confirm → timeline → re-sync without duplicates → manual edit survives", async ({ page }) => {
-  // Fresh browser context ⇒ empty IndexedDB ⇒ initial sync runs automatically.
+  // Fresh database ⇒ the initial calendar sync runs automatically on first load.
   await waitForInbox(page);
   await expect(page.getByRole("heading", { name: "Likely sessions" })).toBeVisible();
   const likely = page.getByRole("region", { name: "Likely sessions" }).locator("[data-candidate-id]");
@@ -72,11 +91,10 @@ test("noise is never classified as a session and cancelled events are explained"
 
 test("persona switch shows another engineer's inbox while history is shared", async ({ page }) => {
   await waitForInbox(page);
-  await page.getByRole("button", { name: /Switch persona/ }).click();
-  await page.getByRole("menuitem", { name: /Priya Nair/ }).click();
-  await expect(page.getByText("Now viewing as Priya Nair")).toBeVisible();
+  await switchPersona(page, /Priya Nair/);
+  await expect(page.getByText("Now viewing as Priya Nair")).toBeVisible({ timeout: 15_000 });
   await expect(page.locator("[data-candidate-id]").first()).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByText("Meridian Clinical — 201 session (part 2)")).toBeVisible();
+  await expect(page.getByText("Meridian Clinical — 201 session (part 2)")).toBeVisible({ timeout: 20_000 });
 });
 
 test("only the team's formats count; admins manage the catalogue, members read it", async ({ page }) => {
@@ -92,9 +110,9 @@ test("only the team's formats count; admins manage the catalogue, members read i
   await expect(page.getByRole("textbox", { name: "format label", exact: true }).first()).toBeDisabled();
 
   // The admin can add a format.
-  await page.getByRole("button", { name: /Switch persona/ }).click();
-  await page.getByRole("menuitem", { name: /Dana Whitfield/ }).click();
-  await expect(page.getByText(/Editing as Dana Whitfield/)).toBeVisible();
+  await switchPersona(page, /Dana Whitfield/);
+  await page.goto("/admin");
+  await expect(page.getByText(/Editing as Dana Whitfield/)).toBeVisible({ timeout: 15_000 });
   await page.getByRole("textbox", { name: "New format label" }).fill("Lunch & learn");
   await page.getByRole("textbox", { name: "New format keywords" }).fill("lunch and learn");
   await page.getByRole("button", { name: "Add", exact: true }).click();
@@ -105,7 +123,7 @@ test("only the team's formats count; admins manage the catalogue, members read i
 
 test("home shows only today's sessions; the CTA opens a prefilled feedback form with use cases and outcome", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("button", { name: /Enter feedback/ }).first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("button", { name: /Enter feedback/ }).first()).toBeVisible({ timeout: 30_000 });
   // Only today's two Mercedes sessions, nothing else.
   await expect(page.getByText(/2 sessions today/)).toBeVisible();
   await expect(page.getByText("Mercedes-Benz Data Engineering — Devin 101 session (Ab Initio squad)")).toBeVisible();
@@ -139,7 +157,7 @@ test("home shows only today's sessions; the CTA opens a prefilled feedback form 
 
 test("every dropdown accepts an ad-hoc 'Other…' value: saved to the reference table, selected, dropdown closed", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: /Enter feedback/ }).first().click();
+  await page.getByRole("button", { name: /Enter feedback/ }).first().click({ timeout: 30_000 });
   await expect(page).toHaveURL(/\/sessions\//);
 
   // Toggle group (outcome): Enter saves and selects.
@@ -181,4 +199,31 @@ test("every dropdown accepts an ad-hoc 'Other…' value: saved to the reference 
   await expect(page.locator('input[value="Ab Initio GDE"]')).toHaveCount(1);
   await page.getByRole("tab", { name: "Contact roles" }).click();
   await expect(page.locator('input[value="Data lead"]')).toHaveCount(1);
+});
+
+test("sign-in gate, linked calendars (partner account), sign out", async ({ page }) => {
+  // A signed-in member can link a second Google account; in the local profile "Google" is simulated.
+  await page.goto("/settings/calendars");
+  await expect(page.getByRole("heading", { name: "Linked calendars" })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("alex@cognition.ai", { exact: false }).first()).toBeVisible();
+  await page.getByRole("button", { name: "Add Google account" }).click();
+  await page.waitForURL(/settings\/calendars\?linked=/, { timeout: 20_000 });
+  await expect(page.getByText("Calendar linked")).toBeVisible();
+  await expect(page.getByText("partner@cognition.ai", { exact: true })).toBeVisible({ timeout: 10_000 });
+
+  // Unlink keeps the page consistent and never shows any token material.
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: "Unlink partner@cognition.ai" }).click();
+  await expect(page.getByText(/events already imported were kept/)).toBeVisible({ timeout: 10_000 });
+  const html = await page.content();
+  expect(html).not.toMatch(/mock-refresh|refresh_token/);
+
+  // Sign out → protected routes bounce to sign-in; signing back in restores the session.
+  await page.getByRole("button", { name: /Account menu/ }).click();
+  await page.getByRole("menuitem", { name: "Sign out" }).click();
+  await page.waitForURL(/\/sign-in/, { timeout: 15_000 });
+  await page.goto("/inbox");
+  await page.waitForURL(/\/sign-in\?next=/, { timeout: 15_000 });
+  await signInAs(page, "dana@cognition.ai");
+  await expect(page.getByRole("button", { name: /Signed in as Dana Whitfield/ })).toBeVisible({ timeout: 20_000 });
 });
