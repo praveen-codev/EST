@@ -4,10 +4,14 @@ import { cn } from "@/lib/utils";
 import { initials } from "@/lib/domain/labels";
 import type { Client, Member, Person } from "@/lib/domain/types";
 
+/**
+ * Per-entity colour derived from a hue. Chroma is kept low so marks read as rich
+ * and muted on navy; light-dark() follows the active colour scheme.
+ */
 export function hueStyle(hue: number, strength: "soft" | "solid" = "soft"): React.CSSProperties {
   return strength === "solid"
-    ? { backgroundColor: `oklch(0.62 0.16 ${hue})`, color: "white" }
-    : { backgroundColor: `oklch(0.94 0.05 ${hue})`, color: `oklch(0.38 0.14 ${hue})` };
+    ? { backgroundColor: `light-dark(oklch(0.5 0.11 ${hue}), oklch(0.58 0.11 ${hue}))`, color: `light-dark(oklch(0.98 0 0), oklch(0.14 0.02 ${hue}))` }
+    : { backgroundColor: `light-dark(oklch(0.93 0.035 ${hue}), oklch(0.31 0.05 ${hue}))`, color: `light-dark(oklch(0.34 0.1 ${hue}), oklch(0.9 0.06 ${hue}))` };
 }
 
 export function ClientMark({ client, size = "md", className }: { client: Client | null; size?: "sm" | "md" | "lg"; className?: string }) {

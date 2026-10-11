@@ -14,12 +14,10 @@ const NAV = [
   { href: "/inbox", label: "Inbox", icon: Inbox, key: "G I" },
   { href: "/timeline", label: "Timeline", icon: ListTree, key: "G T" },
   { href: "/calendar", label: "Calendar", icon: CalendarDays, key: "G C" },
+  { href: "/admin", label: "Admin", icon: Settings2, key: "G A" },
 ] as const;
 
-const SOON = [
-  { label: "Reports", icon: BarChart3 },
-  { label: "Admin", icon: Settings2 },
-] as const;
+const SOON = [{ label: "Reports", icon: BarChart3 }] as const;
 
 export function Rail() {
   const pathname = usePathname();

@@ -7,6 +7,7 @@ import type {
   Person,
   Session,
   SessionType,
+  SessionTypeDef,
   Tag,
   Team,
 } from "@/lib/domain/types";
@@ -20,7 +21,7 @@ const memberSpecs = [
   ["Priya Nair", "priya@cognition.ai", "Applied AI Engineer", "MEMBER", 330],
   ["Marcus Chen", "marcus@cognition.ai", "Applied AI Engineer", "MEMBER", 160],
   ["Sofia Alvarez", "sofia@cognition.ai", "Senior Applied AI Engineer", "MEMBER", 25],
-  ["Dana Whitfield", "dana@cognition.ai", "Head of Enablement", "MANAGER", 200],
+  ["Dana Whitfield", "dana@cognition.ai", "Head of Enablement", "ADMIN", 200],
 ] as const;
 
 export const MEMBERS: Member[] = memberSpecs.map(([name, email, title, role, hue]) => ({
@@ -205,6 +206,28 @@ export const TAGS: Tag[] = tagSpecs.map(([label, category, aliases]) => ({
 
 export const tagByLabel = (label: string) => TAGS.find((t) => t.label === label)!;
 
+/* ───────────────────────── Session types (admin-managed table) ───────────────────────── */
+
+const sessionTypeSpecs: Array<[string, string, string, string[], number]> = [
+  ["101", "101 session", "First hands-on introduction to Devin for a new team.", ["101", "101 session", "devin 101", "intro session"], 90],
+  ["pairProgramming", "Pair programming", "One engineer, one Devin, one real ticket, side by side.", ["pair programming", "pair-programming", "pairing session", "pairing"], 60],
+  ["201", "201 session", "Advanced follow-on: playbooks, review, integrations.", ["201", "201 session", "devin 201", "advanced session"], 90],
+  ["ama", "Ask me anything", "Open Q&A with a team already using Devin.", ["ask me anything", "ama"], 45],
+  ["sprintInADay", "Sprint in a day", "A full day shipping a backlog slice with Devin.", ["sprint in a day", "sprint-in-a-day", "sprint day"], 360],
+];
+
+export const SESSION_TYPES: SessionTypeDef[] = sessionTypeSpecs.map(([id, label, description, keywords, typicalMinutes], i) => ({
+  id,
+  label,
+  description,
+  keywords: keywords.map((k) => k.toLowerCase()),
+  typicalMinutes,
+  archived: false,
+  sortOrder: i,
+  updatedBy: null,
+  updatedAt: null,
+}));
+
 /* ───────────────────────── Time anchor ───────────────────────── */
 
 /** Monday 00:00 of the current week; all fixtures are relative to it. */
@@ -240,7 +263,7 @@ interface HistorySpec {
 const H: HistorySpec[] = [
   {
     by: "priya@cognition.ai", client: "Acme Financial", team: "Platform Engineering", dayOffset: -42, hour: 10, duration: 90,
-    type: "kickoff", title: "Acme Platform — Devin kickoff",
+    type: "101", title: "Acme Platform — Devin 101 session",
     contacts: [["jane.doe@acmefinancial.com", "productOwner"], ["raj.patel@acmefinancial.com", "architect"], ["tom.becker@acmefinancial.com", "projectManager"]],
     participants: ["lena.fischer@acmefinancial.com", "omar.haddad@acmefinancial.com"], estimated: 12,
     tags: ["Java", "Spring Boot", "Jenkins", "Java 8 → 21 upgrade", "Codebase Q&A"], ask: "plan", outcome: "notApplicable", success: "successful",
@@ -248,7 +271,7 @@ const H: HistorySpec[] = [
   },
   {
     by: "priya@cognition.ai", client: "Acme Financial", team: "Platform Engineering", dayOffset: -35, hour: 10, duration: 75,
-    type: "day1of2", title: "Acme Platform — Hands-on workshop Day 1",
+    type: "sprintInADay", title: "Acme Platform — Sprint in a day",
     contacts: [["jane.doe@acmefinancial.com", "productOwner"], ["raj.patel@acmefinancial.com", "architect"]],
     participants: ["lena.fischer@acmefinancial.com", "omar.haddad@acmefinancial.com", "yuki.tanaka@acmefinancial.com"], estimated: 10,
     tags: ["Java", "Spring Boot", "Jenkins", "Java 8 → 21 upgrade", "Unit test generation"], ask: "implementation", outcome: "partial", success: "partial",
@@ -256,7 +279,7 @@ const H: HistorySpec[] = [
   },
   {
     by: "priya@cognition.ai", client: "Acme Financial", team: "Platform Engineering", dayOffset: -34, hour: 10, duration: 75,
-    type: "day2of2", title: "Acme Platform — Hands-on workshop Day 2",
+    type: "201", title: "Acme Platform — 201 session: playbooks",
     contacts: [["jane.doe@acmefinancial.com", "productOwner"], ["raj.patel@acmefinancial.com", "architect"]],
     participants: ["lena.fischer@acmefinancial.com", "omar.haddad@acmefinancial.com", "yuki.tanaka@acmefinancial.com"], estimated: 10,
     tags: ["Java", "Spring Boot", "Java 8 → 21 upgrade", "Unit test generation", "Devin Playbooks"], ask: "implementation", outcome: "completed", success: "successful",
@@ -264,7 +287,7 @@ const H: HistorySpec[] = [
   },
   {
     by: "marcus@cognition.ai", client: "Acme Financial", team: "Payments", dayOffset: -21, hour: 14, duration: 90,
-    type: "kickoff", title: "Acme Payments — Devin kickoff",
+    type: "101", title: "Acme Payments — Devin 101 session",
     contacts: [["chris.lowe@acmefinancial.com", "engineeringManager"], ["raj.patel@acmefinancial.com", "architect"]],
     participants: ["yuki.tanaka@acmefinancial.com"], estimated: 8,
     tags: ["Kotlin", "Kafka", "Code review automation", "GitHub"], ask: "plan", outcome: "notApplicable", success: "successful",
@@ -272,7 +295,7 @@ const H: HistorySpec[] = [
   },
   {
     by: "marcus@cognition.ai", client: "Acme Financial", team: "Payments", dayOffset: -14, hour: 14, duration: 60,
-    type: "officeHours", title: "Acme Payments — office hours",
+    type: "ama", title: "Acme Payments — Ask me anything",
     contacts: [["chris.lowe@acmefinancial.com", "engineeringManager"]],
     participants: ["yuki.tanaka@acmefinancial.com"], estimated: 5,
     tags: ["Kotlin", "Code review automation", "Devin Review"], ask: "supportRequest", outcome: "completed", success: "successful",
@@ -280,7 +303,7 @@ const H: HistorySpec[] = [
   },
   {
     by: "sofia@cognition.ai", client: "Northwind Logistics", team: "Fulfilment Engineering", dayOffset: -28, hour: 9, duration: 90,
-    type: "kickoff", title: "Northwind WMS — enablement kickoff",
+    type: "101", title: "Northwind WMS — Devin 101 session",
     contacts: [["maya.okafor@northwind.io", "productOwner"], ["ben.carter@northwind.io", "architect"]],
     participants: ["ingrid.solberg@northwind.io", "diego.ruiz@northwind.io"], estimated: 15,
     tags: [".NET", "Azure", "GitLab", "Monolith → microservices", "Documentation generation"], ask: "investigation", outcome: "notApplicable", success: "successful",
@@ -288,7 +311,7 @@ const H: HistorySpec[] = [
   },
   {
     by: "sofia@cognition.ai", client: "Northwind Logistics", team: "Fulfilment Engineering", dayOffset: -20, hour: 9, duration: 120,
-    type: "handsOnWorkshop", title: "Northwind WMS — hands-on: documentation sprint",
+    type: "pairProgramming", title: "Northwind WMS — Pair programming: documentation",
     contacts: [["maya.okafor@northwind.io", "productOwner"], ["ben.carter@northwind.io", "architect"]],
     participants: ["ingrid.solberg@northwind.io", "diego.ruiz@northwind.io"], estimated: 12,
     tags: [".NET", "GitLab", "Documentation generation", "Codebase Q&A"], ask: "implementation", outcome: "completed", success: "successful",
@@ -296,7 +319,7 @@ const H: HistorySpec[] = [
   },
   {
     by: "alex@cognition.ai", client: "Helios Energy", team: "Grid Software", dayOffset: -24, hour: 13, duration: 90,
-    type: "kickoff", title: "Helios Grid — Devin kickoff",
+    type: "101", title: "Helios Grid — Devin 101 session",
     contacts: [["sam.whitaker@helios-energy.com", "projectManager"], ["aisha.bello@helios-energy.com", "architect"]],
     participants: ["noah.kim@helios-energy.com"], estimated: 9,
     tags: ["Python", "Go", "Kubernetes", "Terraform", "Unit test generation", "Air-gapped / VDI"], ask: "plan", outcome: "notApplicable", success: "partial",
@@ -304,7 +327,7 @@ const H: HistorySpec[] = [
   },
   {
     by: "priya@cognition.ai", client: "Meridian Health", team: "Clinical Apps", dayOffset: -31, hour: 11, duration: 90,
-    type: "kickoff", title: "Meridian Clinical — kickoff",
+    type: "101", title: "Meridian Clinical — Devin 101 session",
     contacts: [["grace.liu@meridianhealth.org", "productOwner"], ["victor.mensah@meridianhealth.org", "engineeringManager"]],
     participants: ["hannah.weiss@meridianhealth.org", "luis.ortega@meridianhealth.org"], estimated: 14,
     tags: ["Angular", "TypeScript", "Node.js", "AngularJS → Angular", "Bitbucket"], ask: "plan", outcome: "notApplicable", success: "successful",
@@ -312,7 +335,7 @@ const H: HistorySpec[] = [
   },
   {
     by: "priya@cognition.ai", client: "Meridian Health", team: "Clinical Apps", dayOffset: -17, hour: 11, duration: 75,
-    type: "handsOnWorkshop", title: "Meridian Clinical — Angular migration hands-on",
+    type: "pairProgramming", title: "Meridian Clinical — Pair programming: Angular migration",
     contacts: [["grace.liu@meridianhealth.org", "productOwner"]],
     participants: ["hannah.weiss@meridianhealth.org", "luis.ortega@meridianhealth.org"], estimated: 11,
     tags: ["Angular", "TypeScript", "AngularJS → Angular", "Unit test generation", "Bitbucket"], ask: "implementation", outcome: "partial", success: "partial",
@@ -320,7 +343,7 @@ const H: HistorySpec[] = [
   },
   {
     by: "marcus@cognition.ai", client: "Meridian Health", team: "Data Platform", dayOffset: -10, hour: 15, duration: 90,
-    type: "kickoff", title: "Meridian Data Platform — kickoff",
+    type: "101", title: "Meridian Data Platform — Devin 101 session",
     contacts: [["victor.mensah@meridianhealth.org", "engineeringManager"]],
     participants: ["luis.ortega@meridianhealth.org"], estimated: 7,
     tags: ["Python", "PostgreSQL", "GCP", "Bug triage", "Jira"], ask: "investigation", outcome: "notApplicable", success: "successful",
@@ -328,7 +351,7 @@ const H: HistorySpec[] = [
   },
   {
     by: "sofia@cognition.ai", client: "Orbital Retail", team: "Storefront", dayOffset: -13, hour: 10, duration: 90,
-    type: "kickoff", title: "Orbital Storefront — Devin kickoff",
+    type: "101", title: "Orbital Storefront — Devin 101 session",
     contacts: [["pavel.novak@orbitalretail.com", "productOwner"]],
     participants: ["emma.clarke@orbitalretail.com"], estimated: 10,
     tags: ["React", "TypeScript", "Node.js", "GitHub", "Feature implementation", "Slack integration"], ask: "implementation", outcome: "notApplicable", success: "successful",
@@ -336,7 +359,7 @@ const H: HistorySpec[] = [
   },
   {
     by: "sofia@cognition.ai", client: "Orbital Retail", team: "Storefront", dayOffset: -6, hour: 10, duration: 60,
-    type: "officeHours", title: "Orbital Storefront — office hours",
+    type: "ama", title: "Orbital Storefront — Ask me anything",
     contacts: [["pavel.novak@orbitalretail.com", "productOwner"]],
     participants: ["emma.clarke@orbitalretail.com"], estimated: 4,
     tags: ["React", "Slack integration", "Feature implementation", "Pilot approved"], ask: "supportRequest", outcome: "completed", success: "successful",
@@ -344,7 +367,7 @@ const H: HistorySpec[] = [
   },
   {
     by: "alex@cognition.ai", client: "Vantage Insurance", team: "Claims Modernization", dayOffset: -9, hour: 9, duration: 90,
-    type: "kickoff", title: "Vantage Claims — modernization kickoff",
+    type: "101", title: "Vantage Claims — Devin 101 session",
     contacts: [["nadia.rahman@vantage-ins.com", "executiveSponsor"], ["felix.brandt@vantage-ins.com", "architect"], ["zoe.martin@vantage-ins.com", "projectManager"]],
     participants: [], estimated: 18,
     tags: ["Java", "Oracle DB", "COBOL modernization", "Jenkins", "Documentation generation"], ask: "plan", outcome: "notApplicable", success: "successful",
@@ -352,7 +375,7 @@ const H: HistorySpec[] = [
   },
   {
     by: "marcus@cognition.ai", client: "Helios Energy", team: "Grid Software", dayOffset: -3, hour: 13, duration: 75,
-    type: "handsOnWorkshop", title: "Helios Grid — restricted-network hands-on",
+    type: "pairProgramming", title: "Helios Grid — Pair programming (restricted network)",
     contacts: [["aisha.bello@helios-energy.com", "architect"], ["sam.whitaker@helios-energy.com", "projectManager"]],
     participants: ["noah.kim@helios-energy.com"], estimated: 8,
     tags: ["Python", "Kubernetes", "Unit test generation", "Air-gapped / VDI"], ask: "implementation", outcome: "blocked", success: "unsuccessful",

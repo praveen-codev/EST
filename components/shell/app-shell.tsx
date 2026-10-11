@@ -27,6 +27,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       "g i": () => router.push("/inbox"),
       "g t": () => router.push("/timeline"),
       "g c": () => router.push("/calendar"),
+      "g a": () => router.push("/admin"),
       "?": () => setHelpOpen(true),
     },
     [router],

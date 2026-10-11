@@ -11,6 +11,7 @@ import type {
   ScenarioId,
   Session,
   SessionContact,
+  SessionTypeDef,
   Settings,
   Suggestion,
   SyncRun,
@@ -18,10 +19,10 @@ import type {
   Team,
 } from "@/lib/domain/types";
 import { fetchCalendarPage } from "@/lib/mock/calendar";
-import { anchorDate, buildHistoricalSessions, CLIENTS, DEFAULT_MEMBER_ID, MEMBERS, PEOPLE, TAGS, TEAMS } from "@/lib/mock/seed";
+import { anchorDate, buildHistoricalSessions, CLIENTS, DEFAULT_MEMBER_ID, MEMBERS, PEOPLE, SESSION_TYPES, TAGS, TEAMS } from "@/lib/mock/seed";
 import { candidateIdFor, findDuplicate, toCalendarEvent } from "@/lib/sync/sync";
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export interface DataState {
   schemaVersion: number;
@@ -33,6 +34,7 @@ export interface DataState {
   teams: Team[];
   people: Person[];
   tags: Tag[];
+  sessionTypes: SessionTypeDef[];
   events: CalendarEvent[];
   candidates: Candidate[];
   suggestions: Suggestion[];
@@ -53,6 +55,7 @@ export function initialState(scenario: ScenarioId = "messy", now = new Date(), c
     teams: TEAMS,
     people: PEOPLE,
     tags: TAGS,
+    sessionTypes: SESSION_TYPES,
     events: [],
     candidates: [],
     suggestions: [],
@@ -69,6 +72,7 @@ export function engineContext(state: DataState, ownerMemberId: ID): EngineContex
     teams: state.teams,
     people: state.people,
     tags: state.tags,
+    sessionTypes: state.sessionTypes,
     sessions: state.sessions.filter((s) => s.state !== "ignored" && s.state !== "cancelled"),
     ownerMemberId,
   };
@@ -468,6 +472,53 @@ export function rerunAI(state: DataState, sessionId: ID, now = new Date()): Data
   const event = state.events.find((e) => e.id === cand.eventId);
   if (!event) return state;
   return reanalyzeCandidate(state, cand, event, now.toISOString());
+}
+
+/* ───────────────────────── Admin: session-type table ───────────────────────── */
+
+export type SessionTypePatch = Partial<Pick<SessionTypeDef, "label" | "description" | "keywords" | "typicalMinutes" | "archived">>;
+
+export function slugifyTypeId(label: string): string {
+  const base = label.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().split(" ").map((w, i) => (i ? w[0]!.toUpperCase() + w.slice(1) : w)).join("");
+  return base || "type";
+}
+
+export function upsertSessionType(state: DataState, id: ID | null, patch: SessionTypePatch, memberId: ID, now = new Date()): DataState {
+  const nowIso = now.toISOString();
+  const keywords = (patch.keywords ?? []).map((k) => k.trim().toLowerCase()).filter(Boolean);
+  if (id) {
+    return {
+      ...state,
+      sessionTypes: state.sessionTypes.map((t) =>
+        t.id === id ? { ...t, ...patch, keywords: patch.keywords ? [...new Set(keywords)] : t.keywords, updatedBy: memberId, updatedAt: nowIso } : t,
+      ),
+    };
+  }
+  const label = (patch.label ?? "").trim();
+  if (!label) return state;
+  let newId = slugifyTypeId(label);
+  while (state.sessionTypes.some((t) => t.id === newId)) newId = `${newId}2`;
+  const row: SessionTypeDef = {
+    id: newId,
+    label,
+    description: patch.description ?? "",
+    keywords: [...new Set([label.toLowerCase(), ...keywords])],
+    typicalMinutes: patch.typicalMinutes ?? 60,
+    archived: false,
+    sortOrder: state.sessionTypes.length,
+    updatedBy: memberId,
+    updatedAt: nowIso,
+  };
+  return { ...state, sessionTypes: [...state.sessionTypes, row] };
+}
+
+export function moveSessionType(state: DataState, id: ID, delta: -1 | 1): DataState {
+  const ordered = [...state.sessionTypes].sort((a, b) => a.sortOrder - b.sortOrder);
+  const i = ordered.findIndex((t) => t.id === id);
+  const j = i + delta;
+  if (i < 0 || j < 0 || j >= ordered.length) return state;
+  [ordered[i], ordered[j]] = [ordered[j]!, ordered[i]!];
+  return { ...state, sessionTypes: ordered.map((t, k) => ({ ...t, sortOrder: k })) };
 }
 
 /* ───────────────────────── Selectors shared by UI and tests ───────────────────────── */

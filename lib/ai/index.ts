@@ -1,12 +1,12 @@
 import { stableId } from "@/lib/domain/ids";
 import type { CalendarEvent, Classification, Person, Suggestion } from "@/lib/domain/types";
 import { classify } from "./classify";
-import { extract, PROMPT_VERSION, type EngineContext } from "./extract";
+import { extract, matchSessionType, PROMPT_VERSION, type EngineContext } from "./extract";
 import { normalizeEvent } from "./normalize";
 import { redact } from "./redact";
 
 export { PROMPT_VERSION, ITEM_FIELDS, type EngineContext, type ClientCreate } from "./extract";
-export { LIKELY_THRESHOLD, REVIEW_THRESHOLD, bucketFor } from "./classify";
+export { LIKELY_THRESHOLD, REVIEW_THRESHOLD, NO_TYPE_CAP, bucketFor } from "./classify";
 
 /** Confidence at or above which a suggestion is written straight into the draft (still revertible). */
 export const PREFILL_THRESHOLD = 0.85;
@@ -40,7 +40,8 @@ export function analyzeEvent(event: CalendarEvent, candidateId: string, ctx: Eng
   const n = normalizeEvent(safeEvent);
 
   const extraction = n.cancelled ? { suggestions: [], newPeople: [], matchedClient: null } : extract(n, ctx);
-  const classification = classify(n, extraction.matchedClient !== null);
+  const typeMatch = n.cancelled ? null : matchSessionType(n, ctx.sessionTypes);
+  const classification = classify(n, extraction.matchedClient !== null, typeMatch ? { label: typeMatch.type.label, keyword: typeMatch.keyword, typicalMinutes: typeMatch.type.typicalMinutes } : null);
 
   const suggestions: Suggestion[] = classification.bucket === "unlikely"
     ? []

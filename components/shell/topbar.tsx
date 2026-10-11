@@ -12,6 +12,7 @@ const TITLES: Array<[string, string, string]> = [
   ["/timeline", "Timeline", "Every session across the team, grouped your way."],
   ["/calendar", "Calendar", "Candidates ghosted, confirmed sessions solid."],
   ["/sessions", "Session", "Prefilled from evidence. You decide what sticks."],
+  ["/admin", "Admin · session formats", "The catalogue of enablement formats the team actually runs."],
 ];
 
 export function Topbar({ onOpenPalette }: { onOpenPalette: () => void }) {

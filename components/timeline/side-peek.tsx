@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { ClientMark, MemberAvatar } from "@/components/common/marks";
 import { AiBadge } from "@/components/common/sparkle";
 import { EvidenceList } from "@/components/common/evidence";
-import { AUTOMATION_OUTCOME_LABELS, SESSION_STATE_LABELS, SESSION_TYPE_LABELS, SUCCESS_STATE_LABELS } from "@/lib/domain/labels";
+import { AUTOMATION_OUTCOME_LABELS, SESSION_STATE_LABELS, SUCCESS_STATE_LABELS } from "@/lib/domain/labels";
 import { sessionIdForEvent } from "@/lib/domain/ops";
 import { useStore } from "@/lib/domain/store";
 import type { TimelineItem } from "@/lib/domain/timeline";
@@ -54,7 +54,7 @@ export function SidePeek({ item, onClose }: { item: TimelineItem | null; onClose
                 <Badge variant={item.kind === "candidate" ? "outline" : "secondary"} className={item.kind === "candidate" ? "border-dashed" : undefined}>
                   {item.kind === "candidate" ? `Candidate · ${item.bucket === "likely" ? "likely" : "needs a look"}` : SESSION_STATE_LABELS[item.state]}
                 </Badge>
-                {item.sessionType && <Badge variant="outline">{SESSION_TYPE_LABELS[item.sessionType]}</Badge>}
+                {item.sessionTypeLabel && <Badge variant="outline">{item.sessionTypeLabel}</Badge>}
                 {item.success && item.success !== "unknown" && <Badge variant="outline">{SUCCESS_STATE_LABELS[item.success]}</Badge>}
                 {item.outcome && <Badge variant="outline">{AUTOMATION_OUTCOME_LABELS[item.outcome]}</Badge>}
                 {item.pending > 0 && <AiBadge>{item.pending} suggestion{item.pending === 1 ? "" : "s"}</AiBadge>}

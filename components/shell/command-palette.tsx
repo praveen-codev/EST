@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { CalendarDays, CheckCheck, FlaskConical, Inbox, ListTree, RefreshCw, Users } from "lucide-react";
+import { CalendarDays, CheckCheck, FlaskConical, Inbox, ListTree, RefreshCw, Settings2, Users } from "lucide-react";
 import { toast } from "sonner";
 import {
   CommandDialog,
@@ -77,6 +77,9 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
           </CommandItem>
           <CommandItem onSelect={() => go("/calendar")}>
             <CalendarDays /> Calendar <CommandShortcut>G C</CommandShortcut>
+          </CommandItem>
+          <CommandItem onSelect={() => go("/admin")}>
+            <Settings2 /> Admin · session formats <CommandShortcut>G A</CommandShortcut>
           </CommandItem>
         </CommandGroup>
         <CommandSeparator />

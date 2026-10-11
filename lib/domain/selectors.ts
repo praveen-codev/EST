@@ -1,6 +1,6 @@
 import { tierFor } from "@/lib/ai";
 import type { DataState } from "./ops";
-import { FIELD_LABELS } from "./labels";
+import { FIELD_LABELS, sessionTypeLabel } from "./labels";
 import type {
   CalendarEvent,
   Candidate,
@@ -34,6 +34,7 @@ export interface CandidateVM {
   clientLabel: string | null;
   team: Team | null;
   sessionType: SessionType | null;
+  sessionTypeLabel: string | null;
   tags: Tag[];
   facilitator: Member | null;
   coverage: { filled: number; total: number };
@@ -69,6 +70,7 @@ export function candidateVM(state: DataState, candidate: Candidate, depth = 0): 
     clientLabel: client?.name ?? clientSug?.label ?? null,
     team: teamSug ? state.teams.find((t) => t.id === teamSug.value) ?? null : null,
     sessionType: (typeSug?.value as SessionType | undefined) ?? null,
+    sessionTypeLabel: sessionTypeLabel(state.sessionTypes, (typeSug?.value as SessionType | undefined) ?? null),
     tags: tagIds.map((id) => state.tags.find((t) => t.id === id)!).filter(Boolean),
     facilitator: facSug ? state.members.find((m) => m.id === facSug.value) ?? null : null,
     coverage: { filled: filledFields.size, total: KEY_FIELDS.length },
@@ -150,6 +152,7 @@ export interface SessionVM {
   contacts: ContactVM[];
   participants: Person[];
   tags: Tag[];
+  sessionTypeLabel: string | null;
   pending: Suggestion[];
   pendingByField: Map<SuggestionField, Suggestion[]>;
   sourceEvents: CalendarEvent[];
@@ -188,6 +191,7 @@ export function sessionVM(state: DataState, session: Session): SessionVM {
     contacts: session.contacts.map((c) => ({ ...c, person: state.people.find((p) => p.id === c.personId)! })).filter((c) => c.person),
     participants: session.participantIds.map((id) => state.people.find((p) => p.id === id)!).filter(Boolean),
     tags: session.tagIds.map((id) => state.tags.find((t) => t.id === id)!).filter(Boolean),
+    sessionTypeLabel: sessionTypeLabel(state.sessionTypes, session.sessionType),
     pending,
     pendingByField,
     sourceEvents: session.sourceEventIds.map((id) => state.events.find((e) => e.id === id)!).filter(Boolean),

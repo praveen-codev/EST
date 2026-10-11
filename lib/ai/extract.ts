@@ -1,5 +1,5 @@
 import { stableId } from "@/lib/domain/ids";
-import { CONTACT_ROLE_LABELS, DEVIN_ASK_LABELS, SESSION_TYPE_LABELS } from "@/lib/domain/labels";
+import { CONTACT_ROLE_LABELS, DEVIN_ASK_LABELS } from "@/lib/domain/labels";
 import type {
   Client,
   ContactRole,
@@ -10,7 +10,7 @@ import type {
   Person,
   Session,
   SessionContact,
-  SessionType,
+  SessionTypeDef,
   Suggestion,
   SuggestionField,
   Tag,
@@ -26,6 +26,7 @@ export interface EngineContext {
   teams: Team[];
   people: Person[];
   tags: Tag[];
+  sessionTypes: SessionTypeDef[];
   sessions: Session[];
   ownerMemberId: ID;
 }
@@ -66,16 +67,6 @@ function* roleMentions(description: string): Generator<{ name: string; role: Con
   }
 }
 
-const TYPE_PATTERNS: Array<[RegExp, SessionType, number]> = [
-  [/\bday\s*1\b|\bday one\b/i, "day1of2", 0.95],
-  [/\bday\s*2\b|\bday two\b/i, "day2of2", 0.95],
-  [/\bkick-?off\b/i, "kickoff", 0.92],
-  [/\boffice hours\b/i, "officeHours", 0.95],
-  [/\bfollow[- ]?up\b/i, "followUp", 0.9],
-  [/\btraining\b|\bnew joiners\b|\bonboarding\b/i, "training", 0.9],
-  [/\bworkshop\b|\bhands[- ]on\b/i, "handsOnWorkshop", 0.9],
-];
-
 const ASK_KEYWORDS: Record<DevinAsk, string[]> = {
   plan: ["kickoff", "kick-off", "plan", "roadmap", "intro", "scoping"],
   supportRequest: ["office hours", "support", "q&a", "troubleshoot", "follow-up", "follow up", "stragglers"],
@@ -108,6 +99,26 @@ function containsTerm(text: string, term: string): boolean {
   const t = term.toLowerCase();
   const pattern = /^[a-z0-9]/.test(t) && /[a-z0-9]$/.test(t) ? `\\b${escapeRegExp(t)}\\b` : escapeRegExp(t);
   return new RegExp(pattern, "i").test(text);
+}
+
+export interface SessionTypeMatch {
+  type: SessionTypeDef;
+  keyword: string;
+  inTitle: boolean;
+}
+
+/** Longest keyword wins so "201 session" beats a stray "101" elsewhere in the text. */
+export function matchSessionType(n: NormalizedEvent, types: SessionTypeDef[]): SessionTypeMatch | null {
+  let best: SessionTypeMatch | null = null;
+  const title = n.title.toLowerCase();
+  for (const type of types) {
+    if (type.archived) continue;
+    for (const keyword of type.keywords) {
+      if (!containsTerm(n.text, keyword)) continue;
+      if (!best || keyword.length > best.keyword.length) best = { type, keyword, inTitle: containsTerm(title, keyword) };
+    }
+  }
+  return best;
 }
 
 export function extract(n: NormalizedEvent, ctx: EngineContext): ExtractionResult {
@@ -190,22 +201,11 @@ export function extract(n: NormalizedEvent, ctx: EngineContext): ExtractionResul
   const cleanTitle = n.title.replace(/\s*\((?:copy|fwd|forwarded)[^)]*\)\s*/i, "").trim();
   if (cleanTitle) add("title", cleanTitle, cleanTitle, 0.95, [{ source: "calendar.title", excerpt: n.title }]);
 
-  /* ── Session type ── */
-  let typeMatched = false;
-  for (const [re, type, conf] of TYPE_PATTERNS) {
-    const m = `${n.title}\n${n.description}`.match(re);
-    if (m) {
-      add("sessionType", type, SESSION_TYPE_LABELS[type], conf, [
-        { source: re.test(n.title) ? "calendar.title" : "calendar.description", excerpt: `"${m[0]}"` },
-      ]);
-      typeMatched = true;
-      break;
-    }
-  }
-  if (!typeMatched && n.external.length) {
-    const fallback: SessionType = n.durationMin >= 90 ? "handsOnWorkshop" : "followUp";
-    add("sessionType", fallback, SESSION_TYPE_LABELS[fallback], 0.45, [
-      { source: "calendar.time", excerpt: `${n.durationMin} min slot` },
+  /* ── Session type (from the admin-managed table; no guessing) ── */
+  const typeMatch = matchSessionType(n, ctx.sessionTypes);
+  if (typeMatch) {
+    add("sessionType", typeMatch.type.id, typeMatch.type.label, 0.94, [
+      { source: typeMatch.inTitle ? "calendar.title" : "calendar.description", excerpt: `"${typeMatch.keyword}"` },
     ]);
   }
 

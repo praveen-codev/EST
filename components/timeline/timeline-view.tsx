@@ -11,7 +11,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Combobox } from "@/components/common/combobox";
 import { ClientMark, MemberAvatar } from "@/components/common/marks";
 import { Sparkle } from "@/components/common/sparkle";
-import { SESSION_STATE_LABELS, SESSION_TYPE_LABELS } from "@/lib/domain/labels";
+import { SESSION_STATE_LABELS } from "@/lib/domain/labels";
 import { useHydrated, useStore } from "@/lib/domain/store";
 import { allItems, applyFilters, DEFAULT_FILTERS, groupItems, type GroupBy, type RangePreset, type TimelineFilters, type TimelineItem } from "@/lib/domain/timeline";
 import type { SessionState } from "@/lib/domain/types";
@@ -129,7 +129,7 @@ function Row({ item, groupBy, first, onOpen }: { item: TimelineItem; groupBy: Gr
         </span>
         <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
           {item.clientLabel && groupBy !== "client" && <span>{item.clientLabel}</span>}
-          {item.sessionType && <span>· {SESSION_TYPE_LABELS[item.sessionType]}</span>}
+          {item.sessionTypeLabel && <span>· {item.sessionTypeLabel}</span>}
           {item.tags.slice(0, 3).map((t) => <span key={t.id} className="text-ai/80">#{t.label}</span>)}
           {item.tags.length > 3 && <span>+{item.tags.length - 3}</span>}
         </span>

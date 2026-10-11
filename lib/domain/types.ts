@@ -70,14 +70,26 @@ export interface Tag {
   aliases: string[];
 }
 
-export type SessionType =
-  | "kickoff"
-  | "handsOnWorkshop"
-  | "day1of2"
-  | "day2of2"
-  | "officeHours"
-  | "followUp"
-  | "training";
+/** Id of a row in the admin-managed session-types table (see SessionTypeDef). */
+export type SessionType = string;
+
+/**
+ * The catalogue of enablement session formats the team actually runs.
+ * Only events that match one of these count as candidate sessions.
+ */
+export interface SessionTypeDef {
+  id: ID;
+  label: string;
+  description: string;
+  /** Lower-cased phrases that identify this format in an invite. */
+  keywords: string[];
+  /** Typical length, used as a weak classification signal. */
+  typicalMinutes: number;
+  archived: boolean;
+  sortOrder: number;
+  updatedBy: ID | null;
+  updatedAt: ISODateTime | null;
+}
 
 export type SessionState =
   | "candidate"

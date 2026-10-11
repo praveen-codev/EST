@@ -22,15 +22,15 @@ await page.waitForURL(/\/sessions\//);
 await page.waitForTimeout(1200);
 await page.screenshot({ path: "/tmp/est-shots/session.png", fullPage: true });
 
-for (const path of ["/timeline", "/calendar"]) {
+for (const path of ["/timeline", "/calendar", "/admin"]) {
   await page.goto(`${base}${path}`);
   await page.waitForTimeout(1200);
   await page.screenshot({ path: `/tmp/est-shots${path}.png`, fullPage: true });
 }
-await page.emulateMedia({ colorScheme: "dark" });
 await page.goto(`${base}/inbox`);
-await page.waitForTimeout(1200);
-await page.screenshot({ path: "/tmp/est-shots/inbox-dark.png", fullPage: false });
+await page.getByRole("button", { name: "Toggle theme" }).click();
+await page.waitForTimeout(800);
+await page.screenshot({ path: "/tmp/est-shots/inbox-light.png", fullPage: false });
 
 console.log("errors:", errors.length ? errors : "none");
 await browser.close();

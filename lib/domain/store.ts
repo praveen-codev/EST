@@ -12,14 +12,17 @@ import {
   dismissCandidate,
   initialState,
   mergeDuplicate,
+  moveSessionType,
   openCandidatesFor,
   rerunAI,
   restoreCandidate,
   runSync,
   SCHEMA_VERSION,
   updateSession,
+  upsertSessionType,
   type DataState,
   type SessionPatch,
+  type SessionTypePatch,
   type SyncOutcome,
 } from "./ops";
 import { CHIP_THRESHOLD } from "@/lib/ai";
@@ -51,6 +54,8 @@ export interface Actions {
   acceptAllForSession: (sessionId: ID) => void;
   updateSession: (sessionId: ID, patch: SessionPatch) => void;
   rerunAI: (sessionId: ID) => void;
+  upsertSessionType: (id: ID | null, patch: SessionTypePatch) => void;
+  moveSessionType: (id: ID, delta: -1 | 1) => void;
   createPerson: (name: string, clientId: ID | null) => ID;
   createTag: (label: string) => ID;
   createClient: (name: string) => ID;
@@ -63,7 +68,7 @@ export interface Actions {
 export type Store = DataState & UiState & Actions;
 
 const dataKeys: Array<keyof DataState> = [
-  "schemaVersion", "anchorIso", "currentMemberId", "settings", "members", "clients", "teams", "people", "tags",
+  "schemaVersion", "anchorIso", "currentMemberId", "settings", "members", "clients", "teams", "people", "tags", "sessionTypes",
   "events", "candidates", "suggestions", "sessions", "syncRuns", "cursors",
 ];
 
@@ -110,6 +115,8 @@ export const useStore = create<Store>()(
       updateSession: (sessionId, patch) => setState((s) => updateSession(pickData(s), sessionId, patch, s.currentMemberId)),
       rerunAI: (sessionId) => setState((s) => rerunAI(pickData(s), sessionId)),
 
+      upsertSessionType: (id, patch) => setState((s) => upsertSessionType(pickData(s), id, patch, s.currentMemberId)),
+      moveSessionType: (id, delta) => setState((s) => moveSessionType(pickData(s), id, delta)),
       createPerson: (name, clientId) => {
         const id = freshId("per");
         setState((s) => ({ people: [...s.people, { id, name, clientId, email: null, role: null }] }));

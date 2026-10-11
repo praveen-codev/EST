@@ -34,7 +34,7 @@ test("capture workflow: sync → one-click confirm → timeline → re-sync with
   expect(after).toBe(before + likelyCount);
 
   // Open the first confirmed session and make a manual edit.
-  await page.getByRole("button", { name: /Acme Platform — Devin office hours/ }).first().click();
+  await page.getByRole("button", { name: /Acme Platform — Devin 101 session/ }).first().click();
   await expect(page).toHaveURL(/\/sessions\//);
   const title = page.getByRole("textbox", { name: "Session title" });
   await title.fill("Acme office hours — my title");
@@ -77,5 +77,29 @@ test("persona switch shows another engineer's inbox while history is shared", as
   await page.getByRole("menuitem", { name: /Priya Nair/ }).click();
   await expect(page.getByText("Now viewing as Priya Nair")).toBeVisible();
   await expect(page.locator("[data-candidate-id]").first()).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByText("Meridian Clinical — Angular migration hands-on (part 2)")).toBeVisible();
+  await expect(page.getByText("Meridian Clinical — 201 session (part 2)")).toBeVisible();
+});
+
+test("only the team's formats count; admins manage the catalogue, members read it", async ({ page }) => {
+  await waitForInbox(page);
+  // A generic "enablement workshop" with a real client is dialled down to Needs a look.
+  const review = page.getByRole("region", { name: "Needs a look" });
+  await expect(review.getByText("Helios Grid — enablement workshop")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Likely sessions" }).getByText("enablement workshop")).toHaveCount(0);
+
+  // Members see the catalogue read-only.
+  await page.goto("/admin");
+  await expect(page.getByText(/Read-only/)).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Format label", exact: true }).first()).toBeDisabled();
+
+  // The admin can add a format.
+  await page.getByRole("button", { name: /Switch persona/ }).click();
+  await page.getByRole("menuitem", { name: /Dana Whitfield/ }).click();
+  await expect(page.getByText(/Editing as Dana Whitfield/)).toBeVisible();
+  await page.getByRole("textbox", { name: "New format label" }).fill("Lunch & learn");
+  await page.getByRole("textbox", { name: "New format keywords" }).fill("lunch and learn");
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Format label", exact: true }).last()).toHaveValue("Lunch & learn");
+  await page.getByRole("button", { name: "Archive format" }).last().click();
+  await expect(page.getByText(/1 archived/)).toBeVisible();
 });

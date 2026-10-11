@@ -57,11 +57,27 @@ describe("classification", () => {
     }
   });
 
-  it("keeps a sparse but plausible workshop as likely while leaving gaps for the member to fill", () => {
-    const { cand, suggestions } = candidateByProviderId(state, "evt-incomplete-workshop");
-    expect(cand.classification.bucket).toBe("likely");
-    expect(suggestions.some((s) => s.field === "contacts")).toBe(false);
-    expect(suggestions.some((s) => s.field === "participantsEstimated")).toBe(false);
+  it("only counts the team's own formats: generic workshops with a client are capped at 'needs a look'", () => {
+    for (const id of ["evt-helios-generic-ws", "evt-incomplete-workshop"]) {
+      const { cand, suggestions } = candidateByProviderId(state, id);
+      expect(cand.classification.bucket, id).toBe("review");
+      expect(cand.classification.reasons[0]).toMatch(/No recognised session format/);
+      expect(suggestions.some((s) => s.field === "sessionType"), id).toBe(false);
+    }
+  });
+
+  it("matches session formats from the admin-managed table, longest keyword first", () => {
+    expect(candidateByProviderId(state, "evt-vantage-d2").suggestions.find((s) => s.field === "sessionType")!.value).toBe("201");
+    expect(candidateByProviderId(state, "evt-acme-pay-review").suggestions.find((s) => s.field === "sessionType")!.value).toBe("ama");
+    expect(candidateByProviderId(state, "evt-northwind-fu").suggestions.find((s) => s.field === "sessionType")!.value).toBe("pairProgramming");
+  });
+
+  it("an archived format stops matching", () => {
+    const archived = { ...state, sessionTypes: state.sessionTypes.map((t) => (t.id === "ama" ? { ...t, archived: true } : t)) };
+    const { event, cand } = candidateByProviderId(state, "evt-acme-pay-review");
+    const result = analyzeEvent(event, cand.id, engineContext(archived, cand.ownerMemberId));
+    expect(result.classification.bucket).toBe("review");
+    expect(result.suggestions.some((s) => s.field === "sessionType")).toBe(false);
   });
 });
 
@@ -74,7 +90,7 @@ describe("extraction", () => {
     expect(byField("clientId")[0]!.value).toBe(clientByName("Acme Financial").id);
     expect(tierFor(byField("clientId")[0]!.confidence)).toBe("prefill");
     expect(byField("teamId")[0]!.value).toBe(teamByName("Acme Financial", "Platform Engineering").id);
-    expect(byField("sessionType")[0]!.value).toBe("officeHours");
+    expect(byField("sessionType")[0]!.value).toBe("101");
     expect(byField("facilitatorId")[0]!.label).toBe("Alex Rivera");
   });
 
@@ -101,7 +117,7 @@ describe("extraction", () => {
 
   it("reads Day 1/Day 2, estimated participants and creates unknown attendees as people", () => {
     const { suggestions } = candidateByProviderId(state, "evt-vantage-d1");
-    expect(suggestions.find((s) => s.field === "sessionType")!.value).toBe("day1of2");
+    expect(suggestions.find((s) => s.field === "sessionType")!.value).toBe("sprintInADay");
     expect(suggestions.find((s) => s.field === "participantsEstimated")!.value).toBe(20);
     expect(state.people.some((p) => p.email === "priyanka.rao@vantage-ins.com")).toBe(true);
     const participants = suggestions.find((s) => s.field === "participantIds")!.value as string[];

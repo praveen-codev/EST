@@ -4,9 +4,12 @@ import type { NormalizedEvent } from "./normalize";
 export const LIKELY_THRESHOLD = 0.7;
 export const REVIEW_THRESHOLD = 0.4;
 
-const STRONG = ["workshop", "enablement", "kickoff", "kick-off", "office hours", "hands-on", "hands on", "training", "onboarding"];
+/** Generic meeting words: supportive, but on their own they never make a session (the team only counts its five formats). */
+const SUPPORTING = ["workshop", "enablement", "kickoff", "kick-off", "office hours", "hands-on", "hands on", "training", "onboarding"];
 const PRODUCT = ["devin"];
 const WEAK = ["follow-up", "follow up", "sync", "readout", "pilot", "demo"];
+/** Highest score an event can reach without matching a session type from the table. */
+export const NO_TYPE_CAP = 0.62;
 const SOFT_NEGATIVE = ["intro call", "intro:", "intro to", "introduction"];
 const NEGATIVE = ["1:1", "1-1", "standup", "stand-up", "interview", "lunch", "focus time", "dentist", "ooo", "out of office", "retro", "all-hands", "all hands", "pto"];
 
@@ -16,7 +19,7 @@ export function bucketFor(score: number): ClassificationBucket {
   return "unlikely";
 }
 
-export function classify(n: NormalizedEvent, knownClient: boolean): Classification {
+export function classify(n: NormalizedEvent, knownClient: boolean, matchedType: { label: string; keyword: string; typicalMinutes: number } | null): Classification {
   if (n.cancelled) {
     return { score: 0.05, bucket: "unlikely", reasons: ["Event was cancelled"] };
   }
@@ -29,9 +32,14 @@ export function classify(n: NormalizedEvent, knownClient: boolean): Classificati
     reasons.push(`Looks like "${negatives[0]}", not an enablement session`);
   }
 
-  const strong = STRONG.filter((k) => n.text.includes(k));
+  if (matchedType) {
+    score += 0.4;
+    reasons.push(`"${matchedType.keyword}" matches the ${matchedType.label} format`);
+    if (Math.abs(n.durationMin - matchedType.typicalMinutes) <= matchedType.typicalMinutes * 0.5) score += 0.05;
+  }
+  const strong = SUPPORTING.filter((k) => n.text.includes(k));
   if (strong.length) {
-    score += Math.min(0.4, 0.2 * strong.length);
+    score += 0.1;
     reasons.push(`Mentions ${strong.slice(0, 2).map((k) => `"${k}"`).join(" and ")}`);
   }
   if (PRODUCT.some((k) => n.text.includes(k))) {
@@ -78,6 +86,10 @@ export function classify(n: NormalizedEvent, knownClient: boolean): Classificati
     reasons.push("Sparse title and no description");
   }
 
+  if (!matchedType && score > NO_TYPE_CAP) {
+    score = NO_TYPE_CAP;
+    reasons.unshift("No recognised session format (101, 201, pair programming, AMA, sprint in a day)");
+  }
   const clamped = Math.max(0, Math.min(1, Number(score.toFixed(2))));
   return { score: clamped, bucket: bucketFor(clamped), reasons };
 }

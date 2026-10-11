@@ -10,7 +10,6 @@ import { AttendeeStack, ClientMark } from "@/components/common/marks";
 import { ConfidenceRing } from "@/components/common/confidence-ring";
 import { SuggestionEvidence } from "@/components/common/evidence";
 import { Sparkle } from "@/components/common/sparkle";
-import { SESSION_TYPE_LABELS } from "@/lib/domain/labels";
 import type { CandidateVM } from "@/lib/domain/selectors";
 import type { Suggestion } from "@/lib/domain/types";
 import { durationMin, fmtDayParts, fmtDuration, fmtTimeRange } from "@/lib/format";
@@ -96,7 +95,7 @@ export function CandidateCard({ vm, highlighted, showReasoning, variant, onConfi
             <div className="mt-3 flex flex-wrap items-center gap-1.5">
               {clientSug && <ProposalChip suggestion={clientSug} prefix="Client" />}
               {teamSug && <ProposalChip suggestion={teamSug} prefix="Team" />}
-              {typeSug && <ProposalChip suggestion={typeSug} prefix="Type" label={SESSION_TYPE_LABELS[typeSug.value as keyof typeof SESSION_TYPE_LABELS]} />}
+              {typeSug && <ProposalChip suggestion={typeSug} prefix="Format" />}
               {tagSugs.map((t) => (
                 <ProposalChip key={t.id} suggestion={t} />
               ))}

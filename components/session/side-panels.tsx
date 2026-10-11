@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { EyeOff, History, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MemberAvatar } from "@/components/common/marks";
-import { SESSION_TYPE_LABELS } from "@/lib/domain/labels";
+import { sessionTypeLabel } from "@/lib/domain/labels";
 import type { DataState } from "@/lib/domain/ops";
 import type { SessionVM } from "@/lib/domain/selectors";
 import { fmtDayLabel } from "@/lib/format";
@@ -77,7 +77,7 @@ export function HistoryPanel({ vm, state }: { vm: SessionVM; state: DataState })
                   </div>
                   <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
                     <span>{fmtDayLabel(h.scheduledStart)} · {format(new Date(h.scheduledStart), "yyyy")}</span>
-                    {h.sessionType && <span>· {SESSION_TYPE_LABELS[h.sessionType]}</span>}
+                    {h.sessionType && <span>· {sessionTypeLabel(state.sessionTypes, h.sessionType)}</span>}
                     {by && <span>· {by.name.split(" ")[0]}</span>}
                   </div>
                   {tags.length > 0 && <div className="mt-1 truncate text-[11px] text-ai">{tags.join(" · ")}</div>}

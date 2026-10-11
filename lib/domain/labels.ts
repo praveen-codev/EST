@@ -4,19 +4,16 @@ import type {
   DevinAsk,
   SessionState,
   SessionType,
+  SessionTypeDef,
   SuccessState,
   TagCategory,
 } from "./types";
 
-export const SESSION_TYPE_LABELS: Record<SessionType, string> = {
-  kickoff: "Kickoff",
-  handsOnWorkshop: "Hands-on workshop",
-  day1of2: "Workshop · Day 1 of 2",
-  day2of2: "Workshop · Day 2 of 2",
-  officeHours: "Office hours",
-  followUp: "Follow-up",
-  training: "Training",
-};
+/** Label for a session type id, falling back to the raw id for archived/unknown rows. */
+export function sessionTypeLabel(types: SessionTypeDef[], id: SessionType | null): string | null {
+  if (!id) return null;
+  return types.find((t) => t.id === id)?.label ?? id;
+}
 
 export const SESSION_STATE_LABELS: Record<SessionState, string> = {
   candidate: "Candidate",
@@ -66,7 +63,6 @@ export const TAG_CATEGORY_LABELS: Record<TagCategory, string> = {
   outcome: "Outcome",
 };
 
-export const SESSION_TYPES = Object.keys(SESSION_TYPE_LABELS) as SessionType[];
 export const DEVIN_ASKS = Object.keys(DEVIN_ASK_LABELS) as DevinAsk[];
 export const AUTOMATION_OUTCOMES = Object.keys(AUTOMATION_OUTCOME_LABELS) as AutomationOutcome[];
 export const SUCCESS_STATES = Object.keys(SUCCESS_STATE_LABELS) as SuccessState[];

@@ -5,8 +5,10 @@ import {
   decideSuggestion,
   initialState,
   mergeDuplicate,
+  moveSessionType,
   runSync,
   updateSession,
+  upsertSessionType,
   type DataState,
 } from "@/lib/domain/ops";
 import { clientByName, DEFAULT_MEMBER_ID } from "@/lib/mock/seed";
@@ -65,7 +67,7 @@ describe("confirm + provenance", () => {
     const next = confirmCandidate(state, cand.id, DEFAULT_MEMBER_ID, NOW);
     const session = next.sessions.find((s) => s.sourceEventIds.includes(cand.eventId))!;
     expect(session.clientId).toBe(clientByName("Acme Financial").id);
-    expect(session.sessionType).toBe("officeHours");
+    expect(session.sessionType).toBe("101");
     expect(session.provenance.clientId).toBe("prefilled");
     expect(session.tagIds.length).toBeGreaterThan(0);
     const pending = next.suggestions.filter((s) => s.sessionId === session.id && s.status === "proposed");
@@ -118,6 +120,20 @@ describe("confirm + provenance", () => {
     expect(created).toBeDefined();
     expect(next.sessions.find((s) => s.id === session.id)!.clientId).toBe(created.id);
     expect(next.people.filter((p) => p.clientId === created.id).length).toBe(2);
+  });
+
+  it("admins can add, edit, reorder and archive session formats", () => {
+    let state = initialState("messy", NOW);
+    state = upsertSessionType(state, null, { label: "Lunch & learn", keywords: ["lunch and learn", "L&L"], typicalMinutes: 60 }, DEFAULT_MEMBER_ID, NOW);
+    const added = state.sessionTypes.find((t) => t.label === "Lunch & learn")!;
+    expect(added.id).toBe("lunchLearn");
+    expect(added.keywords).toEqual(["lunch & learn", "lunch and learn", "l&l"]);
+    state = upsertSessionType(state, added.id, { label: "Lunch and learn", archived: true }, DEFAULT_MEMBER_ID, NOW);
+    expect(state.sessionTypes.find((t) => t.id === added.id)!.archived).toBe(true);
+    const before = [...state.sessionTypes].sort((a, b) => a.sortOrder - b.sortOrder).map((t) => t.id);
+    state = moveSessionType(state, "ama", -1);
+    const after = [...state.sessionTypes].sort((a, b) => a.sortOrder - b.sortOrder).map((t) => t.id);
+    expect(after.indexOf("ama")).toBe(before.indexOf("ama") - 1);
   });
 
   it("merging a duplicate attaches its event to the original session", () => {

@@ -1,5 +1,6 @@
 import { endOfMonth, endOfWeek, format, isAfter, isBefore, startOfDay, startOfMonth, startOfWeek, subDays } from "date-fns";
 import type { DataState } from "./ops";
+import { sessionTypeLabel } from "./labels";
 import { candidateVM } from "./selectors";
 import type { Candidate, Client, ID, Member, Session, SessionState, SessionType, Tag } from "./types";
 
@@ -16,6 +17,7 @@ export interface TimelineItem {
   clientLabel: string | null;
   facilitator: Member | null;
   sessionType: SessionType | null;
+  sessionTypeLabel: string | null;
   tags: Tag[];
   state: SessionState;
   success: Session["successState"] | null;
@@ -65,6 +67,7 @@ export function sessionItem(state: DataState, s: Session): TimelineItem {
     clientLabel: client?.name ?? null,
     facilitator: state.members.find((m) => m.id === s.facilitatorId) ?? null,
     sessionType: s.sessionType,
+    sessionTypeLabel: sessionTypeLabel(state.sessionTypes, s.sessionType),
     tags: s.tagIds.map((id) => state.tags.find((t) => t.id === id)!).filter(Boolean),
     state: s.state,
     success: s.successState,
@@ -90,6 +93,7 @@ export function candidateItem(state: DataState, c: Candidate): TimelineItem {
     clientLabel: vm.clientLabel,
     facilitator: vm.facilitator,
     sessionType: vm.sessionType,
+    sessionTypeLabel: vm.sessionTypeLabel,
     tags: vm.tags,
     state: "candidate",
     success: null,

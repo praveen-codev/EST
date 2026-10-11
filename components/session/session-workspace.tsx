@@ -25,8 +25,6 @@ import {
   DEVIN_ASK_LABELS,
   DEVIN_ASKS,
   SESSION_STATE_LABELS,
-  SESSION_TYPE_LABELS,
-  SESSION_TYPES,
   SUCCESS_STATE_LABELS,
   SUCCESS_STATES,
   TAG_CATEGORY_LABELS,
@@ -182,8 +180,12 @@ export function SessionWorkspace() {
           </FieldRow>
           <FieldRow id="sessionType" label="Session type" provenance={session.provenance.sessionType} pending={pending("sessionType")} onAccept={accept} onReject={reject}>
             <Select value={session.sessionType ?? ""} onValueChange={(v) => patch({ sessionType: v as typeof session.sessionType })}>
-              <SelectTrigger className="w-60" aria-label="Session type"><SelectValue placeholder="Choose a type" /></SelectTrigger>
-              <SelectContent>{SESSION_TYPES.map((t) => <SelectItem key={t} value={t}>{SESSION_TYPE_LABELS[t]}</SelectItem>)}</SelectContent>
+              <SelectTrigger className="w-60" aria-label="Session type"><SelectValue placeholder="Choose a format" /></SelectTrigger>
+              <SelectContent>
+                {state.sessionTypes.filter((t) => !t.archived || t.id === session.sessionType).sort((a, b) => a.sortOrder - b.sortOrder).map((t) => (
+                  <SelectItem key={t.id} value={t.id}>{t.label}{t.archived ? " (archived)" : ""}</SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </FieldRow>
           <FieldRow id="devinAsk" label="Devin ask" provenance={session.provenance.devinAsk} pending={pending("devinAsk")} onAccept={accept} onReject={reject}>
