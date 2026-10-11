@@ -4,6 +4,7 @@ import com.cognition.est.ai.Extractor;
 import com.cognition.est.ai.SuggestionEngine;
 import com.cognition.est.app.web.ConflictException;
 import com.cognition.est.app.web.NotFoundException;
+import com.cognition.est.audit.AuditRepository;
 import com.cognition.est.domain.model.CalendarEvent;
 import com.cognition.est.domain.model.Candidate;
 import com.cognition.est.domain.model.Client;
@@ -49,6 +50,7 @@ public class SessionOps {
     private final PersonRepository people;
     private final EngineContextFactory contexts;
     private final JsonCodec json;
+    private final AuditRepository audit;
 
     public SessionOps(
             EventRepository events,
@@ -58,7 +60,9 @@ public class SessionOps {
             ClientRepository clients,
             PersonRepository people,
             EngineContextFactory contexts,
-            JsonCodec json) {
+            JsonCodec json,
+            AuditRepository audit) {
+        this.audit = audit;
         this.events = events;
         this.candidates = candidates;
         this.suggestions = suggestions;
@@ -104,6 +108,13 @@ public class SessionOps {
         suggestions.attachSession(candidateId, session.id());
         for (String id : decided) suggestions.setStatus(id, "accepted", memberId, now);
         candidates.setStatus(candidateId, "confirmed", session.id(), now);
+        audit.record(
+                orgId,
+                memberId,
+                "candidate.confirmed",
+                "session",
+                session.id(),
+                Map.of("prefilled", decided.size()));
         return session;
     }
 
@@ -198,6 +209,13 @@ public class SessionOps {
             }
         }
         suggestions.setStatus(s.id(), accept ? "accepted" : "rejected", memberId, now);
+        audit.record(
+                orgId,
+                memberId,
+                accept ? "suggestion.accepted" : "suggestion.rejected",
+                "suggestion",
+                s.id(),
+                Map.of("field", s.field(), "sessionId", session.id()));
         return session;
     }
 

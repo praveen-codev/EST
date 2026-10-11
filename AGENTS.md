@@ -54,6 +54,13 @@ cd web && pnpm e2e     # Playwright
 - **Formatting**: `./gradlew spotlessApply` (google-java-format 1.27 AOSP). Web: eslint/prettier via `pnpm lint`.
 - **Secrets** only via environment / `.env` (gitignored). `.env.example` documents every variable.
 
+## Security rules (see infra/runbooks/security.md)
+
+- Never return or log `refresh_token_enc`, Google tokens, ID tokens or our refresh tokens; `HardeningTest`
+  scans every read endpoint. New read models must keep that test green.
+- New unauthenticated or expensive endpoints get a rule in `RateLimitFilter`.
+- Anything under `/api/v1/dev/**` must be guarded by `est.dev.endpoints-enabled`.
+
 ## Parallel work (Devin local)
 
 One git worktree per session (`git worktree add ../EST-<track> <branch>`); fixed ports per track

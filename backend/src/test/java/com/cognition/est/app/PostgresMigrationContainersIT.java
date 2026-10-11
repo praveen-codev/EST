@@ -42,6 +42,8 @@ class PostgresMigrationContainersIT {
         registry.add(
                 "est.crypto.refresh-token-key",
                 () -> Base64.getEncoder().encodeToString(new byte[32]));
+        registry.add("est.google.client-id", () -> "test-client.apps.googleusercontent.com");
+        registry.add("est.google.client-secret", () -> "test-secret");
     }
 
     private static String pem(String type, byte[] der) {

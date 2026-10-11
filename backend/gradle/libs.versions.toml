@@ -38,6 +38,7 @@ google-calendar = { module = "com.google.apis:google-api-services-calendar", ver
 google-auth = { module = "com.google.auth:google-auth-library-oauth2-http", version.ref = "googleAuth" }
 google-api-client = { module = "com.google.api-client:google-api-client", version.ref = "googleApiClient" }
 bucket4j = { module = "com.bucket4j:bucket4j_jdk17-core", version.ref = "bucket4j" }
+micrometer-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
 archunit = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
 
 [plugins]

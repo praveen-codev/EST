@@ -16,5 +16,12 @@ est:
     endpoints-enabled: false
 
 logging:
+  structured:
+    format:
+      console: ecs
   level:
     com.cognition.est: info
+
+springdoc:
+  swagger-ui:
+    enabled: ${EST_SWAGGER_ENABLED:false}

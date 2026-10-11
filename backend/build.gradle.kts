@@ -34,6 +34,7 @@ dependencies {
     implementation(libs.google.auth)
     implementation(libs.google.api.client)
     implementation(libs.bucket4j)
+    runtimeOnly(libs.micrometer.prometheus)
 
     runtimeOnly(libs.flyway.postgresql)
     runtimeOnly(libs.h2)

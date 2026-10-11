@@ -61,7 +61,15 @@ public class SecurityConfig {
                                                                         .ReferrerPolicyHeaderWriter
                                                                         .ReferrerPolicy
                                                                         .NO_REFERRER))
-                                        .frameOptions(f -> f.deny()))
+                                        .frameOptions(f -> f.deny())
+                                        .httpStrictTransportSecurity(
+                                                hsts ->
+                                                        hsts.includeSubDomains(true)
+                                                                .maxAgeInSeconds(31536000))
+                                        .permissionsPolicyHeader(
+                                                pp ->
+                                                        pp.policy(
+                                                                "camera=(), microphone=(), geolocation=()")))
                 .authorizeHttpRequests(
                         auth ->
                                 auth.requestMatchers(HttpMethod.OPTIONS, "/**")

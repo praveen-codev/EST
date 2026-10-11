@@ -68,6 +68,17 @@ paths:
       tags: [Me]
       summary: Current member, role, and linked identities summary
       responses: { "200": { content: { application/json: { schema: { $ref: "#/components/schemas/Me" } } }, description: OK } }
+  /features:
+    get:
+      tags: [Me]
+      security: []
+      summary: Public runtime flags for the sign-in page (dev mode, mock Google, public OAuth client id)
+      responses: { "200": { content: { application/json: { schema: { type: object, properties: { devMode: { type: boolean }, mockGoogle: { type: boolean }, googleClientId: { type: string } } } } }, description: OK } }
+  /snapshot:
+    get:
+      tags: [Me]
+      summary: The caller's whole client-side model in one read (reference data, sessions, my events/candidates/suggestions/sync runs/identities)
+      responses: { "200": { content: { application/json: { schema: { $ref: "#/components/schemas/Snapshot" } } }, description: OK } }
 
   # ───────────────────────── Catalog ─────────────────────────
   /catalog/{kind}:
@@ -566,6 +577,23 @@ components:
         missing: { type: array, items: { type: object, properties: { field: { type: string }, label: { type: string } } } }
         completeness: { type: number }
         history: { type: array, items: { $ref: "#/components/schemas/TimelineItem" } }
+    Snapshot:
+      type: object
+      properties:
+        me: { $ref: "#/components/schemas/Member" }
+        features: { type: object, properties: { devMode: { type: boolean }, mockGoogle: { type: boolean }, scenario: { type: string, nullable: true }, remainingPages: { type: integer } } }
+        members: { type: array, items: { $ref: "#/components/schemas/Member" } }
+        clients: { type: array, items: { $ref: "#/components/schemas/Client" } }
+        teams: { type: array, items: { $ref: "#/components/schemas/Team" } }
+        people: { type: array, items: { $ref: "#/components/schemas/Person" } }
+        catalog: { type: array, items: { $ref: "#/components/schemas/CatalogItem" } }
+        sessions: { type: array, items: { $ref: "#/components/schemas/Session" } }
+        candidates: { type: array, items: { $ref: "#/components/schemas/Candidate" } }
+        suggestions: { type: array, items: { $ref: "#/components/schemas/Suggestion" } }
+        events: { type: array, items: { $ref: "#/components/schemas/CalendarEvent" } }
+        syncRuns: { type: array, items: { $ref: "#/components/schemas/SyncRun" } }
+        identities: { type: array, items: { $ref: "#/components/schemas/Identity" } }
+        organization: { type: object, properties: { id: { type: string }, name: { type: string } } }
     Identity:
       type: object
       required: [id, provider, email, status]
