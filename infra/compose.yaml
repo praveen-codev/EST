@@ -1,0 +1,91 @@
+# Enablement Session Tracker — local and QA stacks.
+#   docker compose -f infra/compose.yaml --profile local up --build   # API on H2 (seeded, mock Google) + web
+#   docker compose -f infra/compose.yaml --profile qa up --build      # API on PostgreSQL 17 (real Google, needs .env)
+# Copy .env.example to .env at the repo root for the qa profile (the API refuses to start without the keys).
+name: est
+
+services:
+  api-local:
+    profiles: ["local"]
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+    image: est-api:dev
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      EST_WEB_ORIGINS: http://localhost:3100
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -qO- http://127.0.0.1:8080/actuator/health/readiness | grep -q UP"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 40s
+
+  db:
+    profiles: ["qa"]
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-est}
+      POSTGRES_USER: ${POSTGRES_USER:-est}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+    command: ["postgres", "-c", "log_min_duration_statement=250ms"]
+    volumes:
+      - est-pg:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-est} -d ${POSTGRES_DB:-est}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    profiles: ["qa"]
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+    image: est-api:qa
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: qa
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-est}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-est}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      EST_WEB_ORIGINS: ${EST_WEB_ORIGINS:-http://localhost:3100}
+      EST_ALLOWED_DOMAINS: ${EST_ALLOWED_DOMAINS:-}
+      EST_BOOTSTRAP_ADMIN_EMAILS: ${EST_BOOTSTRAP_ADMIN_EMAILS:-}
+      EST_JWT_PRIVATE_KEY: ${EST_JWT_PRIVATE_KEY:-}
+      EST_JWT_PUBLIC_KEY: ${EST_JWT_PUBLIC_KEY:-}
+      EST_CRYPTO_KEY: ${EST_CRYPTO_KEY:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8080/api/v1/calendar/identities/link/callback}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -qO- http://127.0.0.1:8080/actuator/health/readiness | grep -q UP"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 40s
+
+  web:
+    profiles: ["local", "qa", "web"]
+    image: node:26-alpine
+    working_dir: /app
+    command: ["sh", "-c", "corepack enable && pnpm install --frozen-lockfile && pnpm dev --port 3100 --hostname 0.0.0.0"]
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-8080}
+    volumes:
+      - ../web:/app
+      - est-web-node-modules:/app/node_modules
+    ports:
+      - "3100:3100"
+
+volumes:
+  est-pg:
+  est-web-node-modules:

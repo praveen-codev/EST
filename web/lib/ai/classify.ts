@@ -1,0 +1,95 @@
+import type { Classification, ClassificationBucket } from "@/lib/domain/types";
+import type { NormalizedEvent } from "./normalize";
+
+export const LIKELY_THRESHOLD = 0.7;
+export const REVIEW_THRESHOLD = 0.4;
+
+/** Generic meeting words: supportive, but on their own they never make a session (the team only counts its five formats). */
+const SUPPORTING = ["workshop", "enablement", "kickoff", "kick-off", "office hours", "hands-on", "hands on", "training", "onboarding"];
+const PRODUCT = ["devin"];
+const WEAK = ["follow-up", "follow up", "sync", "readout", "pilot", "demo"];
+/** Highest score an event can reach without matching a session type from the table. */
+export const NO_TYPE_CAP = 0.62;
+const SOFT_NEGATIVE = ["intro call", "intro:", "intro to", "introduction"];
+const NEGATIVE = ["1:1", "1-1", "standup", "stand-up", "interview", "lunch", "focus time", "dentist", "ooo", "out of office", "retro", "all-hands", "all hands", "pto"];
+
+export function bucketFor(score: number): ClassificationBucket {
+  if (score >= LIKELY_THRESHOLD) return "likely";
+  if (score >= REVIEW_THRESHOLD) return "review";
+  return "unlikely";
+}
+
+export function classify(n: NormalizedEvent, knownClient: boolean, matchedType: { label: string; keyword: string; typicalMinutes: number | null } | null): Classification {
+  if (n.cancelled) {
+    return { score: 0.05, bucket: "unlikely", reasons: ["Event was cancelled"] };
+  }
+  const reasons: string[] = [];
+  let score = 0.2;
+
+  const negatives = NEGATIVE.filter((k) => n.text.includes(k));
+  if (negatives.length) {
+    score -= 0.5;
+    reasons.push(`Looks like "${negatives[0]}", not an enablement session`);
+  }
+
+  if (matchedType) {
+    score += 0.4;
+    reasons.push(`"${matchedType.keyword}" matches the ${matchedType.label} format`);
+    if (matchedType.typicalMinutes && Math.abs(n.durationMin - matchedType.typicalMinutes) <= matchedType.typicalMinutes * 0.5) score += 0.05;
+  }
+  const strong = SUPPORTING.filter((k) => n.text.includes(k));
+  if (strong.length) {
+    score += 0.1;
+    reasons.push(`Mentions ${strong.slice(0, 2).map((k) => `"${k}"`).join(" and ")}`);
+  }
+  if (PRODUCT.some((k) => n.text.includes(k))) {
+    score += 0.1;
+    reasons.push("Mentions Devin");
+  }
+  const weak = WEAK.filter((k) => n.text.includes(k));
+  if (weak.length && !strong.length) {
+    score += 0.1;
+    reasons.push(`Mentions "${weak[0]}" (weak signal)`);
+  }
+  const soft = SOFT_NEGATIVE.find((k) => n.text.includes(k));
+  if (soft) {
+    score -= 0.2;
+    reasons.push("Reads like an intro call rather than a session");
+  }
+
+  if (n.external.length > 0) {
+    score += 0.2;
+    reasons.push(`${n.external.length} external attendee${n.external.length > 1 ? "s" : ""} from ${n.externalDomains.join(", ")}`);
+  } else {
+    score -= 0.35;
+    reasons.push(n.attendees.length <= 1 ? "Only you on the invite" : "Internal attendees only");
+  }
+
+  if (n.internal.length > 0 && n.external.length > 0) score += 0.05;
+
+  if (n.durationMin >= 45 && n.durationMin <= 240) {
+    score += 0.1;
+    if (n.durationMin >= 90) score += 0.05;
+    reasons.push(`${n.durationMin} min fits a session`);
+  } else if (n.durationMin < 45) {
+    score -= n.durationMin < 30 ? 0.25 : 0.1;
+    reasons.push(`Only ${n.durationMin} min`);
+  }
+
+  if (n.attendees.length >= 3) score += 0.1;
+  if (knownClient) {
+    score += 0.1;
+    reasons.push("Attendees match a client with prior sessions");
+  }
+  if (!n.description && n.title.split(/\s+/).length <= 2) {
+    score -= 0.1;
+    reasons.push("Sparse title and no description");
+  }
+
+  if (!matchedType && score > NO_TYPE_CAP) {
+    score = NO_TYPE_CAP;
+    reasons.unshift("No recognised session format (101, 201, pair programming, AMA, sprint in a day)");
+  }
+  const clamped = Math.max(0, Math.min(1, Number(score.toFixed(2))));
+  return { score: clamped, bucket: bucketFor(clamped), reasons };
+}

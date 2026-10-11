@@ -1,0 +1,72 @@
+spring:
+  application:
+    name: est-api
+  threads:
+    virtual:
+      enabled: true
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    locations: classpath:db/migration/common,classpath:db/migration/{vendor}
+    validate-on-migrate: true
+  jackson:
+    default-property-inclusion: non_null
+  mvc:
+    problemdetails:
+      enabled: false
+
+server:
+  port: 8080
+  shutdown: graceful
+  error:
+    include-stacktrace: never
+    include-message: never
+  forward-headers-strategy: framework
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  info:
+    env:
+      enabled: false
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+
+est:
+  web-origins: ${EST_WEB_ORIGINS:http://localhost:3100}
+  allowed-domains: ${EST_ALLOWED_DOMAINS:}
+  bootstrap-admin-emails: ${EST_BOOTSTRAP_ADMIN_EMAILS:}
+  jwt:
+    issuer: ${EST_JWT_ISSUER:est-api}
+    access-token-ttl: ${EST_JWT_ACCESS_TTL:PT15M}
+    refresh-token-ttl: ${EST_JWT_REFRESH_TTL:P14D}
+    private-key-pem: ${EST_JWT_PRIVATE_KEY:}
+    public-key-pem: ${EST_JWT_PUBLIC_KEY:}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
+    client-secret: ${GOOGLE_CLIENT_SECRET:}
+    redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/api/v1/calendar/identities/link/callback}
+    mock: false
+  crypto:
+    refresh-token-key: ${EST_CRYPTO_KEY:}
+  dev:
+    endpoints-enabled: false
+
+logging:
+  level:
+    root: info
+    com.cognition.est: info

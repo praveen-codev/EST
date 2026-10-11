@@ -1,0 +1,32 @@
+# Local development: in-memory H2 (PostgreSQL compatibility mode), seeded data, mocked Google.
+spring:
+  datasource:
+    url: jdbc:h2:mem:est;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  flyway:
+    locations: classpath:db/migration/common,classpath:db/migration/{vendor},classpath:db/migration/local
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+
+est:
+  allowed-domains: cognition.ai
+  bootstrap-admin-emails: dana@cognition.ai
+  google:
+    mock: true
+  crypto:
+    refresh-token-key: ${EST_CRYPTO_KEY:bG9jYWwtZGV2LW9ubHkta2V5LTMyLWJ5dGVzLWxvbmchIQ==}
+  dev:
+    endpoints-enabled: true
+
+logging:
+  level:
+    com.cognition.est: debug
+    org.flywaydb: info

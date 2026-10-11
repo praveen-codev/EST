@@ -1,0 +1,34 @@
+# syntax=docker/dockerfile:1.7
+# Multi-stage build for the EST API. Build context = repository root.
+#   docker build -f infra/Dockerfile.api -t est-api .
+
+# Gradle is preinstalled in the official image, so the build never downloads a distribution
+# (the wrapper's download of services.gradle.org can be blocked/slow inside Docker).
+FROM gradle:9.8.1-jdk25 AS build
+WORKDIR /src/backend
+# Resolve dependencies first so source-only changes reuse this layer and the cache mount.
+COPY backend/gradle/libs.versions.toml gradle/libs.versions.toml
+COPY backend/settings.gradle.kts backend/build.gradle.kts backend/gradle.properties ./
+RUN --mount=type=cache,target=/home/gradle/.gradle \
+    gradle --no-daemon dependencies --configuration runtimeClasspath >/dev/null || true
+COPY backend/src src
+RUN --mount=type=cache,target=/home/gradle/.gradle \
+    gradle --no-daemon bootJar -x test \
+    && cp build/libs/est-api-*.jar /tmp/application.jar \
+    && java -Djarmode=tools -jar /tmp/application.jar extract --layers --destination /layers
+
+FROM eclipse-temurin:25-jre AS runtime
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+UseZGC -Djava.security.egd=file:/dev/./urandom" \
+    SPRING_PROFILES_ACTIVE=local
+RUN useradd --system --uid 10001 --create-home est
+WORKDIR /app
+COPY --from=build --chown=est:est /layers/dependencies/ ./
+COPY --from=build --chown=est:est /layers/spring-boot-loader/ ./
+COPY --from=build --chown=est:est /layers/snapshot-dependencies/ ./
+COPY --from=build --chown=est:est /layers/application/ ./
+USER est
+EXPOSE 8080
+HEALTHCHECK --interval=15s --timeout=3s --start-period=40s --retries=5 \
+  CMD ["sh", "-c", "wget -qO- http://127.0.0.1:8080/actuator/health/readiness | grep -q UP || exit 1"]
+# The extracted layout leaves a slim application.jar that references ./lib — efficient to start and CDS/AOT friendly.
+ENTRYPOINT ["java", "-jar", "application.jar"]

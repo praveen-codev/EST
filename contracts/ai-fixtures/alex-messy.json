@@ -1,0 +1,3567 @@
+{
+  "generatedBy": "web/tests/fixtures/export-ai-fixtures.test.ts",
+  "now": "2026-10-11T12:00:00.000Z",
+  "cases": [
+    {
+      "providerEventId": "evt-mb-101-today",
+      "event": {
+        "title": "Mercedes-Benz Data Engineering — Devin 101 session (Ab Initio squad)",
+        "description": "101 session for the Ab Initio squad. Goal: retire Ab Initio graphs by moving the ingestion pipelines to PySpark on Databricks. PO: Katrin Vogel. Architect: Jonas Keller. ~12 engineers.\n\nJoin: https://meet.google.com/abc-defg-hij",
+        "location": null,
+        "conferencing": "https://meet.google.com/abc-defg-hij",
+        "start": "2026-10-11T04:30:00.000Z",
+        "end": "2026-10-11T06:00:00.000Z",
+        "organizerEmail": "katrin.vogel@mercedes-benz.com",
+        "attendees": [
+          {
+            "email": "alex@cognition.ai",
+            "name": "Alex Rivera",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "katrin.vogel@mercedes-benz.com",
+            "name": "Katrin Vogel",
+            "responseStatus": "accepted",
+            "organizer": true
+          },
+          {
+            "email": "jonas.keller@mercedes-benz.com",
+            "name": "Jonas Keller",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "ravi.menon@mercedes-benz.com",
+            "name": "Ravi Menon",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "lukas.brandt@mercedes-benz.com",
+            "name": "Lukas Brandt",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "mei.lin@mercedes-benz.com",
+            "name": "Mei Lin",
+            "responseStatus": "accepted",
+            "organizer": false
+          }
+        ],
+        "status": "confirmed",
+        "recurringEventId": null
+      },
+      "expected": {
+        "classification": {
+          "score": 1,
+          "bucket": "likely",
+          "reasons": [
+            "\"101 session\" matches the 101 session format",
+            "Mentions Devin",
+            "5 external attendees from mercedes-benz.com",
+            "90 min fits a session",
+            "Attendees match a client with prior sessions"
+          ]
+        },
+        "redactions": [
+          "1 conferencing link"
+        ],
+        "suggestions": [
+          {
+            "field": "clientId",
+            "label": "Mercedes-Benz Tech",
+            "confidence": 0.96,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "5 attendees @mercedes-benz.com"
+              },
+              {
+                "source": "history.client",
+                "excerpt": "1 prior session with Mercedes-Benz Tech",
+                "attribution": "logged by Sofia Alvarez"
+              }
+            ]
+          },
+          {
+            "field": "contacts",
+            "label": "Jonas Keller · Architect",
+            "confidence": 0.95,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Architect: Jonas Keller\""
+              },
+              {
+                "source": "history.people",
+                "excerpt": "Recorded as Architect on 1 Mercedes-Benz Tech session",
+                "attribution": "by Sofia Alvarez"
+              }
+            ]
+          },
+          {
+            "field": "contacts",
+            "label": "Katrin Vogel · Product owner",
+            "confidence": 0.95,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"PO: Katrin Vogel\""
+              },
+              {
+                "source": "history.people",
+                "excerpt": "Recorded as Product owner on 1 Mercedes-Benz Tech session",
+                "attribution": "by Sofia Alvarez"
+              }
+            ]
+          },
+          {
+            "field": "facilitatorId",
+            "label": "Alex Rivera",
+            "confidence": 0.9,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Alex Rivera is on the invite"
+              }
+            ]
+          },
+          {
+            "field": "participantIds",
+            "label": "5 attendees from Mercedes-Benz Tech",
+            "confidence": 0.9,
+            "value": [
+              "jonas.keller@mercedes-benz.com",
+              "katrin.vogel@mercedes-benz.com",
+              "lukas.brandt@mercedes-benz.com",
+              "mei.lin@mercedes-benz.com",
+              "ravi.menon@mercedes-benz.com"
+            ],
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Katrin Vogel, Jonas Keller, Ravi Menon, Lukas Brandt…"
+              }
+            ]
+          },
+          {
+            "field": "participantsEstimated",
+            "label": "~12 people",
+            "confidence": 0.88,
+            "value": 12,
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"~12 engineers\""
+              }
+            ]
+          },
+          {
+            "field": "sessionType",
+            "label": "101 session",
+            "confidence": 0.94,
+            "value": "101",
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "\"101 session\""
+              }
+            ]
+          },
+          {
+            "field": "summary",
+            "label": "Draft summary from the invite",
+            "confidence": 0.55,
+            "value": "Mercedes-Benz Tech: 101 session for the Ab Initio squad.",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"101 session for the Ab Initio squad.\""
+              }
+            ]
+          },
+          {
+            "field": "teamId",
+            "label": "Data Engineering",
+            "confidence": 0.9,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "\"data engineering\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Ab Initio",
+            "confidence": 0.92,
+            "value": "abInitio",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Ab Initio\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Databricks",
+            "confidence": 0.92,
+            "value": "databricks",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Databricks\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Excel",
+            "confidence": 0.55,
+            "value": "excel",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 1 of 1 Mercedes-Benz Tech session",
+                "attribution": "by Sofia Alvarez"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Python",
+            "confidence": 0.55,
+            "value": "python",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 1 of 1 Mercedes-Benz Tech session",
+                "attribution": "by Sofia Alvarez"
+              }
+            ]
+          },
+          {
+            "field": "title",
+            "label": "Mercedes-Benz Data Engineering — Devin 101 session (Ab Initio squad)",
+            "confidence": 0.95,
+            "value": "Mercedes-Benz Data Engineering — Devin 101 session (Ab Initio squad)",
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "Mercedes-Benz Data Engineering — Devin 101 session (Ab Initio squad)"
+              }
+            ]
+          },
+          {
+            "field": "useCases",
+            "label": "Retire Ab Initio graphs by moving the ingestion pipelines to PySpark on Databricks · ETL tool migration",
+            "confidence": 0.72,
+            "value": {
+              "title": "Retire Ab Initio graphs by moving the ingestion pipelines to PySpark on Databricks",
+              "useCaseTypeId": "etlMigration",
+              "technologyIds": [
+                "abInitio",
+                "databricks"
+              ]
+            },
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Goal: retire Ab Initio graphs by moving the ingestion pipelines to PySpark on Databricks\""
+              },
+              {
+                "source": "taxonomy.alias",
+                "excerpt": "\"ab initio\" → ETL tool migration"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "providerEventId": "evt-mb-pair-today",
+      "event": {
+        "title": "Mercedes-Benz — Pair programming: fleet KPI Excel to Power BI",
+        "description": "Pairing session with Ravi on the fleet KPI spreadsheets: rebuild the Excel macros as a Power BI dashboard fed from Databricks. EM: Anika Schulz.",
+        "location": null,
+        "conferencing": "https://meet.google.com/abc-defg-hij",
+        "start": "2026-10-11T08:30:00.000Z",
+        "end": "2026-10-11T10:00:00.000Z",
+        "organizerEmail": "alex@cognition.ai",
+        "attendees": [
+          {
+            "email": "alex@cognition.ai",
+            "name": "Alex Rivera",
+            "responseStatus": "accepted",
+            "organizer": true
+          },
+          {
+            "email": "ravi.menon@mercedes-benz.com",
+            "name": "Ravi Menon",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "anika.schulz@mercedes-benz.com",
+            "name": "Anika Schulz",
+            "responseStatus": "accepted",
+            "organizer": false
+          }
+        ],
+        "status": "confirmed",
+        "recurringEventId": null
+      },
+      "expected": {
+        "classification": {
+          "score": 1,
+          "bucket": "likely",
+          "reasons": [
+            "\"pair programming\" matches the Pair programming format",
+            "2 external attendees from mercedes-benz.com",
+            "90 min fits a session",
+            "Attendees match a client with prior sessions"
+          ]
+        },
+        "redactions": [],
+        "suggestions": [
+          {
+            "field": "clientId",
+            "label": "Mercedes-Benz Tech",
+            "confidence": 0.96,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "2 attendees @mercedes-benz.com"
+              },
+              {
+                "source": "history.client",
+                "excerpt": "1 prior session with Mercedes-Benz Tech",
+                "attribution": "logged by Sofia Alvarez"
+              }
+            ]
+          },
+          {
+            "field": "contacts",
+            "label": "Anika Schulz · Engineering manager",
+            "confidence": 0.92,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"EM: Anika Schulz\""
+              }
+            ]
+          },
+          {
+            "field": "facilitatorId",
+            "label": "Alex Rivera",
+            "confidence": 0.95,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.organizer",
+                "excerpt": "Alex Rivera organised the event"
+              }
+            ]
+          },
+          {
+            "field": "participantIds",
+            "label": "2 attendees from Mercedes-Benz Tech",
+            "confidence": 0.9,
+            "value": [
+              "anika.schulz@mercedes-benz.com",
+              "ravi.menon@mercedes-benz.com"
+            ],
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Ravi Menon, Anika Schulz"
+              }
+            ]
+          },
+          {
+            "field": "sessionType",
+            "label": "Pair programming",
+            "confidence": 0.94,
+            "value": "pairProgramming",
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "\"pair programming\""
+              }
+            ]
+          },
+          {
+            "field": "summary",
+            "label": "Draft summary from the invite",
+            "confidence": 0.55,
+            "value": "Mercedes-Benz Tech: Pairing session with Ravi on the fleet KPI spreadsheets: rebuild the Excel macros as a Power BI dashboard fed from Databricks.",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Pairing session with Ravi on the fleet KPI spreadsheets: rebuild the Excel macros as a Power BI dashboard fed from Databricks.\""
+              }
+            ]
+          },
+          {
+            "field": "teamId",
+            "label": "Data Engineering",
+            "confidence": 0.55,
+            "value": null,
+            "evidence": [
+              {
+                "source": "history.team",
+                "excerpt": "1 of 1 Mercedes-Benz Tech sessions were with Data Engineering"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Ab Initio",
+            "confidence": 0.55,
+            "value": "abInitio",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 1 of 1 Mercedes-Benz Tech session",
+                "attribution": "by Sofia Alvarez"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Databricks",
+            "confidence": 0.92,
+            "value": "databricks",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Databricks\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Excel",
+            "confidence": 0.92,
+            "value": "excel",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Excel\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Power BI",
+            "confidence": 0.92,
+            "value": "powerBi",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Power BI\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Python",
+            "confidence": 0.55,
+            "value": "python",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 1 of 1 Mercedes-Benz Tech session",
+                "attribution": "by Sofia Alvarez"
+              }
+            ]
+          },
+          {
+            "field": "title",
+            "label": "Mercedes-Benz — Pair programming: fleet KPI Excel to Power BI",
+            "confidence": 0.95,
+            "value": "Mercedes-Benz — Pair programming: fleet KPI Excel to Power BI",
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "Mercedes-Benz — Pair programming: fleet KPI Excel to Power BI"
+              }
+            ]
+          },
+          {
+            "field": "useCases",
+            "label": "Rebuild the Excel macros as a Power BI dashboard fed from Databricks · Excel to dashboard",
+            "confidence": 0.72,
+            "value": {
+              "title": "Rebuild the Excel macros as a Power BI dashboard fed from Databricks",
+              "useCaseTypeId": "excelToDashboard",
+              "technologyIds": [
+                "databricks",
+                "excel",
+                "powerBi"
+              ]
+            },
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"rebuild the Excel macros as a Power BI dashboard fed from Databricks\""
+              },
+              {
+                "source": "taxonomy.alias",
+                "excerpt": "\"dashboard\" → Excel to dashboard"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "providerEventId": "evt-acme-oh-1",
+      "event": {
+        "title": "Acme Platform — Devin 101 session (Jenkins squad)",
+        "description": "101 session for the Jenkins squad joining the platform rollout. Topics: Java 21 upgrade stragglers, Jenkins pipeline credentials. PO: Jane Doe.\n\nJoin: https://meet.google.com/abc-defg-hij\nPasscode: 4421",
+        "location": null,
+        "conferencing": "https://meet.google.com/abc-defg-hij",
+        "start": "2026-10-02T04:30:00.000Z",
+        "end": "2026-10-02T06:00:00.000Z",
+        "organizerEmail": "alex@cognition.ai",
+        "attendees": [
+          {
+            "email": "alex@cognition.ai",
+            "name": "Alex Rivera",
+            "responseStatus": "accepted",
+            "organizer": true
+          },
+          {
+            "email": "jane.doe@acmefinancial.com",
+            "name": "Jane Doe",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "lena.fischer@acmefinancial.com",
+            "name": "Lena Fischer",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "omar.haddad@acmefinancial.com",
+            "name": "Omar Haddad",
+            "responseStatus": "accepted",
+            "organizer": false
+          }
+        ],
+        "status": "confirmed",
+        "recurringEventId": null
+      },
+      "expected": {
+        "classification": {
+          "score": 1,
+          "bucket": "likely",
+          "reasons": [
+            "\"101 session\" matches the 101 session format",
+            "Mentions Devin",
+            "3 external attendees from acmefinancial.com",
+            "90 min fits a session",
+            "Attendees match a client with prior sessions"
+          ]
+        },
+        "redactions": [
+          "1 conferencing link",
+          "1 passcode"
+        ],
+        "suggestions": [
+          {
+            "field": "clientId",
+            "label": "Acme Financial",
+            "confidence": 0.96,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "3 attendees @acmefinancial.com"
+              },
+              {
+                "source": "history.client",
+                "excerpt": "5 prior sessions with Acme Financial",
+                "attribution": "logged by Priya Nair & Marcus Chen"
+              }
+            ]
+          },
+          {
+            "field": "contacts",
+            "label": "Jane Doe · Product owner",
+            "confidence": 0.95,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"PO: Jane Doe\""
+              },
+              {
+                "source": "history.people",
+                "excerpt": "Recorded as Product owner on 3 Acme Financial sessions",
+                "attribution": "by Priya Nair"
+              }
+            ]
+          },
+          {
+            "field": "facilitatorId",
+            "label": "Alex Rivera",
+            "confidence": 0.95,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.organizer",
+                "excerpt": "Alex Rivera organised the event"
+              }
+            ]
+          },
+          {
+            "field": "participantIds",
+            "label": "3 attendees from Acme Financial",
+            "confidence": 0.9,
+            "value": [
+              "jane.doe@acmefinancial.com",
+              "lena.fischer@acmefinancial.com",
+              "omar.haddad@acmefinancial.com"
+            ],
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Jane Doe, Lena Fischer, Omar Haddad"
+              }
+            ]
+          },
+          {
+            "field": "participantsEstimated",
+            "label": "3 (from invite)",
+            "confidence": 0.5,
+            "value": 3,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "3 external attendees accepted"
+              }
+            ]
+          },
+          {
+            "field": "sessionType",
+            "label": "101 session",
+            "confidence": 0.94,
+            "value": "101",
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "\"101 session\""
+              }
+            ]
+          },
+          {
+            "field": "summary",
+            "label": "Draft summary from the invite",
+            "confidence": 0.55,
+            "value": "Acme Financial: 101 session for the Jenkins squad joining the platform rollout.",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"101 session for the Jenkins squad joining the platform rollout.\""
+              }
+            ]
+          },
+          {
+            "field": "teamId",
+            "label": "Platform Engineering",
+            "confidence": 0.9,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "\"platform\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "GitHub Actions",
+            "confidence": 0.55,
+            "value": "githubActions",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 1 of 5 Acme Financial sessions",
+                "attribution": "by Marcus Chen"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Java",
+            "confidence": 0.92,
+            "value": "java",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Java\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Jenkins",
+            "confidence": 0.92,
+            "value": "jenkins",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Jenkins\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Kafka",
+            "confidence": 0.55,
+            "value": "kafka",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 1 of 5 Acme Financial sessions",
+                "attribution": "by Marcus Chen"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Kotlin",
+            "confidence": 0.65,
+            "value": "kotlin",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 2 of 5 Acme Financial sessions",
+                "attribution": "by Marcus Chen"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Spring Boot",
+            "confidence": 0.75,
+            "value": "springBoot",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 3 of 5 Acme Financial sessions",
+                "attribution": "by Priya Nair"
+              }
+            ]
+          },
+          {
+            "field": "title",
+            "label": "Acme Platform — Devin 101 session (Jenkins squad)",
+            "confidence": 0.95,
+            "value": "Acme Platform — Devin 101 session (Jenkins squad)",
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "Acme Platform — Devin 101 session (Jenkins squad)"
+              }
+            ]
+          },
+          {
+            "field": "useCases",
+            "label": "Java 21 upgrade stragglers, Jenkins pipeline credentials · Devops work",
+            "confidence": 0.72,
+            "value": {
+              "title": "Java 21 upgrade stragglers, Jenkins pipeline credentials",
+              "useCaseTypeId": "devops",
+              "technologyIds": [
+                "java",
+                "jenkins"
+              ]
+            },
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Topics: Java 21 upgrade stragglers, Jenkins pipeline credentials\""
+              },
+              {
+                "source": "taxonomy.alias",
+                "excerpt": "\"pipeline credentials\" → Devops work"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "providerEventId": "evt-vantage-d1",
+      "event": {
+        "title": "Vantage Claims — Sprint in a day",
+        "description": "Sprint in a day with ~20 engineers from the claims modernization team. Focus: COBOL claims engine documentation and Java unit tests with Devin. Sponsor: Nadia Rahman. Architect: Felix Brandt.\n\nDial-in: +1 555 010 2233 PIN 889 221",
+        "location": "Vantage HQ, 12th floor",
+        "conferencing": null,
+        "start": "2026-10-06T03:30:00.000Z",
+        "end": "2026-10-06T09:30:00.000Z",
+        "organizerEmail": "zoe.martin@vantage-ins.com",
+        "attendees": [
+          {
+            "email": "alex@cognition.ai",
+            "name": "Alex Rivera",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "marcus@cognition.ai",
+            "name": "Marcus Chen",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "zoe.martin@vantage-ins.com",
+            "name": "Zoe Martin",
+            "responseStatus": "accepted",
+            "organizer": true
+          },
+          {
+            "email": "felix.brandt@vantage-ins.com",
+            "name": "Felix Brandt",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "nadia.rahman@vantage-ins.com",
+            "name": "Nadia Rahman",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "priyanka.rao@vantage-ins.com",
+            "name": "Priyanka Rao",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "ahmed.saleh@vantage-ins.com",
+            "name": "Ahmed Saleh",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "julia.moreau@vantage-ins.com",
+            "name": "Julia Moreau",
+            "responseStatus": "accepted",
+            "organizer": false
+          }
+        ],
+        "status": "confirmed",
+        "recurringEventId": null
+      },
+      "expected": {
+        "classification": {
+          "score": 1,
+          "bucket": "likely",
+          "reasons": [
+            "\"sprint in a day\" matches the Sprint in a day format",
+            "Mentions Devin",
+            "6 external attendees from vantage-ins.com",
+            "Attendees match a client with prior sessions"
+          ]
+        },
+        "redactions": [
+          "1 PIN",
+          "1 phone number"
+        ],
+        "suggestions": [
+          {
+            "field": "clientId",
+            "label": "Vantage Insurance",
+            "confidence": 0.96,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "6 attendees @vantage-ins.com"
+              },
+              {
+                "source": "history.client",
+                "excerpt": "1 prior session with Vantage Insurance"
+              }
+            ]
+          },
+          {
+            "field": "coFacilitatorIds",
+            "label": "Marcus Chen",
+            "confidence": 0.85,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Marcus Chen is on the invite"
+              }
+            ]
+          },
+          {
+            "field": "contacts",
+            "label": "Felix Brandt · Architect",
+            "confidence": 0.95,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Architect: Felix Brandt\""
+              },
+              {
+                "source": "history.people",
+                "excerpt": "Recorded as Architect on 1 Vantage Insurance session",
+                "attribution": "by Alex Rivera"
+              }
+            ]
+          },
+          {
+            "field": "contacts",
+            "label": "Nadia Rahman · Executive sponsor",
+            "confidence": 0.95,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Sponsor: Nadia Rahman\""
+              },
+              {
+                "source": "history.people",
+                "excerpt": "Recorded as Executive sponsor on 1 Vantage Insurance session",
+                "attribution": "by Alex Rivera"
+              }
+            ]
+          },
+          {
+            "field": "contacts",
+            "label": "Zoe Martin · Project manager",
+            "confidence": 0.77,
+            "value": null,
+            "evidence": [
+              {
+                "source": "history.people",
+                "excerpt": "Recorded as Project manager on 1 Vantage Insurance session",
+                "attribution": "by Alex Rivera"
+              }
+            ]
+          },
+          {
+            "field": "facilitatorId",
+            "label": "Alex Rivera",
+            "confidence": 0.9,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Alex Rivera is on the invite"
+              }
+            ]
+          },
+          {
+            "field": "participantIds",
+            "label": "6 attendees from Vantage Insurance",
+            "confidence": 0.9,
+            "value": [
+              "ahmed.saleh@vantage-ins.com",
+              "felix.brandt@vantage-ins.com",
+              "julia.moreau@vantage-ins.com",
+              "nadia.rahman@vantage-ins.com",
+              "priyanka.rao@vantage-ins.com",
+              "zoe.martin@vantage-ins.com"
+            ],
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Zoe Martin, Felix Brandt, Nadia Rahman, Priyanka Rao…"
+              }
+            ]
+          },
+          {
+            "field": "participantsEstimated",
+            "label": "~20 people",
+            "confidence": 0.88,
+            "value": 20,
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"~20 engineers\""
+              }
+            ]
+          },
+          {
+            "field": "sessionType",
+            "label": "Sprint in a day",
+            "confidence": 0.94,
+            "value": "sprintInADay",
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "\"sprint in a day\""
+              }
+            ]
+          },
+          {
+            "field": "summary",
+            "label": "Draft summary from the invite",
+            "confidence": 0.55,
+            "value": "Vantage Insurance: Sprint in a day with ~20 engineers from the claims modernization team.",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Sprint in a day with ~20 engineers from the claims modernization team.\""
+              }
+            ]
+          },
+          {
+            "field": "teamId",
+            "label": "Claims Modernization",
+            "confidence": 0.9,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "\"claims\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "COBOL",
+            "confidence": 0.92,
+            "value": "cobol",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"COBOL\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Java",
+            "confidence": 0.92,
+            "value": "java",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Java\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Jenkins",
+            "confidence": 0.55,
+            "value": "jenkins",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 1 of 1 Vantage Insurance session",
+                "attribution": "by Alex Rivera"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Oracle DB",
+            "confidence": 0.55,
+            "value": "oracle",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 1 of 1 Vantage Insurance session",
+                "attribution": "by Alex Rivera"
+              }
+            ]
+          },
+          {
+            "field": "title",
+            "label": "Vantage Claims — Sprint in a day",
+            "confidence": 0.95,
+            "value": "Vantage Claims — Sprint in a day",
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "Vantage Claims — Sprint in a day"
+              }
+            ]
+          },
+          {
+            "field": "useCases",
+            "label": "Modernization team · Language migrations",
+            "confidence": 0.72,
+            "value": {
+              "title": "Modernization team",
+              "useCaseTypeId": "languageMigration",
+              "technologyIds": [
+                "cobol",
+                "java"
+              ]
+            },
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"aims modernization team\""
+              },
+              {
+                "source": "taxonomy.alias",
+                "excerpt": "\"cobol\" → Language migrations"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "providerEventId": "evt-vantage-d2",
+      "event": {
+        "title": "Vantage Claims — 201 session: playbooks & review",
+        "description": "201 session the day after the sprint: Devin Playbooks for COBOL documentation and Devin Review on the claims-rules service. Architect: Felix Brandt.",
+        "location": "Vantage HQ, 12th floor",
+        "conferencing": null,
+        "start": "2026-10-07T03:30:00.000Z",
+        "end": "2026-10-07T06:00:00.000Z",
+        "organizerEmail": "zoe.martin@vantage-ins.com",
+        "attendees": [
+          {
+            "email": "alex@cognition.ai",
+            "name": "Alex Rivera",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "marcus@cognition.ai",
+            "name": "Marcus Chen",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "zoe.martin@vantage-ins.com",
+            "name": "Zoe Martin",
+            "responseStatus": "accepted",
+            "organizer": true
+          },
+          {
+            "email": "felix.brandt@vantage-ins.com",
+            "name": "Felix Brandt",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "priyanka.rao@vantage-ins.com",
+            "name": "Priyanka Rao",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "ahmed.saleh@vantage-ins.com",
+            "name": "Ahmed Saleh",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "julia.moreau@vantage-ins.com",
+            "name": "Julia Moreau",
+            "responseStatus": "accepted",
+            "organizer": false
+          }
+        ],
+        "status": "confirmed",
+        "recurringEventId": null
+      },
+      "expected": {
+        "classification": {
+          "score": 1,
+          "bucket": "likely",
+          "reasons": [
+            "\"201 session\" matches the 201 session format",
+            "Mentions Devin",
+            "5 external attendees from vantage-ins.com",
+            "150 min fits a session",
+            "Attendees match a client with prior sessions"
+          ]
+        },
+        "redactions": [],
+        "suggestions": [
+          {
+            "field": "clientId",
+            "label": "Vantage Insurance",
+            "confidence": 0.96,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "5 attendees @vantage-ins.com"
+              },
+              {
+                "source": "history.client",
+                "excerpt": "1 prior session with Vantage Insurance"
+              }
+            ]
+          },
+          {
+            "field": "coFacilitatorIds",
+            "label": "Marcus Chen",
+            "confidence": 0.85,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Marcus Chen is on the invite"
+              }
+            ]
+          },
+          {
+            "field": "contacts",
+            "label": "Felix Brandt · Architect",
+            "confidence": 0.95,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Architect: Felix Brandt\""
+              },
+              {
+                "source": "history.people",
+                "excerpt": "Recorded as Architect on 1 Vantage Insurance session",
+                "attribution": "by Alex Rivera"
+              }
+            ]
+          },
+          {
+            "field": "contacts",
+            "label": "Zoe Martin · Project manager",
+            "confidence": 0.77,
+            "value": null,
+            "evidence": [
+              {
+                "source": "history.people",
+                "excerpt": "Recorded as Project manager on 1 Vantage Insurance session",
+                "attribution": "by Alex Rivera"
+              }
+            ]
+          },
+          {
+            "field": "facilitatorId",
+            "label": "Alex Rivera",
+            "confidence": 0.9,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Alex Rivera is on the invite"
+              }
+            ]
+          },
+          {
+            "field": "participantIds",
+            "label": "5 attendees from Vantage Insurance",
+            "confidence": 0.9,
+            "value": [
+              "ahmed.saleh@vantage-ins.com",
+              "felix.brandt@vantage-ins.com",
+              "julia.moreau@vantage-ins.com",
+              "priyanka.rao@vantage-ins.com",
+              "zoe.martin@vantage-ins.com"
+            ],
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Zoe Martin, Felix Brandt, Priyanka Rao, Ahmed Saleh…"
+              }
+            ]
+          },
+          {
+            "field": "participantsEstimated",
+            "label": "5 (from invite)",
+            "confidence": 0.5,
+            "value": 5,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "5 external attendees accepted"
+              }
+            ]
+          },
+          {
+            "field": "sessionType",
+            "label": "201 session",
+            "confidence": 0.94,
+            "value": "201",
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "\"201 session\""
+              }
+            ]
+          },
+          {
+            "field": "summary",
+            "label": "Draft summary from the invite",
+            "confidence": 0.55,
+            "value": "Vantage Insurance: 201 session the day after the sprint: Devin Playbooks for COBOL documentation and Devin Review on the claims-rules service.",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"201 session the day after the sprint: Devin Playbooks for COBOL documentation and Devin Review on the claims-rules service.\""
+              }
+            ]
+          },
+          {
+            "field": "teamId",
+            "label": "Claims Modernization",
+            "confidence": 0.9,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "\"claims\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "COBOL",
+            "confidence": 0.92,
+            "value": "cobol",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"COBOL\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Java",
+            "confidence": 0.55,
+            "value": "java",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 1 of 1 Vantage Insurance session",
+                "attribution": "by Alex Rivera"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Jenkins",
+            "confidence": 0.55,
+            "value": "jenkins",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 1 of 1 Vantage Insurance session",
+                "attribution": "by Alex Rivera"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Oracle DB",
+            "confidence": 0.55,
+            "value": "oracle",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 1 of 1 Vantage Insurance session",
+                "attribution": "by Alex Rivera"
+              }
+            ]
+          },
+          {
+            "field": "title",
+            "label": "Vantage Claims — 201 session: playbooks & review",
+            "confidence": 0.95,
+            "value": "Vantage Claims — 201 session: playbooks & review",
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "Vantage Claims — 201 session: playbooks & review"
+              }
+            ]
+          },
+          {
+            "field": "useCases",
+            "label": "Rules service · Language migrations",
+            "confidence": 0.72,
+            "value": {
+              "title": "Rules service",
+              "useCaseTypeId": "languageMigration",
+              "technologyIds": [
+                "cobol"
+              ]
+            },
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"aims-rules service\""
+              },
+              {
+                "source": "taxonomy.alias",
+                "excerpt": "\"cobol\" → Language migrations"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "providerEventId": "evt-northwind-fu",
+      "event": {
+        "title": "Northwind — Pair programming: microservices decomposition",
+        "description": "Pairing session on the WMS decomposition. Work Devin's proposed bounded-context split and the GitLab CI changes on a real ticket. PO: Maya Okafor.",
+        "location": null,
+        "conferencing": "https://meet.google.com/abc-defg-hij",
+        "start": "2026-10-08T08:30:00.000Z",
+        "end": "2026-10-08T10:00:00.000Z",
+        "organizerEmail": "alex@cognition.ai",
+        "attendees": [
+          {
+            "email": "alex@cognition.ai",
+            "name": "Alex Rivera",
+            "responseStatus": "accepted",
+            "organizer": true
+          },
+          {
+            "email": "sofia@cognition.ai",
+            "name": "Sofia Alvarez",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "maya.okafor@northwind.io",
+            "name": "Maya Okafor",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "ben.carter@northwind.io",
+            "name": "Ben Carter",
+            "responseStatus": "accepted",
+            "organizer": false
+          }
+        ],
+        "status": "confirmed",
+        "recurringEventId": null
+      },
+      "expected": {
+        "classification": {
+          "score": 1,
+          "bucket": "likely",
+          "reasons": [
+            "\"pair programming\" matches the Pair programming format",
+            "Mentions Devin",
+            "2 external attendees from northwind.io",
+            "90 min fits a session",
+            "Attendees match a client with prior sessions"
+          ]
+        },
+        "redactions": [],
+        "suggestions": [
+          {
+            "field": "clientId",
+            "label": "Northwind Logistics",
+            "confidence": 0.96,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "2 attendees @northwind.io"
+              },
+              {
+                "source": "history.client",
+                "excerpt": "2 prior sessions with Northwind Logistics",
+                "attribution": "logged by Sofia Alvarez"
+              }
+            ]
+          },
+          {
+            "field": "coFacilitatorIds",
+            "label": "Sofia Alvarez",
+            "confidence": 0.85,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Sofia Alvarez is on the invite"
+              }
+            ]
+          },
+          {
+            "field": "contacts",
+            "label": "Ben Carter · Architect",
+            "confidence": 0.84,
+            "value": null,
+            "evidence": [
+              {
+                "source": "history.people",
+                "excerpt": "Recorded as Architect on 2 Northwind Logistics sessions",
+                "attribution": "by Sofia Alvarez"
+              }
+            ]
+          },
+          {
+            "field": "contacts",
+            "label": "Maya Okafor · Product owner",
+            "confidence": 0.95,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"PO: Maya Okafor\""
+              },
+              {
+                "source": "history.people",
+                "excerpt": "Recorded as Product owner on 2 Northwind Logistics sessions",
+                "attribution": "by Sofia Alvarez"
+              }
+            ]
+          },
+          {
+            "field": "facilitatorId",
+            "label": "Alex Rivera",
+            "confidence": 0.95,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.organizer",
+                "excerpt": "Alex Rivera organised the event"
+              }
+            ]
+          },
+          {
+            "field": "participantIds",
+            "label": "2 attendees from Northwind Logistics",
+            "confidence": 0.9,
+            "value": [
+              "ben.carter@northwind.io",
+              "maya.okafor@northwind.io"
+            ],
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Maya Okafor, Ben Carter"
+              }
+            ]
+          },
+          {
+            "field": "sessionType",
+            "label": "Pair programming",
+            "confidence": 0.94,
+            "value": "pairProgramming",
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "\"pair programming\""
+              }
+            ]
+          },
+          {
+            "field": "summary",
+            "label": "Draft summary from the invite",
+            "confidence": 0.55,
+            "value": "Northwind Logistics: Pairing session on the WMS decomposition.",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Pairing session on the WMS decomposition.\""
+              }
+            ]
+          },
+          {
+            "field": "teamId",
+            "label": "Fulfilment Engineering",
+            "confidence": 0.9,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "\"wms\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": ".NET",
+            "confidence": 0.65,
+            "value": "dotnet",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 2 of 2 Northwind Logistics sessions",
+                "attribution": "by Sofia Alvarez"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Azure",
+            "confidence": 0.55,
+            "value": "azure",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 1 of 2 Northwind Logistics sessions",
+                "attribution": "by Sofia Alvarez"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "GitLab CI",
+            "confidence": 0.92,
+            "value": "gitlabCi",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"GitLab CI\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "title",
+            "label": "Northwind — Pair programming: microservices decomposition",
+            "confidence": 0.95,
+            "value": "Northwind — Pair programming: microservices decomposition",
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "Northwind — Pair programming: microservices decomposition"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "providerEventId": "evt-meridian-training",
+      "event": {
+        "title": "Meridian Data Platform — Devin 101 session for new joiners",
+        "description": "101 session for 8 new data engineers on Devin and the Jira bug-triage workflow for the ingestion pipelines (Python / Postgres / GCP). EM: Victor Mensah.",
+        "location": null,
+        "conferencing": "https://meet.google.com/abc-defg-hij",
+        "start": "2026-10-09T05:30:00.000Z",
+        "end": "2026-10-09T07:00:00.000Z",
+        "organizerEmail": "victor.mensah@meridianhealth.org",
+        "attendees": [
+          {
+            "email": "alex@cognition.ai",
+            "name": "Alex Rivera",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "victor.mensah@meridianhealth.org",
+            "name": "Victor Mensah",
+            "responseStatus": "accepted",
+            "organizer": true
+          },
+          {
+            "email": "luis.ortega@meridianhealth.org",
+            "name": "Luis Ortega",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "amara.osei@meridianhealth.org",
+            "name": "Amara Osei",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "ken.watanabe@meridianhealth.org",
+            "name": "Ken Watanabe",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "sara.lindqvist@meridianhealth.org",
+            "name": "Sara Lindqvist",
+            "responseStatus": "accepted",
+            "organizer": false
+          }
+        ],
+        "status": "confirmed",
+        "recurringEventId": null
+      },
+      "expected": {
+        "classification": {
+          "score": 1,
+          "bucket": "likely",
+          "reasons": [
+            "\"101 session\" matches the 101 session format",
+            "Mentions Devin",
+            "5 external attendees from meridianhealth.org",
+            "90 min fits a session",
+            "Attendees match a client with prior sessions"
+          ]
+        },
+        "redactions": [],
+        "suggestions": [
+          {
+            "field": "clientId",
+            "label": "Meridian Health",
+            "confidence": 0.96,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "5 attendees @meridianhealth.org"
+              },
+              {
+                "source": "history.client",
+                "excerpt": "3 prior sessions with Meridian Health",
+                "attribution": "logged by Priya Nair & Marcus Chen"
+              }
+            ]
+          },
+          {
+            "field": "contacts",
+            "label": "Victor Mensah · Engineering manager",
+            "confidence": 0.95,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"EM: Victor Mensah\""
+              },
+              {
+                "source": "history.people",
+                "excerpt": "Recorded as Engineering manager on 2 Meridian Health sessions",
+                "attribution": "by Priya Nair & Marcus Chen"
+              }
+            ]
+          },
+          {
+            "field": "facilitatorId",
+            "label": "Alex Rivera",
+            "confidence": 0.9,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Alex Rivera is on the invite"
+              }
+            ]
+          },
+          {
+            "field": "participantIds",
+            "label": "5 attendees from Meridian Health",
+            "confidence": 0.9,
+            "value": [
+              "amara.osei@meridianhealth.org",
+              "ken.watanabe@meridianhealth.org",
+              "luis.ortega@meridianhealth.org",
+              "sara.lindqvist@meridianhealth.org",
+              "victor.mensah@meridianhealth.org"
+            ],
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Victor Mensah, Luis Ortega, Amara Osei, Ken Watanabe…"
+              }
+            ]
+          },
+          {
+            "field": "participantsEstimated",
+            "label": "~8 people",
+            "confidence": 0.88,
+            "value": 8,
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"8 new data engineers\""
+              }
+            ]
+          },
+          {
+            "field": "sessionType",
+            "label": "101 session",
+            "confidence": 0.94,
+            "value": "101",
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "\"101 session\""
+              }
+            ]
+          },
+          {
+            "field": "summary",
+            "label": "Draft summary from the invite",
+            "confidence": 0.55,
+            "value": "Meridian Health: 101 session for 8 new data engineers on Devin and the Jira bug-triage workflow for the ingestion pipelines (Python / Postgres / GCP).",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"101 session for 8 new data engineers on Devin and the Jira bug-triage workflow for the ingestion pipelines (Python / Postgres / GCP).\""
+              }
+            ]
+          },
+          {
+            "field": "teamId",
+            "label": "Data Platform",
+            "confidence": 0.9,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "\"data platform\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Angular",
+            "confidence": 0.65,
+            "value": "angular",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 2 of 3 Meridian Health sessions",
+                "attribution": "by Priya Nair"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "GCP",
+            "confidence": 0.92,
+            "value": "gcp",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"GCP\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Jira",
+            "confidence": 0.92,
+            "value": "jira",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Jira\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Node.js",
+            "confidence": 0.55,
+            "value": "nodejs",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 1 of 3 Meridian Health sessions",
+                "attribution": "by Priya Nair"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "PostgreSQL",
+            "confidence": 0.88,
+            "value": "postgres",
+            "evidence": [
+              {
+                "source": "taxonomy.alias",
+                "excerpt": "\"postgres\" → PostgreSQL"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Python",
+            "confidence": 0.92,
+            "value": "python",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Python\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "TypeScript",
+            "confidence": 0.65,
+            "value": "typescript",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 2 of 3 Meridian Health sessions",
+                "attribution": "by Priya Nair"
+              }
+            ]
+          },
+          {
+            "field": "title",
+            "label": "Meridian Data Platform — Devin 101 session for new joiners",
+            "confidence": 0.95,
+            "value": "Meridian Data Platform — Devin 101 session for new joiners",
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "Meridian Data Platform — Devin 101 session for new joiners"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "providerEventId": "evt-acme-pay-review",
+      "event": {
+        "title": "Acme Payments — Ask me anything: Devin Review rollout",
+        "description": "AMA while rolling out Devin Review to all Kafka consumer repos (Kotlin). Architect: Raj Patel. ~10 engineers from Payments.",
+        "location": null,
+        "conferencing": "https://meet.google.com/abc-defg-hij",
+        "start": "2026-10-14T08:30:00.000Z",
+        "end": "2026-10-14T09:15:00.000Z",
+        "organizerEmail": "marcus@cognition.ai",
+        "attendees": [
+          {
+            "email": "alex@cognition.ai",
+            "name": "Alex Rivera",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "marcus@cognition.ai",
+            "name": "Marcus Chen",
+            "responseStatus": "accepted",
+            "organizer": true
+          },
+          {
+            "email": "chris.lowe@acmefinancial.com",
+            "name": "Chris Lowe",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "yuki.tanaka@acmefinancial.com",
+            "name": "Yuki Tanaka",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "raj.patel@acmefinancial.com",
+            "name": "Raj Patel",
+            "responseStatus": "accepted",
+            "organizer": false
+          }
+        ],
+        "status": "confirmed",
+        "recurringEventId": null
+      },
+      "expected": {
+        "classification": {
+          "score": 1,
+          "bucket": "likely",
+          "reasons": [
+            "\"ask me anything\" matches the Ask me anything format",
+            "Mentions Devin",
+            "3 external attendees from acmefinancial.com",
+            "45 min fits a session",
+            "Attendees match a client with prior sessions"
+          ]
+        },
+        "redactions": [],
+        "suggestions": [
+          {
+            "field": "clientId",
+            "label": "Acme Financial",
+            "confidence": 0.96,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "3 attendees @acmefinancial.com"
+              },
+              {
+                "source": "history.client",
+                "excerpt": "5 prior sessions with Acme Financial",
+                "attribution": "logged by Priya Nair & Marcus Chen"
+              }
+            ]
+          },
+          {
+            "field": "coFacilitatorIds",
+            "label": "Alex Rivera",
+            "confidence": 0.85,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Alex Rivera is on the invite"
+              }
+            ]
+          },
+          {
+            "field": "contacts",
+            "label": "Chris Lowe · Engineering manager",
+            "confidence": 0.84,
+            "value": null,
+            "evidence": [
+              {
+                "source": "history.people",
+                "excerpt": "Recorded as Engineering manager on 2 Acme Financial sessions",
+                "attribution": "by Marcus Chen"
+              }
+            ]
+          },
+          {
+            "field": "contacts",
+            "label": "Raj Patel · Architect",
+            "confidence": 0.95,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Architect: Raj Patel\""
+              },
+              {
+                "source": "history.people",
+                "excerpt": "Recorded as Architect on 4 Acme Financial sessions",
+                "attribution": "by Priya Nair & Marcus Chen"
+              }
+            ]
+          },
+          {
+            "field": "facilitatorId",
+            "label": "Marcus Chen",
+            "confidence": 0.95,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.organizer",
+                "excerpt": "Marcus Chen organised the event"
+              }
+            ]
+          },
+          {
+            "field": "participantIds",
+            "label": "3 attendees from Acme Financial",
+            "confidence": 0.9,
+            "value": [
+              "chris.lowe@acmefinancial.com",
+              "raj.patel@acmefinancial.com",
+              "yuki.tanaka@acmefinancial.com"
+            ],
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Chris Lowe, Yuki Tanaka, Raj Patel"
+              }
+            ]
+          },
+          {
+            "field": "participantsEstimated",
+            "label": "~10 people",
+            "confidence": 0.88,
+            "value": 10,
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"~10 engineers\""
+              }
+            ]
+          },
+          {
+            "field": "sessionType",
+            "label": "Ask me anything",
+            "confidence": 0.94,
+            "value": "ama",
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "\"ask me anything\""
+              }
+            ]
+          },
+          {
+            "field": "summary",
+            "label": "Draft summary from the invite",
+            "confidence": 0.55,
+            "value": "Acme Financial: AMA while rolling out Devin Review to all Kafka consumer repos (Kotlin).",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"AMA while rolling out Devin Review to all Kafka consumer repos (Kotlin).\""
+              }
+            ]
+          },
+          {
+            "field": "teamId",
+            "label": "Payments",
+            "confidence": 0.9,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "\"payments\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "GitHub Actions",
+            "confidence": 0.55,
+            "value": "githubActions",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 1 of 5 Acme Financial sessions",
+                "attribution": "by Marcus Chen"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Java",
+            "confidence": 0.75,
+            "value": "java",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 3 of 5 Acme Financial sessions",
+                "attribution": "by Priya Nair"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Jenkins",
+            "confidence": 0.65,
+            "value": "jenkins",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 2 of 5 Acme Financial sessions",
+                "attribution": "by Priya Nair"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Kafka",
+            "confidence": 0.92,
+            "value": "kafka",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Kafka\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Kotlin",
+            "confidence": 0.92,
+            "value": "kotlin",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Kotlin\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Spring Boot",
+            "confidence": 0.75,
+            "value": "springBoot",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 3 of 5 Acme Financial sessions",
+                "attribution": "by Priya Nair"
+              }
+            ]
+          },
+          {
+            "field": "title",
+            "label": "Acme Payments — Ask me anything: Devin Review rollout",
+            "confidence": 0.95,
+            "value": "Acme Payments — Ask me anything: Devin Review rollout",
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "Acme Payments — Ask me anything: Devin Review rollout"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "providerEventId": "evt-helios-generic-ws",
+      "event": {
+        "title": "Helios Grid — enablement workshop",
+        "description": "Working session with the grid software team on Devin adoption. Architect: Aisha Bello.",
+        "location": null,
+        "conferencing": "https://meet.google.com/abc-defg-hij",
+        "start": "2026-10-12T07:30:00.000Z",
+        "end": "2026-10-12T09:00:00.000Z",
+        "organizerEmail": "alex@cognition.ai",
+        "attendees": [
+          {
+            "email": "alex@cognition.ai",
+            "name": "Alex Rivera",
+            "responseStatus": "accepted",
+            "organizer": true
+          },
+          {
+            "email": "aisha.bello@helios-energy.com",
+            "name": "Aisha Bello",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "noah.kim@helios-energy.com",
+            "name": "Noah Kim",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "sam.whitaker@helios-energy.com",
+            "name": "Sam Whitaker",
+            "responseStatus": "accepted",
+            "organizer": false
+          }
+        ],
+        "status": "confirmed",
+        "recurringEventId": null
+      },
+      "expected": {
+        "classification": {
+          "score": 0.62,
+          "bucket": "review",
+          "reasons": [
+            "No recognised session format (101, 201, pair programming, AMA, sprint in a day)",
+            "Mentions \"workshop\" and \"enablement\"",
+            "Mentions Devin",
+            "3 external attendees from helios-energy.com",
+            "90 min fits a session",
+            "Attendees match a client with prior sessions"
+          ]
+        },
+        "redactions": [],
+        "suggestions": [
+          {
+            "field": "clientId",
+            "label": "Helios Energy",
+            "confidence": 0.96,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "3 attendees @helios-energy.com"
+              },
+              {
+                "source": "history.client",
+                "excerpt": "2 prior sessions with Helios Energy",
+                "attribution": "logged by Marcus Chen"
+              }
+            ]
+          },
+          {
+            "field": "contacts",
+            "label": "Aisha Bello · Architect",
+            "confidence": 0.95,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Architect: Aisha Bello\""
+              },
+              {
+                "source": "history.people",
+                "excerpt": "Recorded as Architect on 2 Helios Energy sessions",
+                "attribution": "by Alex Rivera & Marcus Chen"
+              }
+            ]
+          },
+          {
+            "field": "contacts",
+            "label": "Sam Whitaker · Project manager",
+            "confidence": 0.84,
+            "value": null,
+            "evidence": [
+              {
+                "source": "history.people",
+                "excerpt": "Recorded as Project manager on 2 Helios Energy sessions",
+                "attribution": "by Alex Rivera & Marcus Chen"
+              }
+            ]
+          },
+          {
+            "field": "facilitatorId",
+            "label": "Alex Rivera",
+            "confidence": 0.95,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.organizer",
+                "excerpt": "Alex Rivera organised the event"
+              }
+            ]
+          },
+          {
+            "field": "participantIds",
+            "label": "3 attendees from Helios Energy",
+            "confidence": 0.9,
+            "value": [
+              "aisha.bello@helios-energy.com",
+              "noah.kim@helios-energy.com",
+              "sam.whitaker@helios-energy.com"
+            ],
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Aisha Bello, Noah Kim, Sam Whitaker"
+              }
+            ]
+          },
+          {
+            "field": "participantsEstimated",
+            "label": "3 (from invite)",
+            "confidence": 0.5,
+            "value": 3,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "3 external attendees accepted"
+              }
+            ]
+          },
+          {
+            "field": "summary",
+            "label": "Draft summary from the invite",
+            "confidence": 0.55,
+            "value": "Helios Energy: Working session with the grid software team on Devin adoption.",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Working session with the grid software team on Devin adoption.\""
+              }
+            ]
+          },
+          {
+            "field": "teamId",
+            "label": "Grid Software",
+            "confidence": 0.9,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "\"grid\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Go",
+            "confidence": 0.55,
+            "value": "go",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 1 of 2 Helios Energy sessions",
+                "attribution": "by Alex Rivera"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Kubernetes",
+            "confidence": 0.65,
+            "value": "kubernetes",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 2 of 2 Helios Energy sessions",
+                "attribution": "by Alex Rivera & Marcus Chen"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Python",
+            "confidence": 0.65,
+            "value": "python",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 2 of 2 Helios Energy sessions",
+                "attribution": "by Alex Rivera & Marcus Chen"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Terraform",
+            "confidence": 0.55,
+            "value": "terraform",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 1 of 2 Helios Energy sessions",
+                "attribution": "by Alex Rivera"
+              }
+            ]
+          },
+          {
+            "field": "title",
+            "label": "Helios Grid — enablement workshop",
+            "confidence": 0.95,
+            "value": "Helios Grid — enablement workshop",
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "Helios Grid — enablement workshop"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "providerEventId": "evt-brightline-intro",
+      "event": {
+        "title": "Intro call: Brightline Software <> Cognition",
+        "description": "Intro to Devin for Brightline's platform team. They run Go services on GitHub Actions and want help with dependency upgrades.",
+        "location": null,
+        "conferencing": "https://meet.google.com/abc-defg-hij",
+        "start": "2026-10-13T09:30:00.000Z",
+        "end": "2026-10-13T10:15:00.000Z",
+        "organizerEmail": "dana@cognition.ai",
+        "attendees": [
+          {
+            "email": "alex@cognition.ai",
+            "name": "Alex Rivera",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "dana@cognition.ai",
+            "name": "Dana Whitfield",
+            "responseStatus": "accepted",
+            "organizer": true
+          },
+          {
+            "email": "kate.morgan@brightlinesw.com",
+            "name": "Kate Morgan",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "ravi.shah@brightlinesw.com",
+            "name": "Ravi Shah",
+            "responseStatus": "accepted",
+            "organizer": false
+          }
+        ],
+        "status": "confirmed",
+        "recurringEventId": null
+      },
+      "expected": {
+        "classification": {
+          "score": 0.55,
+          "bucket": "review",
+          "reasons": [
+            "Mentions Devin",
+            "Reads like an intro call rather than a session",
+            "2 external attendees from brightlinesw.com",
+            "45 min fits a session"
+          ]
+        },
+        "redactions": [],
+        "suggestions": [
+          {
+            "field": "clientId",
+            "label": "New client: Brightline Software",
+            "confidence": 0.62,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Unknown domain @brightlinesw.com"
+              },
+              {
+                "source": "calendar.title",
+                "excerpt": "Intro call: Brightline Software <> Cognition"
+              }
+            ]
+          },
+          {
+            "field": "coFacilitatorIds",
+            "label": "Alex Rivera",
+            "confidence": 0.85,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Alex Rivera is on the invite"
+              }
+            ]
+          },
+          {
+            "field": "facilitatorId",
+            "label": "Dana Whitfield",
+            "confidence": 0.95,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.organizer",
+                "excerpt": "Dana Whitfield organised the event"
+              }
+            ]
+          },
+          {
+            "field": "participantIds",
+            "label": "2 attendees",
+            "confidence": 0.9,
+            "value": [
+              "kate.morgan@brightlinesw.com",
+              "ravi.shah@brightlinesw.com"
+            ],
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Kate Morgan, Ravi Shah"
+              }
+            ]
+          },
+          {
+            "field": "summary",
+            "label": "Draft summary from the invite",
+            "confidence": 0.55,
+            "value": "Intro to Devin for Brightline's platform team.",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Intro to Devin for Brightline's platform team.\""
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "GitHub Actions",
+            "confidence": 0.92,
+            "value": "githubActions",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"GitHub Actions\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Go",
+            "confidence": 0.92,
+            "value": "go",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Go\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "title",
+            "label": "Intro call: Brightline Software <> Cognition",
+            "confidence": 0.95,
+            "value": "Intro call: Brightline Software <> Cognition",
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "Intro call: Brightline Software <> Cognition"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "providerEventId": "evt-helios-sync",
+      "event": {
+        "title": "Helios Grid — enablement sync",
+        "description": "",
+        "location": null,
+        "conferencing": "https://meet.google.com/abc-defg-hij",
+        "start": "2026-10-04T07:30:00.000Z",
+        "end": "2026-10-04T08:00:00.000Z",
+        "organizerEmail": "alex@cognition.ai",
+        "attendees": [
+          {
+            "email": "alex@cognition.ai",
+            "name": "Alex Rivera",
+            "responseStatus": "accepted",
+            "organizer": true
+          },
+          {
+            "email": "sam.whitaker@helios-energy.com",
+            "name": "Sam Whitaker",
+            "responseStatus": "accepted",
+            "organizer": false
+          }
+        ],
+        "status": "confirmed",
+        "recurringEventId": null
+      },
+      "expected": {
+        "classification": {
+          "score": 0.55,
+          "bucket": "review",
+          "reasons": [
+            "Mentions \"enablement\"",
+            "1 external attendee from helios-energy.com",
+            "Only 30 min",
+            "Attendees match a client with prior sessions"
+          ]
+        },
+        "redactions": [],
+        "suggestions": [
+          {
+            "field": "clientId",
+            "label": "Helios Energy",
+            "confidence": 0.96,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "1 attendee @helios-energy.com"
+              },
+              {
+                "source": "history.client",
+                "excerpt": "2 prior sessions with Helios Energy",
+                "attribution": "logged by Marcus Chen"
+              }
+            ]
+          },
+          {
+            "field": "contacts",
+            "label": "Sam Whitaker · Project manager",
+            "confidence": 0.84,
+            "value": null,
+            "evidence": [
+              {
+                "source": "history.people",
+                "excerpt": "Recorded as Project manager on 2 Helios Energy sessions",
+                "attribution": "by Alex Rivera & Marcus Chen"
+              }
+            ]
+          },
+          {
+            "field": "facilitatorId",
+            "label": "Alex Rivera",
+            "confidence": 0.95,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.organizer",
+                "excerpt": "Alex Rivera organised the event"
+              }
+            ]
+          },
+          {
+            "field": "participantIds",
+            "label": "1 attendee from Helios Energy",
+            "confidence": 0.9,
+            "value": [
+              "sam.whitaker@helios-energy.com"
+            ],
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Sam Whitaker"
+              }
+            ]
+          },
+          {
+            "field": "teamId",
+            "label": "Grid Software",
+            "confidence": 0.9,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "\"grid\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Go",
+            "confidence": 0.55,
+            "value": "go",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 1 of 2 Helios Energy sessions",
+                "attribution": "by Alex Rivera"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Kubernetes",
+            "confidence": 0.65,
+            "value": "kubernetes",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 2 of 2 Helios Energy sessions",
+                "attribution": "by Alex Rivera & Marcus Chen"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Python",
+            "confidence": 0.65,
+            "value": "python",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 2 of 2 Helios Energy sessions",
+                "attribution": "by Alex Rivera & Marcus Chen"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Terraform",
+            "confidence": 0.55,
+            "value": "terraform",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 1 of 2 Helios Energy sessions",
+                "attribution": "by Alex Rivera"
+              }
+            ]
+          },
+          {
+            "field": "title",
+            "label": "Helios Grid — enablement sync",
+            "confidence": 0.95,
+            "value": "Helios Grid — enablement sync",
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "Helios Grid — enablement sync"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "providerEventId": "evt-vantage-d1-copy",
+      "event": {
+        "title": "Vantage Claims Sprint in a day (copy)",
+        "description": "Forwarded from Zoe's calendar.",
+        "location": "Vantage HQ, 12th floor",
+        "conferencing": null,
+        "start": "2026-10-06T03:30:00.000Z",
+        "end": "2026-10-06T09:30:00.000Z",
+        "organizerEmail": "zoe.martin@vantage-ins.com",
+        "attendees": [
+          {
+            "email": "alex@cognition.ai",
+            "name": "Alex Rivera",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "zoe.martin@vantage-ins.com",
+            "name": "Zoe Martin",
+            "responseStatus": "accepted",
+            "organizer": true
+          },
+          {
+            "email": "felix.brandt@vantage-ins.com",
+            "name": "Felix Brandt",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "nadia.rahman@vantage-ins.com",
+            "name": "Nadia Rahman",
+            "responseStatus": "accepted",
+            "organizer": false
+          }
+        ],
+        "status": "confirmed",
+        "recurringEventId": null
+      },
+      "expected": {
+        "classification": {
+          "score": 1,
+          "bucket": "likely",
+          "reasons": [
+            "\"sprint in a day\" matches the Sprint in a day format",
+            "3 external attendees from vantage-ins.com",
+            "Attendees match a client with prior sessions"
+          ]
+        },
+        "redactions": [],
+        "suggestions": [
+          {
+            "field": "clientId",
+            "label": "Vantage Insurance",
+            "confidence": 0.96,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "3 attendees @vantage-ins.com"
+              },
+              {
+                "source": "history.client",
+                "excerpt": "1 prior session with Vantage Insurance"
+              }
+            ]
+          },
+          {
+            "field": "contacts",
+            "label": "Felix Brandt · Architect",
+            "confidence": 0.77,
+            "value": null,
+            "evidence": [
+              {
+                "source": "history.people",
+                "excerpt": "Recorded as Architect on 1 Vantage Insurance session",
+                "attribution": "by Alex Rivera"
+              }
+            ]
+          },
+          {
+            "field": "contacts",
+            "label": "Nadia Rahman · Executive sponsor",
+            "confidence": 0.77,
+            "value": null,
+            "evidence": [
+              {
+                "source": "history.people",
+                "excerpt": "Recorded as Executive sponsor on 1 Vantage Insurance session",
+                "attribution": "by Alex Rivera"
+              }
+            ]
+          },
+          {
+            "field": "contacts",
+            "label": "Zoe Martin · Project manager",
+            "confidence": 0.77,
+            "value": null,
+            "evidence": [
+              {
+                "source": "history.people",
+                "excerpt": "Recorded as Project manager on 1 Vantage Insurance session",
+                "attribution": "by Alex Rivera"
+              }
+            ]
+          },
+          {
+            "field": "facilitatorId",
+            "label": "Alex Rivera",
+            "confidence": 0.9,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Alex Rivera is on the invite"
+              }
+            ]
+          },
+          {
+            "field": "participantIds",
+            "label": "3 attendees from Vantage Insurance",
+            "confidence": 0.9,
+            "value": [
+              "felix.brandt@vantage-ins.com",
+              "nadia.rahman@vantage-ins.com",
+              "zoe.martin@vantage-ins.com"
+            ],
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Zoe Martin, Felix Brandt, Nadia Rahman"
+              }
+            ]
+          },
+          {
+            "field": "participantsEstimated",
+            "label": "3 (from invite)",
+            "confidence": 0.5,
+            "value": 3,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "3 external attendees accepted"
+              }
+            ]
+          },
+          {
+            "field": "sessionType",
+            "label": "Sprint in a day",
+            "confidence": 0.94,
+            "value": "sprintInADay",
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "\"sprint in a day\""
+              }
+            ]
+          },
+          {
+            "field": "summary",
+            "label": "Draft summary from the invite",
+            "confidence": 0.55,
+            "value": "Vantage Insurance: Forwarded from Zoe's calendar.",
+            "evidence": [
+              {
+                "source": "calendar.description",
+                "excerpt": "\"Forwarded from Zoe's calendar.\""
+              }
+            ]
+          },
+          {
+            "field": "teamId",
+            "label": "Claims Modernization",
+            "confidence": 0.9,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "\"claims\" in the invite"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "COBOL",
+            "confidence": 0.55,
+            "value": "cobol",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 1 of 1 Vantage Insurance session",
+                "attribution": "by Alex Rivera"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Java",
+            "confidence": 0.55,
+            "value": "java",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 1 of 1 Vantage Insurance session",
+                "attribution": "by Alex Rivera"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Jenkins",
+            "confidence": 0.55,
+            "value": "jenkins",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 1 of 1 Vantage Insurance session",
+                "attribution": "by Alex Rivera"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Oracle DB",
+            "confidence": 0.55,
+            "value": "oracle",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 1 of 1 Vantage Insurance session",
+                "attribution": "by Alex Rivera"
+              }
+            ]
+          },
+          {
+            "field": "title",
+            "label": "Vantage Claims Sprint in a day",
+            "confidence": 0.95,
+            "value": "Vantage Claims Sprint in a day",
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "Vantage Claims Sprint in a day (copy)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "providerEventId": "evt-incomplete-workshop",
+      "event": {
+        "title": "Workshop",
+        "description": "",
+        "location": null,
+        "conferencing": null,
+        "start": "2026-10-15T04:30:00.000Z",
+        "end": "2026-10-15T06:00:00.000Z",
+        "organizerEmail": "ingrid.solberg@northwind.io",
+        "attendees": [
+          {
+            "email": "alex@cognition.ai",
+            "name": "Alex Rivera",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "ingrid.solberg@northwind.io",
+            "name": "Ingrid Solberg",
+            "responseStatus": "accepted",
+            "organizer": true
+          }
+        ],
+        "status": "confirmed",
+        "recurringEventId": null
+      },
+      "expected": {
+        "classification": {
+          "score": 0.62,
+          "bucket": "review",
+          "reasons": [
+            "No recognised session format (101, 201, pair programming, AMA, sprint in a day)",
+            "Mentions \"workshop\"",
+            "1 external attendee from northwind.io",
+            "90 min fits a session",
+            "Attendees match a client with prior sessions",
+            "Sparse title and no description"
+          ]
+        },
+        "redactions": [],
+        "suggestions": [
+          {
+            "field": "clientId",
+            "label": "Northwind Logistics",
+            "confidence": 0.96,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "1 attendee @northwind.io"
+              },
+              {
+                "source": "history.client",
+                "excerpt": "2 prior sessions with Northwind Logistics",
+                "attribution": "logged by Sofia Alvarez"
+              }
+            ]
+          },
+          {
+            "field": "facilitatorId",
+            "label": "Alex Rivera",
+            "confidence": 0.9,
+            "value": null,
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Alex Rivera is on the invite"
+              }
+            ]
+          },
+          {
+            "field": "participantIds",
+            "label": "1 attendee from Northwind Logistics",
+            "confidence": 0.9,
+            "value": [
+              "ingrid.solberg@northwind.io"
+            ],
+            "evidence": [
+              {
+                "source": "calendar.attendees",
+                "excerpt": "Ingrid Solberg"
+              }
+            ]
+          },
+          {
+            "field": "teamId",
+            "label": "Fulfilment Engineering",
+            "confidence": 0.8,
+            "value": null,
+            "evidence": [
+              {
+                "source": "history.team",
+                "excerpt": "Only team recorded for Northwind Logistics"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": ".NET",
+            "confidence": 0.65,
+            "value": "dotnet",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 2 of 2 Northwind Logistics sessions",
+                "attribution": "by Sofia Alvarez"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "Azure",
+            "confidence": 0.55,
+            "value": "azure",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 1 of 2 Northwind Logistics sessions",
+                "attribution": "by Sofia Alvarez"
+              }
+            ]
+          },
+          {
+            "field": "technologyIds",
+            "label": "GitLab CI",
+            "confidence": 0.65,
+            "value": "gitlabCi",
+            "evidence": [
+              {
+                "source": "history.tags",
+                "excerpt": "Recorded on 2 of 2 Northwind Logistics sessions",
+                "attribution": "by Sofia Alvarez"
+              }
+            ]
+          },
+          {
+            "field": "title",
+            "label": "Workshop",
+            "confidence": 0.95,
+            "value": "Workshop",
+            "evidence": [
+              {
+                "source": "calendar.title",
+                "excerpt": "Workshop"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "providerEventId": "evt-orbital-cancelled",
+      "event": {
+        "title": "Orbital Storefront — Ask me anything",
+        "description": "Cancelled: Pavel out this week.",
+        "location": null,
+        "conferencing": null,
+        "start": "2026-10-03T04:30:00.000Z",
+        "end": "2026-10-03T05:30:00.000Z",
+        "organizerEmail": "sofia@cognition.ai",
+        "attendees": [
+          {
+            "email": "alex@cognition.ai",
+            "name": "Alex Rivera",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "sofia@cognition.ai",
+            "name": "Sofia Alvarez",
+            "responseStatus": "accepted",
+            "organizer": true
+          },
+          {
+            "email": "pavel.novak@orbitalretail.com",
+            "name": "Pavel Novak",
+            "responseStatus": "accepted",
+            "organizer": false
+          }
+        ],
+        "status": "cancelled",
+        "recurringEventId": null
+      },
+      "expected": {
+        "classification": {
+          "score": 0.05,
+          "bucket": "unlikely",
+          "reasons": [
+            "Event was cancelled"
+          ]
+        },
+        "redactions": [],
+        "suggestions": []
+      }
+    },
+    {
+      "providerEventId": "evt-1on1",
+      "event": {
+        "title": "Alex / Dana 1:1",
+        "description": "",
+        "location": null,
+        "conferencing": null,
+        "start": "2026-10-01T10:30:00.000Z",
+        "end": "2026-10-01T11:00:00.000Z",
+        "organizerEmail": "dana@cognition.ai",
+        "attendees": [
+          {
+            "email": "alex@cognition.ai",
+            "name": "Alex Rivera",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "dana@cognition.ai",
+            "name": "Dana Whitfield",
+            "responseStatus": "accepted",
+            "organizer": true
+          }
+        ],
+        "status": "confirmed",
+        "recurringEventId": null
+      },
+      "expected": {
+        "classification": {
+          "score": 0,
+          "bucket": "unlikely",
+          "reasons": [
+            "Looks like \"1:1\", not an enablement session",
+            "Internal attendees only",
+            "Only 30 min"
+          ]
+        },
+        "redactions": [],
+        "suggestions": []
+      }
+    },
+    {
+      "providerEventId": "evt-standup-1",
+      "event": {
+        "title": "Enablement team standup",
+        "description": "",
+        "location": null,
+        "conferencing": null,
+        "start": "2026-10-02T03:45:00.000Z",
+        "end": "2026-10-02T04:00:00.000Z",
+        "organizerEmail": "dana@cognition.ai",
+        "attendees": [
+          {
+            "email": "alex@cognition.ai",
+            "name": "Alex Rivera",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "priya@cognition.ai",
+            "name": "Priya Nair",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "marcus@cognition.ai",
+            "name": "Marcus Chen",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "sofia@cognition.ai",
+            "name": "Sofia Alvarez",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "dana@cognition.ai",
+            "name": "Dana Whitfield",
+            "responseStatus": "accepted",
+            "organizer": true
+          }
+        ],
+        "status": "confirmed",
+        "recurringEventId": "rec-standup"
+      },
+      "expected": {
+        "classification": {
+          "score": 0,
+          "bucket": "unlikely",
+          "reasons": [
+            "Looks like \"standup\", not an enablement session",
+            "Mentions \"enablement\"",
+            "Internal attendees only",
+            "Only 15 min"
+          ]
+        },
+        "redactions": [],
+        "suggestions": []
+      }
+    },
+    {
+      "providerEventId": "evt-standup-2",
+      "event": {
+        "title": "Enablement team standup",
+        "description": "",
+        "location": null,
+        "conferencing": null,
+        "start": "2026-10-05T03:45:00.000Z",
+        "end": "2026-10-05T04:00:00.000Z",
+        "organizerEmail": "dana@cognition.ai",
+        "attendees": [
+          {
+            "email": "alex@cognition.ai",
+            "name": "Alex Rivera",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "priya@cognition.ai",
+            "name": "Priya Nair",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "marcus@cognition.ai",
+            "name": "Marcus Chen",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "sofia@cognition.ai",
+            "name": "Sofia Alvarez",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "dana@cognition.ai",
+            "name": "Dana Whitfield",
+            "responseStatus": "accepted",
+            "organizer": true
+          }
+        ],
+        "status": "confirmed",
+        "recurringEventId": "rec-standup"
+      },
+      "expected": {
+        "classification": {
+          "score": 0,
+          "bucket": "unlikely",
+          "reasons": [
+            "Looks like \"standup\", not an enablement session",
+            "Mentions \"enablement\"",
+            "Internal attendees only",
+            "Only 15 min"
+          ]
+        },
+        "redactions": [],
+        "suggestions": []
+      }
+    },
+    {
+      "providerEventId": "evt-standup-3",
+      "event": {
+        "title": "Enablement team standup",
+        "description": "",
+        "location": null,
+        "conferencing": null,
+        "start": "2026-10-08T03:45:00.000Z",
+        "end": "2026-10-08T04:00:00.000Z",
+        "organizerEmail": "dana@cognition.ai",
+        "attendees": [
+          {
+            "email": "alex@cognition.ai",
+            "name": "Alex Rivera",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "priya@cognition.ai",
+            "name": "Priya Nair",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "marcus@cognition.ai",
+            "name": "Marcus Chen",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "sofia@cognition.ai",
+            "name": "Sofia Alvarez",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "dana@cognition.ai",
+            "name": "Dana Whitfield",
+            "responseStatus": "accepted",
+            "organizer": true
+          }
+        ],
+        "status": "confirmed",
+        "recurringEventId": "rec-standup"
+      },
+      "expected": {
+        "classification": {
+          "score": 0,
+          "bucket": "unlikely",
+          "reasons": [
+            "Looks like \"standup\", not an enablement session",
+            "Mentions \"enablement\"",
+            "Internal attendees only",
+            "Only 15 min"
+          ]
+        },
+        "redactions": [],
+        "suggestions": []
+      }
+    },
+    {
+      "providerEventId": "evt-interview",
+      "event": {
+        "title": "Interview — Applied AI Engineer candidate",
+        "description": "Panel interview, system design round.",
+        "location": null,
+        "conferencing": null,
+        "start": "2026-10-10T09:30:00.000Z",
+        "end": "2026-10-10T10:30:00.000Z",
+        "organizerEmail": "recruiting@cognition.ai",
+        "attendees": [
+          {
+            "email": "alex@cognition.ai",
+            "name": "Alex Rivera",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "sofia@cognition.ai",
+            "name": "Sofia Alvarez",
+            "responseStatus": "accepted",
+            "organizer": false
+          },
+          {
+            "email": "recruiting@cognition.ai",
+            "name": null,
+            "responseStatus": "accepted",
+            "organizer": true
+          }
+        ],
+        "status": "confirmed",
+        "recurringEventId": null
+      },
+      "expected": {
+        "classification": {
+          "score": 0,
+          "bucket": "unlikely",
+          "reasons": [
+            "Looks like \"interview\", not an enablement session",
+            "Internal attendees only",
+            "60 min fits a session"
+          ]
+        },
+        "redactions": [],
+        "suggestions": []
+      }
+    },
+    {
+      "providerEventId": "evt-focus",
+      "event": {
+        "title": "Focus time",
+        "description": "",
+        "location": null,
+        "conferencing": null,
+        "start": "2026-10-05T06:30:00.000Z",
+        "end": "2026-10-05T07:30:00.000Z",
+        "organizerEmail": "alex@cognition.ai",
+        "attendees": [
+          {
+            "email": "alex@cognition.ai",
+            "name": "Alex Rivera",
+            "responseStatus": "accepted",
+            "organizer": true
+          }
+        ],
+        "status": "confirmed",
+        "recurringEventId": null
+      },
+      "expected": {
+        "classification": {
+          "score": 0,
+          "bucket": "unlikely",
+          "reasons": [
+            "Looks like \"focus time\", not an enablement session",
+            "Only you on the invite",
+            "60 min fits a session",
+            "Sparse title and no description"
+          ]
+        },
+        "redactions": [],
+        "suggestions": []
+      }
+    },
+    {
+      "providerEventId": "evt-dentist",
+      "event": {
+        "title": "Dentist",
+        "description": "",
+        "location": null,
+        "conferencing": null,
+        "start": "2026-10-11T02:30:00.000Z",
+        "end": "2026-10-11T03:30:00.000Z",
+        "organizerEmail": "alex@cognition.ai",
+        "attendees": [
+          {
+            "email": "alex@cognition.ai",
+            "name": "Alex Rivera",
+            "responseStatus": "accepted",
+            "organizer": true
+          }
+        ],
+        "status": "confirmed",
+        "recurringEventId": null
+      },
+      "expected": {
+        "classification": {
+          "score": 0,
+          "bucket": "unlikely",
+          "reasons": [
+            "Looks like \"dentist\", not an enablement session",
+            "Only you on the invite",
+            "60 min fits a session",
+            "Sparse title and no description"
+          ]
+        },
+        "redactions": [],
+        "suggestions": []
+      }
+    }
+  ]
+}
