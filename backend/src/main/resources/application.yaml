@@ -4,10 +4,6 @@ spring:
   threads:
     virtual:
       enabled: true
-  jpa:
-    open-in-view: false
-    hibernate:
-      ddl-auto: validate
   flyway:
     locations: classpath:db/migration/common,classpath:db/migration/{vendor}
     validate-on-migrate: true

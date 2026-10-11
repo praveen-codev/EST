@@ -24,7 +24,7 @@ dependencies {
     implementation(libs.boot.validation)
     implementation(libs.boot.security)
     implementation(libs.boot.oauth2.resource.server)
-    implementation(libs.boot.data.jpa)
+    implementation(libs.boot.jdbc)
     implementation(libs.boot.flyway)
     implementation(libs.boot.actuator)
     implementation(libs.boot.restclient)
@@ -43,7 +43,7 @@ dependencies {
 
     testImplementation(libs.boot.webmvc.test)
     testImplementation(libs.boot.security.test)
-    testImplementation(libs.boot.data.jpa.test)
+    testImplementation(libs.boot.jdbc.test)
     testImplementation(libs.boot.flyway.test)
     testImplementation(libs.boot.testcontainers)
     testImplementation(libs.testcontainers.postgresql)

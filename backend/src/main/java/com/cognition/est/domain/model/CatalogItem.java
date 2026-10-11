@@ -1,10 +1,9 @@
-package com.cognition.est.catalog;
+package com.cognition.est.domain.model;
 
 import java.time.Instant;
 import java.util.List;
 
-/** Read model of one reference-table row (mirrors web/lib/domain/types.ts CatalogItem). */
-public record CatalogItemDto(
+public record CatalogItem(
         String id,
         String kind,
         String label,
@@ -13,5 +12,6 @@ public record CatalogItemDto(
         Integer typicalMinutes,
         boolean archived,
         int sortOrder,
+        int version,
         String updatedBy,
         Instant updatedAt) {}

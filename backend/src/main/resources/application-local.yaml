@@ -11,10 +11,6 @@ spring:
       path: /h2-console
   flyway:
     locations: classpath:db/migration/common,classpath:db/migration/{vendor},classpath:db/migration/local
-  jpa:
-    properties:
-      hibernate:
-        format_sql: true
 
 est:
   allowed-domains: cognition.ai
