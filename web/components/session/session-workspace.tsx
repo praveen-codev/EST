@@ -76,14 +76,12 @@ export function SessionWorkspace() {
     toast("AI re-run complete", { description: "Only new, non-conflicting suggestions were added. Nothing you set was touched." });
   };
   const focusField = (field: string) => document.getElementById(`field-${field}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-  const addUseCase = () => {
+  const addUseCase = async () => {
     const nextIndex = session.useCases.length;
-    state.addUseCase(session.id);
-    // The new card's id is derived in the store; focus the last card after render.
-    requestAnimationFrame(() => {
-      const latest = useStore.getState().sessions.find((s) => s.id === session.id)?.useCases[nextIndex];
-      if (latest) setFocusUseCaseId(latest.id);
-    });
+    await state.addUseCase(session.id);
+    // The new card's id is assigned by the API; the store has reloaded by now, so focus the new card.
+    const latest = useStore.getState().sessions.find((s) => s.id === session.id)?.useCases[nextIndex];
+    if (latest) setFocusUseCaseId(latest.id);
   };
 
   const clientPeople = state.people.filter((p) => !vm.client || p.clientId === vm.client.id || p.clientId === null);
@@ -206,7 +204,7 @@ export function SessionWorkspace() {
                 value={null}
                 options={clientPeople.filter((p) => !session.contacts.some((c) => c.personId === p.id)).map((p) => ({ value: p.id, label: p.name, hint: catalogLabel(state.catalog, p.role) ?? undefined }))}
                 onChange={(v) => { if (!v) return; const person = state.people.find((p) => p.id === v); patch({ contacts: [...session.contacts, { personId: v, role: person?.role ?? "engineer" }] }); }}
-                onCreate={(name) => { const id = state.createPerson(name, session.clientId); patch({ contacts: [...session.contacts, { personId: id, role: "engineer" }] }); return id; }}
+                onCreate={async (name) => { const id = await state.createPerson(name, session.clientId); patch({ contacts: [...session.contacts, { personId: id, role: "engineer" }] }); return id; }}
                 otherPlaceholder="Contact's full name…"
                 trigger={<Button variant="outline" size="xs" className="rounded-full">+ contact</Button>}
               />
@@ -227,7 +225,7 @@ export function SessionWorkspace() {
                     <button type="button" aria-label={`Remove ${p.name}`} onClick={() => patch({ participantIds: session.participantIds.filter((x) => x !== p.id) })} className="ml-0.5 text-muted-foreground hover:text-foreground"><X className="size-3" /></button>
                   </span>
                 ))}
-                <Combobox value={null} options={clientPeople.filter((p) => !session.participantIds.includes(p.id)).map((p) => ({ value: p.id, label: p.name }))} onChange={(v) => v && patch({ participantIds: [...session.participantIds, v] })} onCreate={(name) => { const id = state.createPerson(name, session.clientId); patch({ participantIds: [...session.participantIds, id] }); return id; }} otherPlaceholder="Participant's full name…" trigger={<Button variant="outline" size="xs" className="rounded-full">+ known person</Button>} />
+                <Combobox value={null} options={clientPeople.filter((p) => !session.participantIds.includes(p.id)).map((p) => ({ value: p.id, label: p.name }))} onChange={(v) => v && patch({ participantIds: [...session.participantIds, v] })} onCreate={async (name) => { const id = await state.createPerson(name, session.clientId); patch({ participantIds: [...session.participantIds, id] }); return id; }} otherPlaceholder="Participant's full name…" trigger={<Button variant="outline" size="xs" className="rounded-full">+ known person</Button>} />
               </div>
             </div>
           </FieldRow>
@@ -275,7 +273,7 @@ export function SessionWorkspace() {
                 ))}
               </AnimatePresence>
             </div>
-            <Button variant="outline" onClick={addUseCase} className="mt-3 w-full gap-2 border-dashed">
+            <Button variant="outline" onClick={() => void addUseCase()} className="mt-3 w-full gap-2 border-dashed">
               <Plus data-icon="inline-start" /> Add use case
             </Button>
           </div>

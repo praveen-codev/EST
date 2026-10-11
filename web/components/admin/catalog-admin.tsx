@@ -22,7 +22,7 @@ const KINDS: CatalogKind[] = ["sessionType", "sessionOutcome", "useCaseType", "t
 
 export function CatalogAdmin() {
   const hydrated = useHydrated();
-  const me = useCurrentMember();
+  const me = useCurrentMember()!;
   const canEdit = me.role === "ADMIN";
   const [kind, setKind] = useState<CatalogKind>("sessionType");
 

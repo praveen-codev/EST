@@ -37,6 +37,7 @@ public class SecurityConfig {
         "/api/v1/auth/google",
         "/api/v1/auth/refresh",
         "/api/v1/auth/logout",
+        "/api/v1/features",
         "/api/v1/calendar/identities/link/callback",
         "/api/v1/dev/**"
     };

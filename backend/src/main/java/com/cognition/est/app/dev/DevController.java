@@ -107,7 +107,9 @@ public class DevController {
                 "expiresAt",
                 issued.access().expiresAt().toString(),
                 "member",
-                m);
+                m,
+                "csrf",
+                issued.csrf());
     }
 
     @PostMapping("/scenario/{scenario}")
@@ -129,11 +131,10 @@ public class DevController {
     public void reset() {
         for (String sql :
                 new String[] {
+                    // children before parents: proposals → sessions → evidence → identity →
+                    // directory
                     "delete from suggestions",
                     "delete from candidates",
-                    "delete from calendar_event_attendees",
-                    "delete from calendar_events",
-                    "delete from calendar_sync_runs",
                     "delete from session_source_events",
                     "delete from use_case_technologies",
                     "delete from use_cases",
@@ -142,6 +143,9 @@ public class DevController {
                     "delete from session_participants",
                     "delete from session_technologies",
                     "delete from sessions",
+                    "delete from calendar_event_attendees",
+                    "delete from calendar_events",
+                    "delete from calendar_sync_runs",
                     "delete from refresh_token_families",
                     "delete from oauth_link_states",
                     "delete from member_identities",

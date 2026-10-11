@@ -1,5 +1,5 @@
 import { endOfMonth, endOfWeek, format, isAfter, isBefore, startOfDay, startOfMonth, startOfWeek, subDays } from "date-fns";
-import type { DataState } from "./ops";
+import type { DataState } from "./state";
 import { catalogLabel } from "./labels";
 import { candidateVM, sessionVM } from "./selectors";
 import type { Candidate, CatalogItem, Client, ID, Member, Session, SessionState, SessionType } from "./types";

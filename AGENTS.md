@@ -21,14 +21,20 @@ make verify            # web: lint, typecheck, vitest, build · backend: spotles
 make verify-api        # backend only
 EST_RUN_CONTAINER_TESTS=1 backend/gradlew -p backend test --tests '*ContainersIT'   # Flyway on real PostgreSQL (Docker)
 make up-local          # compose: API (H2, seeded, mock Google) + web on :3100
+cd web && pnpm e2e     # Playwright; starts the API (local profile) and the web dev server itself if not running
 make up-qa             # compose: API (qa) + PostgreSQL 17; needs .env (infra/scripts/gen-keys.sh >> .env)
 cd web && pnpm e2e     # Playwright
 ```
 
 ## Conventions that matter
 
-- **Contract first.** Change `contracts/openapi.yaml` before changing a controller; the frontend
-  types are generated from it. Breaking changes bump the path version.
+- **Contract first.** Change `contracts/openapi.yaml` before changing a controller. The web reads one
+  `/snapshot` (`web/lib/domain/state.ts` maps wire shapes: `roleId`→`role` on contacts/people) and keeps
+  its pure selectors; every write in `web/lib/domain/store.ts` calls the endpoint and reloads the snapshot.
+- **Web auth**: access token in memory only (`web/lib/api/client.ts`), refresh via httpOnly cookie +
+  `X-CSRF` (nonce also returned in the token body and kept in localStorage — it is not a secret). Public
+  routes: `/sign-in`, `/pending`. `GET /api/v1/features` tells the sign-in page about dev mode and the
+  Google client id.
 - **Three layers never mix** (plan §14): `calendar_events` are evidence written only by sync;
   `suggestions` are AI proposals that require a decision; `sessions` are member-owned with per-field
   `provenance`. Sync and AI may never overwrite a `manual` field.

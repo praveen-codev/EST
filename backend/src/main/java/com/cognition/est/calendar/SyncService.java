@@ -84,14 +84,22 @@ public class SyncService {
         return providers.containsKey(name);
     }
 
-    /** Sync every active identity of a member; returns one run per identity. */
+    private final java.util.concurrent.ConcurrentHashMap<String, Object> memberLocks =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * Sync every active identity of a member; returns one run per identity. Serialised per member
+     * so two clicks never race on the same events.
+     */
     public List<SyncRun> syncMember(String orgId, String memberId, String kind, Instant now) {
-        List<SyncRun> out = new ArrayList<>();
-        for (Identity idn : identities.findByMember(memberId)) {
-            if (!"ACTIVE".equals(idn.status())) continue;
-            out.add(syncIdentity(orgId, idn, kind, now));
+        synchronized (memberLocks.computeIfAbsent(memberId, k -> new Object())) {
+            List<SyncRun> out = new ArrayList<>();
+            for (Identity idn : identities.findByMember(memberId)) {
+                if (!"ACTIVE".equals(idn.status())) continue;
+                out.add(syncIdentity(orgId, idn, kind, now));
+            }
+            return out;
         }
-        return out;
     }
 
     @Transactional

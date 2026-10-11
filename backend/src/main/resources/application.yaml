@@ -62,6 +62,10 @@ est:
     refresh-token-key: ${EST_CRYPTO_KEY:}
   dev:
     endpoints-enabled: false
+  sync:
+    enabled: ${EST_SYNC_ENABLED:true}
+    interval: ${EST_SYNC_INTERVAL:PT15M}
+    initial-delay: PT2M
 
 logging:
   level:

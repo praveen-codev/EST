@@ -52,8 +52,12 @@ public class AuthController {
 
     public record GoogleBody(@NotBlank String idToken) {}
 
+    /**
+     * {@code csrf} mirrors the readable cookie so the SPA can echo it in X-CSRF even when the
+     * cookie path is not visible to it.
+     */
     public record TokenResponse(
-            String accessToken, String tokenType, Instant expiresAt, Member member) {}
+            String accessToken, String tokenType, Instant expiresAt, Member member, String csrf) {}
 
     public record Me(Member member, List<Identity> identities, Map<String, String> organization) {}
 
@@ -84,7 +88,8 @@ public class AuthController {
                 issued.csrf(),
                 issued.refreshExpiresAt(),
                 props.jwt().cookieSecure());
-        return new TokenResponse(issued.access().token(), "Bearer", issued.access().expiresAt(), m);
+        return new TokenResponse(
+                issued.access().token(), "Bearer", issued.access().expiresAt(), m, issued.csrf());
     }
 
     @PostMapping("/auth/refresh")
@@ -119,7 +124,7 @@ public class AuthController {
                 res, r.refreshToken(), r.csrf(), r.refreshExpiresAt(), props.jwt().cookieSecure());
         TokenService.Access access = tokens.mintAccess(m, now);
         return ResponseEntity.ok(
-                new TokenResponse(access.token(), "Bearer", access.expiresAt(), m));
+                new TokenResponse(access.token(), "Bearer", access.expiresAt(), m, r.csrf()));
     }
 
     @PostMapping("/auth/logout")

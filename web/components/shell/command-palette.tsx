@@ -14,6 +14,7 @@ import {
   CommandShortcut,
 } from "@/components/ui/command";
 import { ClientMark, MemberAvatar } from "@/components/common/marks";
+import { useAuth } from "@/lib/api/auth";
 import { useStore } from "@/lib/domain/store";
 import { inboxGroups } from "@/lib/domain/selectors";
 import { fmtDayLabel } from "@/lib/format";
@@ -21,6 +22,7 @@ import { fmtDayLabel } from "@/lib/format";
 export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const router = useRouter();
   const state = useStore();
+  const devLogin = useAuth((s) => s.devLogin);
   const groups = inboxGroups(state, state.currentMemberId);
   const recentSessions = [...state.sessions]
     .filter((s) => s.state !== "ignored")
@@ -108,15 +110,15 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
           ))}
         </CommandGroup>
         <CommandSeparator />
-        <CommandGroup heading="Switch persona">
+        {state.features.devMode && (
+        <CommandGroup heading="Switch persona (local only)">
           {state.members.map((m) => (
             <CommandItem
               key={m.id}
               value={`persona ${m.name}`}
               onSelect={() => {
-                state.switchMember(m.id);
                 onOpenChange(false);
-                toast(`Now viewing as ${m.name}`);
+                void devLogin(m.email).then(() => { state.reset(); toast(`Now viewing as ${m.name}`); });
               }}
             >
               <MemberAvatar member={m} size="sm" /> {m.name}
@@ -126,6 +128,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
             </CommandItem>
           ))}
         </CommandGroup>
+        )}
       </CommandList>
     </CommandDialog>
   );

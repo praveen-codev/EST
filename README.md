@@ -1,25 +1,29 @@
 # Enablement Session Tracker — rapid prototype
 
-A clickable MVP whose core job is **entering enablement-session feedback with almost no typing**. The home
-page lists only *today's* sessions for the signed-in Applied AI Engineer with one CTA — *Enter feedback* — that
-opens a form already filled from the calendar invite **and** from sessions teammates logged with the same client.
-Everything runs in the browser — no sign-in, no server, no API keys.
+An app whose core job is **entering enablement-session feedback with almost no typing**. The home page lists
+only *today's* sessions for the signed-in Applied AI Engineer with one CTA — *Enter feedback* — that opens a
+form already filled from the calendar invite **and** from sessions teammates logged with the same client.
+
+Google sign-in, a Spring Boot API with PostgreSQL, real Google Calendar sync across several linked Google
+accounts, and a deterministic suggestion engine — with a `local` profile that runs the whole thing on an
+in-memory database with a simulated Google, no credentials needed.
 
 ```bash
-cd web && pnpm install && pnpm dev --port 3100      # web app (in-browser mock backend for now)
 make api                                            # Spring Boot API, local profile (H2 + seed + mock Google) on :8080
-make up-local                                       # or everything in Docker
+cd web && pnpm install && pnpm dev --port 3100      # web app → http://localhost:3100
+make up-local                                       # or both in Docker
 ```
 
-> **Monorepo**: `web/` (Next.js), `backend/` (Spring Boot 4.1 / Java 25 / Gradle 9.8), `infra/`
-> (Docker, compose, runbooks), `contracts/` (OpenAPI v1). Phase 0 of the backend plan is in place:
-> schema, profiles, Docker, contract. The web app still runs on its in-browser store until
-> Phase 2E moves it onto the API. See `AGENTS.md` for the verification commands.
+> **Monorepo**: `web/` (Next.js 16), `backend/` (Spring Boot 4.1 / Java 25 / Gradle 9.8), `infra/`
+> (Docker, compose, runbooks), `contracts/` (OpenAPI v1 + AI golden fixtures). See `AGENTS.md` for the
+> verification commands and conventions, `backend/README.md` for profiles, `infra/runbooks/google-cloud.md`
+> for the Google OAuth setup.
 
-The first visit auto-runs the initial calendar lookback for the default persona (Alex), whose calendar has two
-Mercedes-Benz sessions *today*. Use **Sync calendar**
-in the top bar to pull the next incremental batch, the avatar menu to switch persona, and the flask icon
-(bottom-left) for scenarios, "show AI reasoning" and **Reset demo**.
+Open the web app and sign in. In the `local` profile the sign-in page offers the five seeded personas; the first
+visit auto-runs the initial calendar lookback for Alex, whose (mock) calendar has two Mercedes-Benz sessions
+*today*. Use **Sync calendar** in the top bar to pull the next incremental batch, the account menu to switch
+persona or open **Linked calendars**, and the flask icon (bottom-left) for scenarios, "show AI reasoning" and
+**Reset demo**. With real Google credentials (`qa` profile) the same screens run against your calendar.
 
 ## What to look at
 
@@ -44,7 +48,22 @@ in the top bar to pull the next incremental batch, the avatar menu to switch per
 - **"Other…" everywhere.** Every dropdown on the form — client, team, format, contact role, use-case type, technology, outcome — ends with *Other…*: type, press Enter (or the check), and the value is saved to the reference table, selected, and the dropdown closes. Admin sees the new row immediately; same-label entries are reused, never duplicated.
 - **Redaction.** Meeting links, passcodes, PINs and phone numbers are stripped before text reaches the "model"; the session side panel shows the redacted view.
 
-## Architecture (what is real vs. mocked)
+## Architecture
+
+```
+web/            Next.js 16 · the UI talks only to the API (lib/api/client.ts: in-memory access token, silent refresh,
+                one /snapshot read + pure selectors for today/inbox/timeline) · sign-in via Google Identity Services
+backend/        Spring Boot 4.1 on Java 25 · stateless RS256 access tokens + rotating refresh-token families (hashes only)
+                · JdbcClient repositories over Flyway · deterministic AI engine (golden-tested) · Google Calendar v3 with
+                incremental sync, PKCE linking of several Google accounts, AES-256-GCM token storage · scheduler
+infra/          Dockerfile.api (gradle:9.8.1-jdk25 → temurin-25-jre, layered), compose local (H2) / qa (PostgreSQL 17)
+contracts/      openapi.yaml · ai-fixtures/alex-messy.json (frozen TypeScript engine output the Java port must match)
+```
+
+Three layers never mix: **calendar events** (evidence, written only by sync) → **suggestions** (AI proposals that
+need a decision) → **sessions** (member-owned, per-field provenance; a manual field is never overwritten).
+
+### What is still simulated in the `local` profile
 
 ```
 lib/

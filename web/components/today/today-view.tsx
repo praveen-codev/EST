@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AttendeeStack, ClientMark, MemberAvatar } from "@/components/common/marks";
 import { ConfidenceRing } from "@/components/common/confidence-ring";
 import { Sparkle } from "@/components/common/sparkle";
-import { sessionIdForEvent } from "@/lib/domain/ops";
+import { sessionIdForEvent } from "@/lib/domain/tiers";
 import { useHydrated, useStore } from "@/lib/domain/store";
 import { todayBoard } from "@/lib/domain/today";
 import type { TimelineItem } from "@/lib/domain/timeline";

@@ -8,11 +8,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import { Skeleton } from "@/components/ui/skeleton";
-import { sessionIdForEvent } from "@/lib/domain/ops";
+import { sessionIdForEvent } from "@/lib/domain/tiers";
 import { useHydrated, useStore } from "@/lib/domain/store";
 import { inboxGroups, inboxStats, type CandidateVM } from "@/lib/domain/selectors";
 import { useShortcuts } from "@/lib/hooks/use-shortcuts";
-import { remainingPages } from "@/lib/mock/calendar";
 import { cn } from "@/lib/utils";
 import { CandidateCard } from "./candidate-card";
 import { InboxStatsStrip } from "./inbox-stats";
@@ -86,7 +85,7 @@ export function InboxView() {
 
   const syncing = state.syncing;
   const nothingOpen = ordered.length === 0;
-  const upToDate = remainingPages(me.email, state.settings.scenario, state.cursors[me.id] ?? 0) === 0;
+  const upToDate = state.features.remainingPages === 0;
 
   if (!hydrated) return null;
 

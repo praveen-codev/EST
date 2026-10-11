@@ -14,9 +14,11 @@ export const OTHER_VALUE = "__other__";
  * Inline "type your own" entry: a text box with a check-mark. Enter or the check saves,
  * Escape or ✕ cancels. `onSave` must persist the value and return the id to select.
  */
+export type Creator = (label: string) => string | Promise<string>;
+
 export function OtherInline({ placeholder = "Type a new value…", onSave, onCancel, autoFocus = true, className, size = "default" }: {
   placeholder?: string;
-  onSave: (label: string) => void;
+  onSave: (label: string) => void | Promise<void>;
   onCancel: () => void;
   autoFocus?: boolean;
   className?: string;
@@ -27,8 +29,17 @@ export function OtherInline({ placeholder = "Type a new value…", onSave, onCan
   useEffect(() => {
     if (autoFocus) ref.current?.focus();
   }, [autoFocus]);
-  const canSave = value.trim().length > 0;
-  const save = () => canSave && onSave(value.trim());
+  const [saving, setSaving] = useState(false);
+  const canSave = value.trim().length > 0 && !saving;
+  const save = async () => {
+    if (!canSave) return;
+    setSaving(true);
+    try {
+      await onSave(value.trim());
+    } finally {
+      setSaving(false);
+    }
+  };
   return (
     <div className={cn("flex items-center gap-1", className)} role="group" aria-label="Other value">
       <Input
@@ -39,11 +50,11 @@ export function OtherInline({ placeholder = "Type a new value…", onSave, onCan
         aria-label={placeholder}
         className={cn("h-8", size === "sm" && "h-7 text-xs")}
         onKeyDown={(e) => {
-          if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); save(); }
+          if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); void save(); }
           if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); onCancel(); }
         }}
       />
-      <Button type="button" size={size === "sm" ? "icon-xs" : "icon-sm"} onClick={save} disabled={!canSave} aria-label="Save new value" className="shrink-0 bg-success text-background hover:bg-success/90">
+      <Button type="button" size={size === "sm" ? "icon-xs" : "icon-sm"} onClick={() => void save()} disabled={!canSave} aria-label="Save new value" className="shrink-0 bg-success text-background hover:bg-success/90">
         <Check />
       </Button>
       <Button type="button" variant="ghost" size={size === "sm" ? "icon-xs" : "icon-sm"} onClick={onCancel} aria-label="Cancel" className="shrink-0 text-muted-foreground">
@@ -65,7 +76,7 @@ export function SelectWithOther({ value, options, placeholder, onChange, onCreat
   options: OptionItem[];
   placeholder?: string;
   onChange: (id: string) => void;
-  onCreate: (label: string) => string;
+  onCreate: Creator;
   otherPlaceholder?: string;
   className?: string;
   ariaLabel: string;
@@ -77,7 +88,7 @@ export function SelectWithOther({ value, options, placeholder, onChange, onCreat
       <OtherInline
         size={size}
         placeholder={otherPlaceholder ?? "Type a new value…"}
-        onSave={(label) => { onChange(onCreate(label)); setOther(false); }}
+        onSave={async (label) => { onChange(await onCreate(label)); setOther(false); }}
         onCancel={() => setOther(false)}
         className={className}
       />
@@ -100,7 +111,7 @@ export function ToggleGroupWithOther({ value, options, onChange, onCreate, other
   value: string | null;
   options: OptionItem[];
   onChange: (id: string) => void;
-  onCreate: (label: string) => string;
+  onCreate: Creator;
   otherPlaceholder?: string;
   itemClassName?: string;
   ariaLabel: string;
@@ -114,7 +125,7 @@ export function ToggleGroupWithOther({ value, options, onChange, onCreate, other
         ))}
       </ToggleGroup>
       {other ? (
-        <OtherInline size="sm" placeholder={otherPlaceholder ?? "Type a new value…"} onSave={(label) => { onChange(onCreate(label)); setOther(false); }} onCancel={() => setOther(false)} />
+        <OtherInline size="sm" placeholder={otherPlaceholder ?? "Type a new value…"} onSave={async (label) => { onChange(await onCreate(label)); setOther(false); }} onCancel={() => setOther(false)} />
       ) : (
         <Button type="button" variant="outline" size="sm" onClick={() => setOther(true)} className="gap-1 border-dashed text-xs text-ai">
           <PencilLine data-icon="inline-start" /> Other…

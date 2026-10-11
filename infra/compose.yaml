@@ -80,6 +80,7 @@ services:
     command: ["sh", "-c", "corepack enable && pnpm install --frozen-lockfile && pnpm dev --port 3100 --hostname 0.0.0.0"]
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-8080}
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     volumes:
       - ../web:/app
       - est-web-node-modules:/app/node_modules

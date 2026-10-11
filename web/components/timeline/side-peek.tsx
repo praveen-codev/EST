@@ -10,7 +10,7 @@ import { ClientMark, MemberAvatar } from "@/components/common/marks";
 import { AiBadge } from "@/components/common/sparkle";
 import { EvidenceList } from "@/components/common/evidence";
 import { SESSION_STATE_LABELS } from "@/lib/domain/labels";
-import { sessionIdForEvent } from "@/lib/domain/ops";
+import { sessionIdForEvent } from "@/lib/domain/tiers";
 import { useStore } from "@/lib/domain/store";
 import type { TimelineItem } from "@/lib/domain/timeline";
 import { durationMin, fmtDayLong, fmtDuration, fmtTimeRange } from "@/lib/format";
