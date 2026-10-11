@@ -1,0 +1,61 @@
+-- Default organization and the five admin-managed catalogues (mirrors web/lib/mock/seed.ts CATALOG).
+INSERT INTO organizations (id, name, allowed_domains, created_at, updated_at)
+VALUES ('org_cognition', 'Cognition Enablement', 'cognition.ai', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+-- kind, id, label, description, keywords ('|'-joined, lower-case; label is always included), typical_minutes, sort_order
+INSERT INTO catalog_items (organization_id, id, kind, label, description, keywords, typical_minutes, archived, sort_order, version, created_at, updated_at, updated_by) VALUES
+('org_cognition', '101',            'sessionType', '101 session',       'First hands-on introduction to Devin for a new team.',        '101 session|101|devin 101|intro session',                               90,  FALSE, 0, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'pairProgramming','sessionType', 'Pair programming',  'One engineer, one Devin, one real ticket, side by side.',      'pair programming|pair-programming|pairing session|pairing',             60,  FALSE, 1, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', '201',            'sessionType', '201 session',       'Advanced follow-on: playbooks, review, integrations.',         '201 session|201|devin 201|advanced session',                            90,  FALSE, 2, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'ama',            'sessionType', 'Ask me anything',   'Open Q&A with a team already using Devin.',                    'ask me anything|ama',                                                    45,  FALSE, 3, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'sprintInADay',   'sessionType', 'Sprint in a day',   'A full day shipping a backlog slice with Devin.',              'sprint in a day|sprint-in-a-day|sprint day',                             360, FALSE, 4, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+
+('org_cognition', 'analysisDone',   'sessionOutcome', 'Analysis done',                 'Devin analysed the codebase or problem; no code change yet.', 'analysis done', NULL, FALSE, 0, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'devinSession',   'sessionOutcome', 'Devin session',                 'The team ran Devin on real work during the session.',         'devin session', NULL, FALSE, 1, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'prRaised',       'sessionOutcome', 'PR raised',                     'At least one pull request came out of the session.',          'pr raised',     NULL, FALSE, 2, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'playbookCreated','sessionOutcome', 'Playbook / automation created', 'A reusable playbook or automation now exists.',               'playbook / automation created', NULL, FALSE, 3, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+
+('org_cognition', 'java',          'technology', 'Java',           '', 'java|jdk|java 8|java 17|java 21',                 NULL, FALSE, 0,  0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'springBoot',    'technology', 'Spring Boot',    '', 'spring boot|springboot|spring',                   NULL, FALSE, 1,  0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'kotlin',        'technology', 'Kotlin',         '', 'kotlin',                                          NULL, FALSE, 2,  0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'python',        'technology', 'Python',         '', 'python|py',                                       NULL, FALSE, 3,  0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'typescript',    'technology', 'TypeScript',     '', 'typescript|ts',                                   NULL, FALSE, 4,  0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'react',         'technology', 'React',          '', 'react|reactjs',                                   NULL, FALSE, 5,  0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'angular',       'technology', 'Angular',        '', 'angular|angularjs',                               NULL, FALSE, 6,  0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'nodejs',        'technology', 'Node.js',        '', 'node.js|node|nodejs',                             NULL, FALSE, 7,  0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'dotnet',        'technology', '.NET',           '', '.net|dotnet|c#|csharp',                           NULL, FALSE, 8,  0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'go',            'technology', 'Go',             '', 'go|golang',                                       NULL, FALSE, 9,  0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'cobol',         'technology', 'COBOL',          '', 'cobol|mainframe',                                 NULL, FALSE, 10, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'abInitio',      'technology', 'Ab Initio',      '', 'ab initio|abinitio',                              NULL, FALSE, 11, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'informatica',   'technology', 'Informatica',    '', 'informatica|powercenter',                         NULL, FALSE, 12, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'excel',         'technology', 'Excel',          '', 'excel|spreadsheet|xlsx|vba',                      NULL, FALSE, 13, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'powerBi',       'technology', 'Power BI',       '', 'power bi|powerbi',                                NULL, FALSE, 14, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'tableau',       'technology', 'Tableau',        '', 'tableau',                                         NULL, FALSE, 15, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'sql',           'technology', 'SQL',            '', 'sql|stored procedures|pl/sql|plsql|t-sql',        NULL, FALSE, 16, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'oracle',        'technology', 'Oracle DB',      '', 'oracle db|oracle',                                NULL, FALSE, 17, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'postgres',      'technology', 'PostgreSQL',     '', 'postgresql|postgres',                             NULL, FALSE, 18, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'snowflake',     'technology', 'Snowflake',      '', 'snowflake',                                       NULL, FALSE, 19, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'databricks',    'technology', 'Databricks',     '', 'databricks|spark|pyspark',                        NULL, FALSE, 20, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'kafka',         'technology', 'Kafka',          '', 'kafka',                                           NULL, FALSE, 21, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'kubernetes',    'technology', 'Kubernetes',     '', 'kubernetes|k8s',                                  NULL, FALSE, 22, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'terraform',     'technology', 'Terraform',      '', 'terraform',                                       NULL, FALSE, 23, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'aws',           'technology', 'AWS',            '', 'aws|amazon web services',                         NULL, FALSE, 24, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'gcp',           'technology', 'GCP',            '', 'gcp|google cloud',                                NULL, FALSE, 25, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'azure',         'technology', 'Azure',          '', 'azure',                                           NULL, FALSE, 26, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'jenkins',       'technology', 'Jenkins',        '', 'jenkins',                                         NULL, FALSE, 27, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'githubActions', 'technology', 'GitHub Actions', '', 'github actions|gh actions',                       NULL, FALSE, 28, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'gitlabCi',      'technology', 'GitLab CI',      '', 'gitlab ci|gitlab',                                NULL, FALSE, 29, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'jira',          'technology', 'Jira',           '', 'jira',                                            NULL, FALSE, 30, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+
+('org_cognition', 'excelToDashboard',  'useCaseType', 'Excel to dashboard',  '', 'excel to dashboard|dashboard|spreadsheet to|power bi|tableau|reporting',                                                NULL, FALSE, 0, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'etlMigration',      'useCaseType', 'ETL tool migration',  '', 'etl tool migration|etl|ab initio|informatica|datastage|pipeline migration|ingestion pipelines',                           NULL, FALSE, 1, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'languageMigration', 'useCaseType', 'Language migrations', '', 'language migrations|language migration|java 21|jdk upgrade|cobol|angularjs|python 3|upgrade|migration',                   NULL, FALSE, 2, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'platformMigration', 'useCaseType', 'Platform migrations', '', 'platform migrations|platform migration|cloud migration|to aws|to gcp|to azure|kubernetes|microservices|decomposition', NULL, FALSE, 3, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'devops',            'useCaseType', 'Devops work',         '', 'devops work|devops|ci/cd|pipeline credentials|jenkins|github actions|terraform|deployment',                              NULL, FALSE, 4, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+
+('org_cognition', 'productOwner',       'contactRole', 'Product owner',       '', 'product owner|po',                              NULL, FALSE, 0, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'projectManager',     'contactRole', 'Project manager',     '', 'project manager|pm',                            NULL, FALSE, 1, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'architect',          'contactRole', 'Architect',           '', 'architect|solution architect',                  NULL, FALSE, 2, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'engineeringManager', 'contactRole', 'Engineering manager', '', 'engineering manager|em|eng manager',            NULL, FALSE, 3, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'executiveSponsor',   'contactRole', 'Executive sponsor',   '', 'executive sponsor|sponsor|exec sponsor',        NULL, FALSE, 4, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+('org_cognition', 'engineer',           'contactRole', 'Engineer',            '', 'engineer|developer',                            NULL, FALSE, 5, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL);

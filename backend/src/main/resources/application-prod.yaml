@@ -1,0 +1,12 @@
+# Production placeholder: everything from the environment, strict defaults.
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+server:
+  forward-headers-strategy: native
+management:
+  endpoint:
+    health:
+      show-details: never

@@ -1,5 +1,5 @@
 {
-  "name": "enablement-session-tracker",
+  "name": "est-web",
   "version": "0.1.0",
   "private": true,
   "scripts": {

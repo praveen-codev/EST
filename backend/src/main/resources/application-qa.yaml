@@ -1,0 +1,20 @@
+# QA: PostgreSQL in Docker (see infra/compose.yaml), real Google, no mocks, no dev endpoints.
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://db:5432/est}
+    username: ${SPRING_DATASOURCE_USERNAME:est}
+    password: ${SPRING_DATASOURCE_PASSWORD:est}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 10000
+
+est:
+  google:
+    mock: false
+  dev:
+    endpoints-enabled: false
+
+logging:
+  level:
+    com.cognition.est: info

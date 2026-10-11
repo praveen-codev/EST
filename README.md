@@ -6,9 +6,15 @@ opens a form already filled from the calendar invite **and** from sessions teamm
 Everything runs in the browser — no sign-in, no server, no API keys.
 
 ```bash
-pnpm install
-pnpm dev            # http://localhost:3000 → redirects to /inbox
+cd web && pnpm install && pnpm dev --port 3100      # web app (in-browser mock backend for now)
+make api                                            # Spring Boot API, local profile (H2 + seed + mock Google) on :8080
+make up-local                                       # or everything in Docker
 ```
+
+> **Monorepo**: `web/` (Next.js), `backend/` (Spring Boot 4.1 / Java 25 / Gradle 9.8), `infra/`
+> (Docker, compose, runbooks), `contracts/` (OpenAPI v1). Phase 0 of the backend plan is in place:
+> schema, profiles, Docker, contract. The web app still runs on its in-browser store until
+> Phase 2E moves it onto the API. See `AGENTS.md` for the verification commands.
 
 The first visit auto-runs the initial calendar lookback for the default persona (Alex), whose calendar has two
 Mercedes-Benz sessions *today*. Use **Sync calendar**

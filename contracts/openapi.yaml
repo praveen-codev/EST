@@ -1,0 +1,585 @@
+openapi: 3.1.0
+info:
+  title: Enablement Session Tracker API
+  version: 1.0.0
+  description: |
+    Contract-first definition of the EST backend. Tracks 1A/1B/2C/2E implement against this file;
+    `backend` publishes the runtime document at `/v3/api-docs` and a test asserts the two agree.
+
+    Three layers never mix: calendar events (evidence, written only by sync) → suggestions
+    (AI proposals that need a decision) → sessions (member-owned, per-field provenance).
+servers:
+  - url: http://localhost:8080/api/v1
+    description: local (H2, mock Google)
+security:
+  - bearer: []
+tags:
+  - { name: Auth }
+  - { name: Me }
+  - { name: Catalog }
+  - { name: Clients }
+  - { name: People }
+  - { name: Today }
+  - { name: Sessions }
+  - { name: Inbox }
+  - { name: Suggestions }
+  - { name: Calendar }
+  - { name: Admin }
+  - { name: Dev, description: local profile only }
+
+paths:
+  # ───────────────────────── Auth (no server session; cookie carries only the rotating refresh token) ─────────────────────────
+  /auth/google:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Exchange a Google ID token for an app access token (+ refresh cookie)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [idToken], properties: { idToken: { type: string } } }
+      responses:
+        "200":
+          description: Signed in. Sets `est_refresh` httpOnly cookie (Path=/api/v1/auth, SameSite=Strict, Secure).
+          headers: { Set-Cookie: { schema: { type: string } } }
+          content: { application/json: { schema: { $ref: "#/components/schemas/TokenResponse" } } }
+        "403": { description: Verified Google account but member is PENDING/SUSPENDED or domain not allowed, $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Rotate the refresh token and mint a new access token
+      description: Requires the `est_refresh` cookie and `X-CSRF` header equal to the `est_csrf` cookie (double submit). Reuse of a rotated token revokes the whole family.
+      parameters: [{ name: X-CSRF, in: header, required: true, schema: { type: string } }]
+      responses:
+        "200": { content: { application/json: { schema: { $ref: "#/components/schemas/TokenResponse" } } }, description: New access token }
+        "401": { $ref: "#/components/responses/Problem" }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Revoke the refresh-token family and clear cookies
+      parameters: [{ name: X-CSRF, in: header, required: true, schema: { type: string } }]
+      responses: { "204": { description: Signed out } }
+  /me:
+    get:
+      tags: [Me]
+      summary: Current member, role, and linked identities summary
+      responses: { "200": { content: { application/json: { schema: { $ref: "#/components/schemas/Me" } } }, description: OK } }
+
+  # ───────────────────────── Catalog ─────────────────────────
+  /catalog/{kind}:
+    parameters: [{ $ref: "#/components/parameters/CatalogKind" }]
+    get:
+      tags: [Catalog]
+      summary: List rows of one reference table
+      parameters: [{ name: includeArchived, in: query, schema: { type: boolean, default: false } }]
+      responses: { "200": { content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/CatalogItem" } } } }, description: OK } }
+    post:
+      tags: [Catalog]
+      summary: Add a row. ADMIN, or any member when `adhoc=true` ("Other…" entry; same-label rows are reused)
+      parameters: [{ name: adhoc, in: query, schema: { type: boolean, default: false } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/CatalogItemWrite" } } } }
+      responses: { "200": { content: { application/json: { schema: { $ref: "#/components/schemas/CatalogItem" } } }, description: Created or reused } }
+  /catalog/{kind}/{id}:
+    parameters: [{ $ref: "#/components/parameters/CatalogKind" }, { $ref: "#/components/parameters/Id" }]
+    patch:
+      tags: [Catalog]
+      summary: Edit label/description/keywords/typicalMinutes/archived (ADMIN)
+      parameters: [{ $ref: "#/components/parameters/IfMatch" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/CatalogItemWrite" } } } }
+      responses: { "200": { content: { application/json: { schema: { $ref: "#/components/schemas/CatalogItem" } } }, description: OK }, "412": { $ref: "#/components/responses/Problem" } }
+  /catalog/{kind}/reorder:
+    parameters: [{ $ref: "#/components/parameters/CatalogKind" }]
+    post:
+      tags: [Catalog]
+      summary: Set the full sort order (ADMIN)
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [ids], properties: { ids: { type: array, items: { type: string } } } } } } }
+      responses: { "204": { description: Reordered } }
+
+  # ───────────────────────── Clients / teams / people ─────────────────────────
+  /clients:
+    get:
+      tags: [Clients]
+      responses: { "200": { content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Client" } } } }, description: OK } }
+    post:
+      tags: [Clients]
+      summary: Create a client (also used by "Other…")
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [name], properties: { name: { type: string }, industry: { type: string }, domains: { type: array, items: { type: string } } } } } } }
+      responses: { "201": { content: { application/json: { schema: { $ref: "#/components/schemas/Client" } } }, description: Created } }
+  /clients/{id}/teams:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    get:
+      tags: [Clients]
+      responses: { "200": { content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Team" } } } }, description: OK } }
+    post:
+      tags: [Clients]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [name], properties: { name: { type: string }, keywords: { type: array, items: { type: string } } } } } } }
+      responses: { "201": { content: { application/json: { schema: { $ref: "#/components/schemas/Team" } } }, description: Created } }
+  /people:
+    get:
+      tags: [People]
+      parameters: [{ name: clientId, in: query, schema: { type: string } }, { name: q, in: query, schema: { type: string } }]
+      responses: { "200": { content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Person" } } } }, description: OK } }
+    post:
+      tags: [People]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [name], properties: { name: { type: string }, email: { type: string }, clientId: { type: string }, roleId: { type: string } } } } } }
+      responses: { "201": { content: { application/json: { schema: { $ref: "#/components/schemas/Person" } } }, description: Created } }
+
+  # ───────────────────────── Today / sessions ─────────────────────────
+  /today:
+    get:
+      tags: [Today]
+      summary: The caller's sessions and open candidates scheduled today, plus overdue-feedback count
+      parameters: [{ name: date, in: query, schema: { type: string, format: date }, description: Defaults to today in the member's time zone }]
+      responses: { "200": { content: { application/json: { schema: { $ref: "#/components/schemas/TodayBoard" } } }, description: OK } }
+  /sessions:
+    get:
+      tags: [Sessions]
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+        - { name: clientId, in: query, schema: { type: string } }
+        - { name: facilitatorId, in: query, schema: { type: string } }
+        - { name: technologyId, in: query, schema: { type: string } }
+        - { name: state, in: query, schema: { $ref: "#/components/schemas/SessionState" } }
+        - { name: scope, in: query, schema: { type: string, enum: [mine, everyone], default: everyone } }
+        - { name: includeCandidates, in: query, schema: { type: boolean, default: true } }
+      responses: { "200": { content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/TimelineItem" } } } }, description: OK } }
+  /sessions/{id}:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    get:
+      tags: [Sessions]
+      summary: Full session view model (session, resolved refs, pending suggestions, evidence, history)
+      responses: { "200": { headers: { ETag: { schema: { type: string } } }, content: { application/json: { schema: { $ref: "#/components/schemas/SessionDetail" } } }, description: OK } }
+    patch:
+      tags: [Sessions]
+      summary: Manual edit; every touched field becomes provenance=manual and supersedes pending single-value suggestions
+      parameters: [{ $ref: "#/components/parameters/IfMatch" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/SessionPatch" } } } }
+      responses: { "200": { content: { application/json: { schema: { $ref: "#/components/schemas/SessionDetail" } } }, description: OK }, "412": { description: Version conflict, $ref: "#/components/responses/Problem" } }
+  /sessions/{id}/use-cases:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    post:
+      tags: [Sessions]
+      requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/UseCaseWrite" } } } }
+      responses: { "201": { content: { application/json: { schema: { $ref: "#/components/schemas/SessionDetail" } } }, description: Created } }
+  /sessions/{id}/use-cases/{useCaseId}:
+    parameters: [{ $ref: "#/components/parameters/Id" }, { name: useCaseId, in: path, required: true, schema: { type: string } }]
+    patch:
+      tags: [Sessions]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/UseCaseWrite" } } } }
+      responses: { "200": { content: { application/json: { schema: { $ref: "#/components/schemas/SessionDetail" } } }, description: OK } }
+    delete:
+      tags: [Sessions]
+      responses: { "200": { content: { application/json: { schema: { $ref: "#/components/schemas/SessionDetail" } } }, description: Removed } }
+  /sessions/{id}/suggestions/accept-all:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    post:
+      tags: [Suggestions]
+      summary: Accept every pending suggestion at or above the chip threshold (0.5)
+      responses: { "200": { content: { application/json: { schema: { $ref: "#/components/schemas/SessionDetail" } } }, description: OK } }
+  /sessions/{id}/rerun-ai:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    post:
+      tags: [Suggestions]
+      summary: Re-run the engine on the source event; only new, non-conflicting proposals are added
+      responses: { "200": { content: { application/json: { schema: { $ref: "#/components/schemas/SessionDetail" } } }, description: OK } }
+
+  # ───────────────────────── Inbox / candidates ─────────────────────────
+  /inbox:
+    get:
+      tags: [Inbox]
+      summary: Open candidates for the caller, grouped and with prefill coverage
+      responses: { "200": { content: { application/json: { schema: { $ref: "#/components/schemas/Inbox" } } }, description: OK } }
+  /candidates/{id}/confirm:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    post:
+      tags: [Inbox]
+      summary: Create the session; prefill-tier suggestions become accepted decisions in one action
+      responses: { "200": { content: { application/json: { schema: { $ref: "#/components/schemas/SessionDetail" } } }, description: Confirmed } }
+  /candidates/{id}/dismiss:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    post: { tags: [Inbox], responses: { "204": { description: Dismissed } } }
+  /candidates/{id}/restore:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    post: { tags: [Inbox], responses: { "204": { description: Restored } } }
+  /candidates/{id}/merge:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    post:
+      tags: [Inbox]
+      summary: Merge this duplicate into its original's session (confirming the original if needed)
+      responses: { "200": { content: { application/json: { schema: { $ref: "#/components/schemas/SessionDetail" } } }, description: Merged } }
+  /candidates/confirm-all-likely:
+    post:
+      tags: [Inbox]
+      responses: { "200": { content: { application/json: { schema: { type: object, properties: { confirmed: { type: integer }, sessionIds: { type: array, items: { type: string } } } } } }, description: OK } }
+  /suggestions/{id}/accept:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    post: { tags: [Suggestions], responses: { "200": { content: { application/json: { schema: { $ref: "#/components/schemas/SessionDetail" } } }, description: Applied } } }
+  /suggestions/{id}/reject:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    post: { tags: [Suggestions], responses: { "200": { content: { application/json: { schema: { $ref: "#/components/schemas/SessionDetail" } } }, description: Recorded } } }
+
+  # ───────────────────────── Calendar identities & sync ─────────────────────────
+  /calendar/identities:
+    get:
+      tags: [Calendar]
+      summary: Google accounts linked by the caller
+      responses: { "200": { content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Identity" } } } }, description: OK } }
+  /calendar/identities/link/start:
+    post:
+      tags: [Calendar]
+      summary: Begin linking another Google account (authorization code + PKCE, offline access, calendar.readonly)
+      responses: { "200": { content: { application/json: { schema: { type: object, required: [authorizationUrl], properties: { authorizationUrl: { type: string, format: uri } } } } }, description: Redirect the browser here } }
+  /calendar/identities/link/callback:
+    get:
+      tags: [Calendar]
+      security: []
+      summary: Google redirects here; state is validated, tokens exchanged server-side and stored encrypted
+      parameters: [{ name: code, in: query, required: true, schema: { type: string } }, { name: state, in: query, required: true, schema: { type: string } }]
+      responses: { "302": { description: Redirects to the web app settings page with `?linked=<identityId>` or `?error=` } }
+  /calendar/identities/{id}:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    delete:
+      tags: [Calendar]
+      summary: Unlink (revokes the Google token, keeps already-imported evidence)
+      responses: { "204": { description: Unlinked } }
+  /calendar/sync:
+    post:
+      tags: [Calendar]
+      summary: Run an incremental sync now for all of the caller's identities (rate limited)
+      responses: { "200": { content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/SyncRun" } } } }, description: Runs } }
+  /calendar/sync-runs:
+    get:
+      tags: [Calendar]
+      parameters: [{ name: limit, in: query, schema: { type: integer, default: 20 } }]
+      responses: { "200": { content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/SyncRun" } } } }, description: OK } }
+
+  # ───────────────────────── Admin ─────────────────────────
+  /admin/members:
+    get:
+      tags: [Admin]
+      responses: { "200": { content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Member" } } } }, description: OK } }
+  /admin/members/{id}:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    patch:
+      tags: [Admin]
+      summary: Approve / suspend / change role (ADMIN)
+      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { status: { $ref: "#/components/schemas/MemberStatus" }, role: { $ref: "#/components/schemas/MemberRole" } } } } } }
+      responses: { "200": { content: { application/json: { schema: { $ref: "#/components/schemas/Member" } } }, description: OK } }
+
+  # ───────────────────────── Dev (local only) ─────────────────────────
+  /dev/token:
+    post:
+      tags: [Dev]
+      security: []
+      parameters: [{ name: email, in: query, required: true, schema: { type: string } }]
+      responses: { "200": { content: { application/json: { schema: { $ref: "#/components/schemas/TokenResponse" } } }, description: OK } }
+  /dev/login-as:
+    post:
+      tags: [Dev]
+      security: []
+      summary: Mock Google sign-in as a seeded persona (sets refresh cookie like /auth/google)
+      parameters: [{ name: email, in: query, required: true, schema: { type: string } }]
+      responses: { "200": { content: { application/json: { schema: { $ref: "#/components/schemas/TokenResponse" } } }, description: OK } }
+  /dev/reset:
+    post: { tags: [Dev], summary: Wipe events/candidates/suggestions/non-seed sessions and re-seed, responses: { "204": { description: Reset } } }
+  /dev/scenario/{scenario}:
+    parameters: [{ name: scenario, in: path, required: true, schema: { type: string, enum: [clean, messy, empty] } }]
+    post: { tags: [Dev], summary: Select the mock calendar fixture set, responses: { "204": { description: Set } } }
+
+components:
+  securitySchemes:
+    bearer: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    Id: { name: id, in: path, required: true, schema: { type: string } }
+    IfMatch: { name: If-Match, in: header, required: false, schema: { type: string }, description: Optimistic-lock version ("3" or W/"3") }
+    CatalogKind: { name: kind, in: path, required: true, schema: { $ref: "#/components/schemas/CatalogKind" } }
+  responses:
+    Problem:
+      description: Error
+      content: { application/json: { schema: { $ref: "#/components/schemas/ApiError" } } }
+  schemas:
+    ApiError:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        timestamp: { type: string, format: date-time }
+        errors: { type: array, items: { type: object, properties: { field: { type: string }, message: { type: string } } } }
+    TokenResponse:
+      type: object
+      required: [accessToken, tokenType, expiresAt]
+      properties:
+        accessToken: { type: string }
+        tokenType: { type: string, const: Bearer }
+        expiresAt: { type: string, format: date-time }
+        member: { $ref: "#/components/schemas/Member" }
+    MemberRole: { type: string, enum: [MEMBER, MANAGER, ADMIN] }
+    MemberStatus: { type: string, enum: [PENDING, ACTIVE, SUSPENDED] }
+    Member:
+      type: object
+      required: [id, name, email, role, status, hue]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string }
+        title: { type: string }
+        role: { $ref: "#/components/schemas/MemberRole" }
+        status: { $ref: "#/components/schemas/MemberStatus" }
+        hue: { type: integer }
+        timeZone: { type: string }
+    Me:
+      type: object
+      properties:
+        member: { $ref: "#/components/schemas/Member" }
+        identities: { type: array, items: { $ref: "#/components/schemas/Identity" } }
+        organization: { type: object, properties: { id: { type: string }, name: { type: string } } }
+    CatalogKind: { type: string, enum: [sessionType, sessionOutcome, technology, useCaseType, contactRole] }
+    CatalogItem:
+      type: object
+      required: [id, kind, label, keywords, archived, sortOrder]
+      properties:
+        id: { type: string }
+        kind: { $ref: "#/components/schemas/CatalogKind" }
+        label: { type: string }
+        description: { type: string }
+        keywords: { type: array, items: { type: string } }
+        typicalMinutes: { type: integer, nullable: true }
+        archived: { type: boolean }
+        sortOrder: { type: integer }
+        version: { type: integer }
+        updatedBy: { type: string, nullable: true }
+        updatedAt: { type: string, format: date-time, nullable: true }
+    CatalogItemWrite:
+      type: object
+      properties:
+        label: { type: string, maxLength: 200 }
+        description: { type: string }
+        keywords: { type: array, items: { type: string } }
+        typicalMinutes: { type: integer, nullable: true }
+        archived: { type: boolean }
+    Client:
+      type: object
+      required: [id, name, domains, hue]
+      properties: { id: { type: string }, name: { type: string }, industry: { type: string, nullable: true }, domains: { type: array, items: { type: string } }, hue: { type: integer } }
+    Team:
+      type: object
+      required: [id, clientId, name]
+      properties: { id: { type: string }, clientId: { type: string }, name: { type: string }, keywords: { type: array, items: { type: string } } }
+    Person:
+      type: object
+      required: [id, name]
+      properties: { id: { type: string }, clientId: { type: string, nullable: true }, name: { type: string }, email: { type: string, nullable: true }, roleId: { type: string, nullable: true } }
+    SessionState: { type: string, enum: [planned, completed, incomplete, cancelled, ignored] }
+    Provenance: { type: string, enum: [prefilled, accepted, manual] }
+    UseCase:
+      type: object
+      required: [id, title, description, technologyIds]
+      properties: { id: { type: string }, title: { type: string }, description: { type: string }, useCaseTypeId: { type: string, nullable: true }, technologyIds: { type: array, items: { type: string } } }
+    UseCaseWrite:
+      type: object
+      properties: { title: { type: string }, description: { type: string }, useCaseTypeId: { type: string, nullable: true }, technologyIds: { type: array, items: { type: string } } }
+    SessionContact:
+      type: object
+      required: [personId, roleId]
+      properties: { personId: { type: string }, roleId: { type: string } }
+    Session:
+      type: object
+      required: [id, state, title, scheduledStart, scheduledEnd, coFacilitatorIds, contacts, participantIds, technologyIds, useCases, provenance, version]
+      properties:
+        id: { type: string }
+        state: { $ref: "#/components/schemas/SessionState" }
+        title: { type: string }
+        clientId: { type: string, nullable: true }
+        teamId: { type: string, nullable: true }
+        facilitatorId: { type: string, nullable: true }
+        coFacilitatorIds: { type: array, items: { type: string } }
+        contacts: { type: array, items: { $ref: "#/components/schemas/SessionContact" } }
+        scheduledStart: { type: string, format: date-time }
+        scheduledEnd: { type: string, format: date-time }
+        participantIds: { type: array, items: { type: string } }
+        participantsEstimated: { type: integer, nullable: true }
+        sessionType: { type: string, nullable: true, description: sessionType catalogue id }
+        outcomeId: { type: string, nullable: true }
+        technologyIds: { type: array, items: { type: string } }
+        useCases: { type: array, items: { $ref: "#/components/schemas/UseCase" } }
+        summary: { type: string }
+        notes: { type: string }
+        sourceEventIds: { type: array, items: { type: string } }
+        provenance: { type: object, additionalProperties: { $ref: "#/components/schemas/Provenance" } }
+        createdBy: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedBy: { type: string }
+        updatedAt: { type: string, format: date-time }
+        version: { type: integer }
+    SessionPatch:
+      type: object
+      description: Any subset of editable fields. Each present key is written with provenance=manual.
+      properties:
+        title: { type: string }
+        state: { $ref: "#/components/schemas/SessionState" }
+        clientId: { type: string, nullable: true }
+        teamId: { type: string, nullable: true }
+        facilitatorId: { type: string, nullable: true }
+        coFacilitatorIds: { type: array, items: { type: string } }
+        contacts: { type: array, items: { $ref: "#/components/schemas/SessionContact" } }
+        participantIds: { type: array, items: { type: string } }
+        participantsEstimated: { type: integer, nullable: true }
+        sessionType: { type: string, nullable: true }
+        outcomeId: { type: string, nullable: true }
+        technologyIds: { type: array, items: { type: string } }
+        summary: { type: string }
+        notes: { type: string }
+    Evidence:
+      type: object
+      required: [source, excerpt]
+      properties:
+        source: { type: string, enum: [calendar.title, calendar.description, calendar.attendees, calendar.organizer, calendar.time, calendar.location, history.client, history.team, history.people, history.tags, history.sessions, taxonomy.alias] }
+        excerpt: { type: string }
+        attribution: { type: string }
+    Suggestion:
+      type: object
+      required: [id, field, value, label, confidence, evidence, status, promptVersion]
+      properties:
+        id: { type: string }
+        candidateId: { type: string }
+        sessionId: { type: string, nullable: true }
+        field: { type: string, enum: [title, clientId, teamId, sessionType, facilitatorId, coFacilitatorIds, contacts, participantIds, participantsEstimated, technologyIds, useCases, summary] }
+        value: { description: Typed per field (id, id[], SessionContact, UseCase, number, string, or {create:{name,domain}} for a new client) }
+        label: { type: string }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        evidence: { type: array, items: { $ref: "#/components/schemas/Evidence" } }
+        status: { type: string, enum: [proposed, accepted, rejected, edited, superseded] }
+        promptVersion: { type: string }
+        decidedBy: { type: string, nullable: true }
+        decidedAt: { type: string, format: date-time, nullable: true }
+    CalendarEvent:
+      type: object
+      required: [id, providerEventId, title, start, end, attendees, status]
+      properties:
+        id: { type: string }
+        identityId: { type: string }
+        providerEventId: { type: string }
+        recurringEventId: { type: string, nullable: true }
+        title: { type: string }
+        description: { type: string }
+        location: { type: string, nullable: true }
+        conferencing: { type: string, nullable: true }
+        start: { type: string, format: date-time }
+        end: { type: string, format: date-time }
+        timeZone: { type: string }
+        organizerEmail: { type: string }
+        attendees: { type: array, items: { type: object, properties: { email: { type: string }, name: { type: string, nullable: true }, responseStatus: { type: string }, organizer: { type: boolean } } } }
+        status: { type: string, enum: [confirmed, cancelled] }
+    Candidate:
+      type: object
+      required: [id, eventId, classification, status]
+      properties:
+        id: { type: string }
+        eventId: { type: string }
+        classification: { type: object, properties: { score: { type: number }, bucket: { type: string, enum: [likely, review, unlikely] }, reasons: { type: array, items: { type: string } } } }
+        duplicateOfCandidateId: { type: string, nullable: true }
+        status: { type: string, enum: [open, confirmed, dismissed, merged] }
+        sessionId: { type: string, nullable: true }
+        redactedText: { type: string }
+        redactions: { type: array, items: { type: string } }
+    CandidateCard:
+      type: object
+      description: Inbox view model — candidate + event + proposals + derived chips
+      properties:
+        candidate: { $ref: "#/components/schemas/Candidate" }
+        event: { $ref: "#/components/schemas/CalendarEvent" }
+        suggestions: { type: array, items: { $ref: "#/components/schemas/Suggestion" } }
+        coverage: { type: object, properties: { filled: { type: integer }, total: { type: integer } } }
+        clientLabel: { type: string, nullable: true }
+        sessionTypeLabel: { type: string, nullable: true }
+        duplicateOfTitle: { type: string, nullable: true }
+        recurringSiblings: { type: integer }
+    Inbox:
+      type: object
+      properties:
+        likely: { type: array, items: { $ref: "#/components/schemas/CandidateCard" } }
+        review: { type: array, items: { $ref: "#/components/schemas/CandidateCard" } }
+        duplicates: { type: array, items: { $ref: "#/components/schemas/CandidateCard" } }
+        unlikely: { type: array, items: { $ref: "#/components/schemas/CandidateCard" } }
+        dismissed: { type: array, items: { $ref: "#/components/schemas/CandidateCard" } }
+        stats: { type: object, properties: { newEvents: { type: integer }, likely: { type: integer }, review: { type: integer }, prefillRatio: { type: number }, lastRun: { $ref: "#/components/schemas/SyncRun" } } }
+    TimelineItem:
+      type: object
+      required: [kind, id, start, end, title]
+      properties:
+        kind: { type: string, enum: [session, candidate] }
+        id: { type: string }
+        start: { type: string, format: date-time }
+        end: { type: string, format: date-time }
+        title: { type: string }
+        clientId: { type: string, nullable: true }
+        clientLabel: { type: string, nullable: true }
+        facilitatorId: { type: string, nullable: true }
+        sessionType: { type: string, nullable: true }
+        sessionTypeLabel: { type: string, nullable: true }
+        technologyIds: { type: array, items: { type: string } }
+        state: { type: string }
+        outcomeId: { type: string, nullable: true }
+        useCaseCount: { type: integer }
+        completeness: { type: number }
+        pending: { type: integer }
+        participants: { type: integer }
+        bucket: { type: string, nullable: true, enum: [likely, review, null] }
+    TodayBoard:
+      type: object
+      properties:
+        date: { type: string, format: date }
+        today: { type: array, items: { $ref: "#/components/schemas/TimelineItem" } }
+        overdue: { type: array, items: { $ref: "#/components/schemas/TimelineItem" } }
+    SessionDetail:
+      type: object
+      required: [session, pending, missing, completeness]
+      properties:
+        session: { $ref: "#/components/schemas/Session" }
+        client: { $ref: "#/components/schemas/Client" }
+        team: { $ref: "#/components/schemas/Team" }
+        facilitator: { $ref: "#/components/schemas/Member" }
+        coFacilitators: { type: array, items: { $ref: "#/components/schemas/Member" } }
+        contacts: { type: array, items: { type: object, properties: { person: { $ref: "#/components/schemas/Person" }, roleId: { type: string } } } }
+        participants: { type: array, items: { $ref: "#/components/schemas/Person" } }
+        pending: { type: array, items: { $ref: "#/components/schemas/Suggestion" } }
+        sourceEvents: { type: array, items: { $ref: "#/components/schemas/CalendarEvent" } }
+        candidate: { $ref: "#/components/schemas/Candidate" }
+        missing: { type: array, items: { type: object, properties: { field: { type: string }, label: { type: string } } } }
+        completeness: { type: number }
+        history: { type: array, items: { $ref: "#/components/schemas/TimelineItem" } }
+    Identity:
+      type: object
+      required: [id, provider, email, status]
+      properties:
+        id: { type: string }
+        provider: { type: string, enum: [google, mock] }
+        email: { type: string }
+        displayName: { type: string, nullable: true }
+        scopes: { type: array, items: { type: string } }
+        status: { type: string, enum: [ACTIVE, NEEDS_REAUTH, DISABLED] }
+        lastSyncAt: { type: string, format: date-time, nullable: true }
+        lastError: { type: string, nullable: true }
+    SyncRun:
+      type: object
+      properties:
+        id: { type: string }
+        identityId: { type: string }
+        kind: { type: string, enum: [initial, incremental, manual, full_resync] }
+        startedAt: { type: string, format: date-time }
+        finishedAt: { type: string, format: date-time, nullable: true }
+        status: { type: string, enum: [running, ok, failed] }
+        eventsSeen: { type: integer }
+        eventsNew: { type: integer }
+        eventsUpdated: { type: integer }
+        eventsUnchanged: { type: integer }
+        candidatesCreated: { type: integer }
+        error: { type: string, nullable: true }
