@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { analyzeEvent, tierFor } from "@/lib/ai";
 import { redact } from "@/lib/ai/redact";
 import { engineContext, initialState, runSync } from "@/lib/domain/ops";
-import { clientByName, personByEmail, tagByLabel, teamByName } from "@/lib/mock/seed";
+import { clientByName, personByEmail, techByLabel, teamByName } from "@/lib/mock/seed";
 
 const NOW = new Date("2026-10-11T12:00:00Z");
 
@@ -32,7 +32,7 @@ describe("classification", () => {
   const state = syncedState();
 
   it("classifies real enablement events as likely", () => {
-    for (const id of ["evt-acme-oh-1", "evt-vantage-d1", "evt-vantage-d2", "evt-northwind-fu", "evt-meridian-training", "evt-acme-pay-review"]) {
+    for (const id of ["evt-mb-101-today", "evt-mb-pair-today", "evt-acme-oh-1", "evt-vantage-d1", "evt-vantage-d2", "evt-northwind-fu", "evt-meridian-training", "evt-acme-pay-review"]) {
       expect(candidateByProviderId(state, id).cand.classification.bucket, id).toBe("likely");
     }
   });
@@ -73,7 +73,7 @@ describe("classification", () => {
   });
 
   it("an archived format stops matching", () => {
-    const archived = { ...state, sessionTypes: state.sessionTypes.map((t) => (t.id === "ama" ? { ...t, archived: true } : t)) };
+    const archived = { ...state, catalog: state.catalog.map((t) => (t.id === "ama" ? { ...t, archived: true } : t)) };
     const { event, cand } = candidateByProviderId(state, "evt-acme-pay-review");
     const result = analyzeEvent(event, cand.id, engineContext(archived, cand.ownerMemberId));
     expect(result.classification.bucket).toBe("review");
@@ -105,14 +105,28 @@ describe("extraction", () => {
     expect(history[0]!.attribution).toMatch(/Priya/);
   });
 
-  it("recommends collaborative tags used by other engineers on the same client", () => {
+  it("recommends technologies from the catalogue and from what teammates recorded for the client", () => {
     const { suggestions } = candidateByProviderId(state, "evt-acme-oh-1");
-    const tags = suggestions.filter((s) => s.field === "tagIds");
-    expect(tags.map((t) => t.value)).toContain(tagByLabel("Jenkins").id);
-    expect(tags.map((t) => t.value)).toContain(tagByLabel("Java 8 → 21 upgrade").id);
-    const collaborative = tags.filter((t) => t.evidence.some((e) => e.source === "history.tags"));
-    expect(collaborative.length).toBeGreaterThan(0);
+    const tech = suggestions.filter((s) => s.field === "technologyIds");
+    expect(tech.map((t) => t.value)).toContain(techByLabel("Jenkins").id);
+    expect(tech.map((t) => t.value)).toContain(techByLabel("Java").id);
+    const collaborative = tech.filter((t) => t.evidence.some((e) => e.source === "history.tags"));
+    expect(collaborative.map((t) => t.value)).toContain(techByLabel("Spring Boot").id);
     expect(collaborative.every((t) => tierFor(t.confidence) !== "prefill")).toBe(true);
+  });
+
+  it("drafts a use case from the invite's stated goal with a type and technologies", () => {
+    const { suggestions } = candidateByProviderId(state, "evt-mb-101-today");
+    const draft = suggestions.find((s) => s.field === "useCases")!;
+    expect(draft).toBeDefined();
+    const uc = draft.value as { title: string; useCaseTypeId: string | null; technologyIds: string[] };
+    expect(uc.title).toMatch(/Ab Initio/i);
+    expect(uc.useCaseTypeId).toBe("etlMigration");
+    expect(uc.technologyIds).toContain(techByLabel("Ab Initio").id);
+    expect(uc.technologyIds).toContain(techByLabel("Databricks").id);
+    expect(tierFor(draft.confidence)).toBe("chip");
+    const pair = candidateByProviderId(state, "evt-mb-pair-today").suggestions.find((s) => s.field === "useCases")!;
+    expect((pair.value as { useCaseTypeId: string }).useCaseTypeId).toBe("excelToDashboard");
   });
 
   it("reads Day 1/Day 2, estimated participants and creates unknown attendees as people", () => {

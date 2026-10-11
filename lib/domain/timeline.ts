@@ -1,8 +1,8 @@
 import { endOfMonth, endOfWeek, format, isAfter, isBefore, startOfDay, startOfMonth, startOfWeek, subDays } from "date-fns";
 import type { DataState } from "./ops";
-import { sessionTypeLabel } from "./labels";
-import { candidateVM } from "./selectors";
-import type { Candidate, Client, ID, Member, Session, SessionState, SessionType, Tag } from "./types";
+import { catalogLabel } from "./labels";
+import { candidateVM, sessionVM } from "./selectors";
+import type { Candidate, CatalogItem, Client, ID, Member, Session, SessionState, SessionType } from "./types";
 
 export type TimelineItemKind = "session" | "candidate";
 
@@ -18,10 +18,11 @@ export interface TimelineItem {
   facilitator: Member | null;
   sessionType: SessionType | null;
   sessionTypeLabel: string | null;
-  tags: Tag[];
+  technologies: CatalogItem[];
   state: SessionState;
-  success: Session["successState"] | null;
-  outcome: Session["automationOutcome"] | null;
+  outcome: CatalogItem | null;
+  useCaseCount: number;
+  completeness: number;
   pending: number;
   participants: number;
   session: Session | null;
@@ -37,7 +38,7 @@ export interface TimelineFilters {
   range: RangePreset;
   clientId: ID | null;
   facilitatorId: ID | null;
-  tagId: ID | null;
+  technologyId: ID | null;
   state: SessionState | "all";
   scope: "mine" | "everyone";
   includeCandidates: boolean;
@@ -48,7 +49,7 @@ export const DEFAULT_FILTERS: TimelineFilters = {
   range: "all",
   clientId: null,
   facilitatorId: null,
-  tagId: null,
+  technologyId: null,
   state: "all",
   scope: "everyone",
   includeCandidates: true,
@@ -67,11 +68,12 @@ export function sessionItem(state: DataState, s: Session): TimelineItem {
     clientLabel: client?.name ?? null,
     facilitator: state.members.find((m) => m.id === s.facilitatorId) ?? null,
     sessionType: s.sessionType,
-    sessionTypeLabel: sessionTypeLabel(state.sessionTypes, s.sessionType),
-    tags: s.tagIds.map((id) => state.tags.find((t) => t.id === id)!).filter(Boolean),
+    sessionTypeLabel: catalogLabel(state.catalog, s.sessionType),
+    technologies: s.technologyIds.map((id) => state.catalog.find((t) => t.id === id)!).filter(Boolean),
     state: s.state,
-    success: s.successState,
-    outcome: s.automationOutcome,
+    outcome: state.catalog.find((c) => c.id === s.outcomeId) ?? null,
+    useCaseCount: s.useCases.length,
+    completeness: sessionVM(state, s).completeness,
     pending: state.suggestions.filter((x) => x.sessionId === s.id && x.status === "proposed").length,
     participants: s.participantIds.length || s.participantsEstimated || 0,
     session: s,
@@ -94,10 +96,11 @@ export function candidateItem(state: DataState, c: Candidate): TimelineItem {
     facilitator: vm.facilitator,
     sessionType: vm.sessionType,
     sessionTypeLabel: vm.sessionTypeLabel,
-    tags: vm.tags,
+    technologies: vm.technologies,
     state: "candidate",
-    success: null,
     outcome: null,
+    useCaseCount: vm.useCaseDrafts.length,
+    completeness: 0,
     pending: vm.suggestions.length,
     participants: vm.externalAttendees.length,
     session: null,
@@ -124,7 +127,7 @@ export function applyFilters(items: TimelineItem[], f: TimelineFilters, memberId
     if (to && isAfter(start, to)) return false;
     if (f.clientId && it.client?.id !== f.clientId) return false;
     if (f.facilitatorId && it.facilitator?.id !== f.facilitatorId) return false;
-    if (f.tagId && !it.tags.some((t) => t.id === f.tagId)) return false;
+    if (f.technologyId && !it.technologies.some((t) => t.id === f.technologyId)) return false;
     if (f.state !== "all" && it.state !== f.state) return false;
     if (f.scope === "mine" && it.facilitator?.id !== memberId && it.session?.createdBy !== memberId && it.candidate?.ownerMemberId !== memberId) return false;
     return true;

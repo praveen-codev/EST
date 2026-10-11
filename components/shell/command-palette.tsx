@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { CalendarDays, CheckCheck, FlaskConical, Inbox, ListTree, RefreshCw, Settings2, Users } from "lucide-react";
+import { CalendarDays, CheckCheck, FlaskConical, Inbox, ListTree, RefreshCw, Settings2, Sun, Users } from "lucide-react";
 import { toast } from "sonner";
 import {
   CommandDialog,
@@ -69,6 +69,9 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
         </CommandGroup>
         <CommandSeparator />
         <CommandGroup heading="Go to">
+          <CommandItem onSelect={() => go("/")}>
+            <Sun /> Today <CommandShortcut>G H</CommandShortcut>
+          </CommandItem>
           <CommandItem onSelect={() => go("/inbox")}>
             <Inbox /> Inbox <CommandShortcut>G I</CommandShortcut>
           </CommandItem>
@@ -79,7 +82,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
             <CalendarDays /> Calendar <CommandShortcut>G C</CommandShortcut>
           </CommandItem>
           <CommandItem onSelect={() => go("/admin")}>
-            <Settings2 /> Admin · session formats <CommandShortcut>G A</CommandShortcut>
+            <Settings2 /> Admin · reference tables <CommandShortcut>G A</CommandShortcut>
           </CommandItem>
         </CommandGroup>
         <CommandSeparator />

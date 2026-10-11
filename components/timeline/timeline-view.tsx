@@ -11,7 +11,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Combobox } from "@/components/common/combobox";
 import { ClientMark, MemberAvatar } from "@/components/common/marks";
 import { Sparkle } from "@/components/common/sparkle";
-import { SESSION_STATE_LABELS } from "@/lib/domain/labels";
+import { catalogOf, SESSION_STATE_LABELS } from "@/lib/domain/labels";
 import { useHydrated, useStore } from "@/lib/domain/store";
 import { allItems, applyFilters, DEFAULT_FILTERS, groupItems, type GroupBy, type RangePreset, type TimelineFilters, type TimelineItem } from "@/lib/domain/timeline";
 import type { SessionState } from "@/lib/domain/types";
@@ -24,13 +24,13 @@ export function TimelineView() {
   const params = useSearchParams();
   const hydrated = useHydrated();
   const state = useStore();
-  const [filters, setFilters] = useState<TimelineFilters>({ ...DEFAULT_FILTERS, clientId: params.get("client") });
+  const [filters, setFilters] = useState<TimelineFilters>({ ...DEFAULT_FILTERS, clientId: params.get("client"), scope: params.get("scope") === "mine" ? "mine" : "everyone" });
   const [peek, setPeek] = useState<TimelineItem | null>(null);
   const set = <K extends keyof TimelineFilters>(k: K, v: TimelineFilters[K]) => setFilters((f) => ({ ...f, [k]: v }));
 
   const items = useMemo(() => applyFilters(allItems(state, state.currentMemberId, filters.includeCandidates), filters, state.currentMemberId), [state, filters]);
   const groups = useMemo(() => groupItems(items, filters.groupBy), [items, filters.groupBy]);
-  const activeFilters = [filters.clientId, filters.facilitatorId, filters.tagId, filters.state !== "all" ? filters.state : null, filters.scope === "mine" ? "mine" : null].filter(Boolean).length;
+  const activeFilters = [filters.clientId, filters.facilitatorId, filters.technologyId, filters.state !== "all" ? filters.state : null, filters.scope === "mine" ? "mine" : null].filter(Boolean).length;
   const counts = { sessions: items.filter((i) => i.kind === "session").length, candidates: items.filter((i) => i.kind === "candidate").length };
 
   const open = (it: TimelineItem) => (it.kind === "session" ? router.push(it.href!) : setPeek(it));
@@ -65,7 +65,7 @@ export function TimelineView() {
         <Filter className="size-3.5 text-muted-foreground" />
         <Combobox size="sm" value={filters.clientId} options={state.clients.map((c) => ({ value: c.id, label: c.name, icon: <ClientMark client={c} size="sm" /> }))} placeholder="Client" onChange={(v) => set("clientId", v)} clearable className="h-7 rounded-full text-xs" />
         <Combobox size="sm" value={filters.facilitatorId} options={state.members.filter((m) => m.role !== "MANAGER").map((m) => ({ value: m.id, label: m.name, icon: <MemberAvatar member={m} size="xs" /> }))} placeholder="Facilitator" onChange={(v) => set("facilitatorId", v)} clearable className="h-7 rounded-full text-xs" />
-        <Combobox size="sm" value={filters.tagId} options={state.tags.map((t) => ({ value: t.id, label: t.label }))} placeholder="Tag" onChange={(v) => set("tagId", v)} clearable className="h-7 rounded-full text-xs" />
+        <Combobox size="sm" value={filters.technologyId} options={catalogOf(state.catalog, "technology").map((t) => ({ value: t.id, label: t.label }))} placeholder="Technology" onChange={(v) => set("technologyId", v)} clearable className="h-7 rounded-full text-xs" />
         <Combobox size="sm" value={filters.state === "all" ? null : filters.state} options={(Object.keys(SESSION_STATE_LABELS) as SessionState[]).filter((s) => s !== "ignored").map((s) => ({ value: s, label: SESSION_STATE_LABELS[s] }))} placeholder="State" onChange={(v) => set("state", (v as SessionState | null) ?? "all")} clearable className="h-7 rounded-full text-xs" />
         {activeFilters > 0 && (
           <Button variant="ghost" size="xs" onClick={() => setFilters((f) => ({ ...DEFAULT_FILTERS, groupBy: f.groupBy, range: f.range, includeCandidates: f.includeCandidates }))} className="text-muted-foreground">
@@ -130,8 +130,8 @@ function Row({ item, groupBy, first, onOpen }: { item: TimelineItem; groupBy: Gr
         <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
           {item.clientLabel && groupBy !== "client" && <span>{item.clientLabel}</span>}
           {item.sessionTypeLabel && <span>· {item.sessionTypeLabel}</span>}
-          {item.tags.slice(0, 3).map((t) => <span key={t.id} className="text-ai/80">#{t.label}</span>)}
-          {item.tags.length > 3 && <span>+{item.tags.length - 3}</span>}
+          {item.technologies.slice(0, 3).map((t) => <span key={t.id} className="text-ai/80">#{t.label}</span>)}
+          {item.technologies.length > 3 && <span>+{item.technologies.length - 3}</span>}
         </span>
       </span>
       <span className="flex items-center gap-2">
@@ -145,9 +145,13 @@ function Row({ item, groupBy, first, onOpen }: { item: TimelineItem; groupBy: Gr
 
 function StatePill({ item }: { item: TimelineItem }) {
   if (item.kind === "candidate") return null;
-  const tone =
-    item.state === "completed" ? (item.success === "successful" ? "bg-success/15 text-success" : item.success === "unsuccessful" ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground")
-    : item.state === "planned" ? "bg-ai-soft text-ai"
-    : "bg-muted text-muted-foreground";
-  return <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", tone)}>{SESSION_STATE_LABELS[item.state]}{item.state === "completed" && item.success && item.success !== "unknown" ? ` · ${item.success}` : ""}</span>;
+  if (item.state === "completed") {
+    const done = item.completeness >= 1;
+    return (
+      <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", done ? "bg-success/15 text-success" : "bg-warning/15 text-warning")}>
+        {done ? `Feedback in${item.outcome ? ` · ${item.outcome.label}` : ""}` : `Feedback ${Math.round(item.completeness * 100)}%`}
+      </span>
+    );
+  }
+  return <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", item.state === "planned" ? "bg-ai-soft text-ai" : "bg-muted text-muted-foreground")}>{SESSION_STATE_LABELS[item.state]}</span>;
 }

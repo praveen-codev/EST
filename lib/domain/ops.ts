@@ -2,6 +2,8 @@ import { analyzeEvent, ITEM_FIELDS, tierFor, type ClientCreate, type EngineConte
 import { stableId } from "@/lib/domain/ids";
 import type {
   CalendarEvent,
+  CatalogItem,
+  CatalogKind,
   Candidate,
   Client,
   EditableField,
@@ -11,18 +13,17 @@ import type {
   ScenarioId,
   Session,
   SessionContact,
-  SessionTypeDef,
   Settings,
   Suggestion,
   SyncRun,
-  Tag,
   Team,
+  UseCase,
 } from "@/lib/domain/types";
 import { fetchCalendarPage } from "@/lib/mock/calendar";
-import { anchorDate, buildHistoricalSessions, CLIENTS, DEFAULT_MEMBER_ID, MEMBERS, PEOPLE, SESSION_TYPES, TAGS, TEAMS } from "@/lib/mock/seed";
+import { anchorDate, buildHistoricalSessions, CATALOG, CLIENTS, DEFAULT_MEMBER_ID, MEMBERS, PEOPLE, TEAMS } from "@/lib/mock/seed";
 import { candidateIdFor, findDuplicate, toCalendarEvent } from "@/lib/sync/sync";
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 export interface DataState {
   schemaVersion: number;
@@ -33,8 +34,8 @@ export interface DataState {
   clients: Client[];
   teams: Team[];
   people: Person[];
-  tags: Tag[];
-  sessionTypes: SessionTypeDef[];
+  /** Admin-managed reference tables (formats, outcomes, technologies, use-case types). */
+  catalog: CatalogItem[];
   events: CalendarEvent[];
   candidates: Candidate[];
   suggestions: Suggestion[];
@@ -54,8 +55,7 @@ export function initialState(scenario: ScenarioId = "messy", now = new Date(), c
     clients: CLIENTS,
     teams: TEAMS,
     people: PEOPLE,
-    tags: TAGS,
-    sessionTypes: SESSION_TYPES,
+    catalog: CATALOG,
     events: [],
     candidates: [],
     suggestions: [],
@@ -71,8 +71,7 @@ export function engineContext(state: DataState, ownerMemberId: ID): EngineContex
     clients: state.clients,
     teams: state.teams,
     people: state.people,
-    tags: state.tags,
-    sessionTypes: state.sessionTypes,
+    catalog: state.catalog,
     sessions: state.sessions.filter((s) => s.state !== "ignored" && s.state !== "cancelled"),
     ownerMemberId,
   };
@@ -97,7 +96,7 @@ export function runSync(input: DataState, now = new Date()): SyncOutcome {
   const member = state.members.find((m) => m.id === state.currentMemberId)!;
   const cursor = state.cursors[member.id] ?? 0;
   const anchor = new Date(state.anchorIso);
-  const page = fetchCalendarPage(member.email, state.settings.scenario, cursor, anchor);
+  const page = fetchCalendarPage(member.email, state.settings.scenario, cursor, anchor, now);
   const runId = stableId("run", `${member.id}/${state.settings.scenario}/${cursor}`);
   const startedAt = now.toISOString();
   const nowIso = startedAt;
@@ -221,8 +220,10 @@ function reanalyzeCandidate(input: DataState, cand: Candidate, event: CalendarEv
 
 function sessionAlreadyHas(session: Session, s: Suggestion): boolean {
   switch (s.field) {
-    case "tagIds":
-      return session.tagIds.includes(s.value as ID);
+    case "technologyIds":
+      return session.technologyIds.includes(s.value as ID);
+    case "useCases":
+      return session.useCases.some((u) => u.id === (s.value as UseCase).id || u.title.toLowerCase() === (s.value as UseCase).title.toLowerCase());
     case "coFacilitatorIds":
       return session.coFacilitatorIds.includes(s.value as ID);
     case "contacts": {
@@ -262,10 +263,9 @@ function blankSession(event: CalendarEvent, memberId: ID, nowIso: string, now: D
     participantIds: [],
     participantsEstimated: null,
     sessionType: null,
-    successState: "unknown",
-    automationOutcome: null,
-    devinAsk: null,
-    tagIds: [],
+    outcomeId: null,
+    technologyIds: [],
+    useCases: [],
     summary: "",
     notes: "",
     sourceEventIds: [event.id],
@@ -301,9 +301,17 @@ function applyToSession(state: DataState, session: Session, s: Suggestion, prove
       next.clientId = m.clientId;
       break;
     }
-    case "tagIds":
-      if (!next.tagIds.includes(s.value as ID)) next.tagIds = [...next.tagIds, s.value as ID];
+    case "technologyIds":
+      if (!next.technologyIds.includes(s.value as ID)) next.technologyIds = [...next.technologyIds, s.value as ID];
       break;
+    case "useCases": {
+      const uc = s.value as UseCase;
+      if (!next.useCases.some((u) => u.id === uc.id)) {
+        next.useCases = [...next.useCases, { ...uc, technologyIds: [...uc.technologyIds] }];
+        next.technologyIds = [...new Set([...next.technologyIds, ...uc.technologyIds])];
+      }
+      break;
+    }
     case "coFacilitatorIds":
       if (!next.coFacilitatorIds.includes(s.value as ID)) next.coFacilitatorIds = [...next.coFacilitatorIds, s.value as ID];
       break;
@@ -328,9 +336,6 @@ function applyToSession(state: DataState, session: Session, s: Suggestion, prove
       break;
     case "sessionType":
       next.sessionType = s.value as Session["sessionType"];
-      break;
-    case "devinAsk":
-      next.devinAsk = s.value as Session["devinAsk"];
       break;
   }
   if (next.provenance[field] !== "manual") next.provenance[field] = provenance;
@@ -474,51 +479,86 @@ export function rerunAI(state: DataState, sessionId: ID, now = new Date()): Data
   return reanalyzeCandidate(state, cand, event, now.toISOString());
 }
 
-/* ───────────────────────── Admin: session-type table ───────────────────────── */
+/* ───────────────────────── Admin: catalogue tables ───────────────────────── */
 
-export type SessionTypePatch = Partial<Pick<SessionTypeDef, "label" | "description" | "keywords" | "typicalMinutes" | "archived">>;
+export type CatalogPatch = Partial<Pick<CatalogItem, "label" | "description" | "keywords" | "typicalMinutes" | "archived">>;
 
-export function slugifyTypeId(label: string): string {
+export function slugifyId(label: string): string {
   const base = label.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().split(" ").map((w, i) => (i ? w[0]!.toUpperCase() + w.slice(1) : w)).join("");
-  return base || "type";
+  return base || "item";
 }
 
-export function upsertSessionType(state: DataState, id: ID | null, patch: SessionTypePatch, memberId: ID, now = new Date()): DataState {
+/** Insert (id = null) or update one row of a catalogue. Keywords are normalised to lower case. */
+export function upsertCatalogItem(state: DataState, kind: CatalogKind, id: ID | null, patch: CatalogPatch, memberId: ID, now = new Date()): DataState {
   const nowIso = now.toISOString();
   const keywords = (patch.keywords ?? []).map((k) => k.trim().toLowerCase()).filter(Boolean);
   if (id) {
     return {
       ...state,
-      sessionTypes: state.sessionTypes.map((t) =>
-        t.id === id ? { ...t, ...patch, keywords: patch.keywords ? [...new Set(keywords)] : t.keywords, updatedBy: memberId, updatedAt: nowIso } : t,
+      catalog: state.catalog.map((t) =>
+        t.id === id && t.kind === kind
+          ? { ...t, ...patch, keywords: patch.keywords ? [...new Set(keywords)] : t.keywords, updatedBy: memberId, updatedAt: nowIso }
+          : t,
       ),
     };
   }
   const label = (patch.label ?? "").trim();
   if (!label) return state;
-  let newId = slugifyTypeId(label);
-  while (state.sessionTypes.some((t) => t.id === newId)) newId = `${newId}2`;
-  const row: SessionTypeDef = {
+  let newId = slugifyId(label);
+  while (state.catalog.some((t) => t.id === newId)) newId = `${newId}2`;
+  const siblings = state.catalog.filter((t) => t.kind === kind);
+  const row: CatalogItem = {
     id: newId,
+    kind,
     label,
     description: patch.description ?? "",
     keywords: [...new Set([label.toLowerCase(), ...keywords])],
-    typicalMinutes: patch.typicalMinutes ?? 60,
+    typicalMinutes: kind === "sessionType" ? (patch.typicalMinutes ?? 60) : null,
     archived: false,
-    sortOrder: state.sessionTypes.length,
+    sortOrder: siblings.length,
     updatedBy: memberId,
     updatedAt: nowIso,
   };
-  return { ...state, sessionTypes: [...state.sessionTypes, row] };
+  return { ...state, catalog: [...state.catalog, row] };
 }
 
-export function moveSessionType(state: DataState, id: ID, delta: -1 | 1): DataState {
-  const ordered = [...state.sessionTypes].sort((a, b) => a.sortOrder - b.sortOrder);
+export function moveCatalogItem(state: DataState, kind: CatalogKind, id: ID, delta: -1 | 1): DataState {
+  const ordered = state.catalog.filter((t) => t.kind === kind).sort((a, b) => a.sortOrder - b.sortOrder);
   const i = ordered.findIndex((t) => t.id === id);
   const j = i + delta;
   if (i < 0 || j < 0 || j >= ordered.length) return state;
   [ordered[i], ordered[j]] = [ordered[j]!, ordered[i]!];
-  return { ...state, sessionTypes: ordered.map((t, k) => ({ ...t, sortOrder: k })) };
+  const order = new Map(ordered.map((t, k) => [t.id, k]));
+  return { ...state, catalog: state.catalog.map((t) => (order.has(t.id) ? { ...t, sortOrder: order.get(t.id)! } : t)) };
+}
+
+/* ───────────────────────── Use cases (inline on the session) ───────────────────────── */
+
+export function addUseCase(state: DataState, sessionId: ID, memberId: ID, draft: Partial<UseCase> = {}, now = new Date()): DataState {
+  const session = state.sessions.find((s) => s.id === sessionId);
+  if (!session) return state;
+  const uc: UseCase = {
+    id: draft.id ?? stableId("uc", `${sessionId}/${session.useCases.length}/${now.toISOString()}`),
+    title: draft.title ?? "",
+    description: draft.description ?? "",
+    useCaseTypeId: draft.useCaseTypeId ?? null,
+    technologyIds: draft.technologyIds ?? [],
+  };
+  return updateSession(state, sessionId, { useCases: [...session.useCases, uc] }, memberId, now);
+}
+
+export function updateUseCase(state: DataState, sessionId: ID, useCaseId: ID, patch: Partial<Omit<UseCase, "id">>, memberId: ID, now = new Date()): DataState {
+  const session = state.sessions.find((s) => s.id === sessionId);
+  if (!session) return state;
+  const useCases = session.useCases.map((u) => (u.id === useCaseId ? { ...u, ...patch } : u));
+  const technologyIds = [...new Set([...session.technologyIds, ...useCases.flatMap((u) => u.technologyIds)])];
+  return updateSession(state, sessionId, { useCases, technologyIds }, memberId, now);
+}
+
+export function removeUseCase(state: DataState, sessionId: ID, useCaseId: ID, memberId: ID, now = new Date()): DataState {
+  const session = state.sessions.find((s) => s.id === sessionId);
+  if (!session) return state;
+  return updateSession(state, sessionId, { useCases: session.useCases.filter((u) => u.id !== useCaseId) }, memberId, now);
 }
 
 /* ───────────────────────── Selectors shared by UI and tests ───────────────────────── */

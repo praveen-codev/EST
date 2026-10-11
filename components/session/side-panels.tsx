@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { EyeOff, History, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MemberAvatar } from "@/components/common/marks";
-import { sessionTypeLabel } from "@/lib/domain/labels";
+import { catalogLabel } from "@/lib/domain/labels";
 import type { DataState } from "@/lib/domain/ops";
 import type { SessionVM } from "@/lib/domain/selectors";
 import { fmtDayLabel } from "@/lib/format";
@@ -67,7 +67,7 @@ export function HistoryPanel({ vm, state }: { vm: SessionVM; state: DataState })
         <ul className="space-y-2.5">
           {vm.history.slice(0, 6).map((h) => {
             const by = state.members.find((m) => m.id === h.facilitatorId);
-            const tags = h.tagIds.slice(0, 3).map((id) => state.tags.find((t) => t.id === id)?.label).filter(Boolean);
+            const tags = [...h.useCases.map((u) => u.title), ...h.technologyIds.map((id) => catalogLabel(state.catalog, id))].filter(Boolean).slice(0, 3);
             return (
               <li key={h.id}>
                 <Link href={`/sessions/${h.id}`} className="block rounded-lg p-2 -mx-2 transition-colors hover:bg-muted/60">
@@ -77,7 +77,7 @@ export function HistoryPanel({ vm, state }: { vm: SessionVM; state: DataState })
                   </div>
                   <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
                     <span>{fmtDayLabel(h.scheduledStart)} · {format(new Date(h.scheduledStart), "yyyy")}</span>
-                    {h.sessionType && <span>· {sessionTypeLabel(state.sessionTypes, h.sessionType)}</span>}
+                    {h.sessionType && <span>· {catalogLabel(state.catalog, h.sessionType)}</span>}
                     {by && <span>· {by.name.split(" ")[0]}</span>}
                   </div>
                   {tags.length > 0 && <div className="mt-1 truncate text-[11px] text-ai">{tags.join(" · ")}</div>}

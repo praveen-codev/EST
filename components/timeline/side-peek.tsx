@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { ClientMark, MemberAvatar } from "@/components/common/marks";
 import { AiBadge } from "@/components/common/sparkle";
 import { EvidenceList } from "@/components/common/evidence";
-import { AUTOMATION_OUTCOME_LABELS, SESSION_STATE_LABELS, SUCCESS_STATE_LABELS } from "@/lib/domain/labels";
+import { SESSION_STATE_LABELS } from "@/lib/domain/labels";
 import { sessionIdForEvent } from "@/lib/domain/ops";
 import { useStore } from "@/lib/domain/store";
 import type { TimelineItem } from "@/lib/domain/timeline";
@@ -55,8 +55,8 @@ export function SidePeek({ item, onClose }: { item: TimelineItem | null; onClose
                   {item.kind === "candidate" ? `Candidate · ${item.bucket === "likely" ? "likely" : "needs a look"}` : SESSION_STATE_LABELS[item.state]}
                 </Badge>
                 {item.sessionTypeLabel && <Badge variant="outline">{item.sessionTypeLabel}</Badge>}
-                {item.success && item.success !== "unknown" && <Badge variant="outline">{SUCCESS_STATE_LABELS[item.success]}</Badge>}
-                {item.outcome && <Badge variant="outline">{AUTOMATION_OUTCOME_LABELS[item.outcome]}</Badge>}
+                {item.outcome && <Badge variant="outline" className="border-success/40 text-success">{item.outcome.label}</Badge>}
+                {item.kind === "session" && <Badge variant="outline">{item.useCaseCount} use case{item.useCaseCount === 1 ? "" : "s"}</Badge>}
                 {item.pending > 0 && <AiBadge>{item.pending} suggestion{item.pending === 1 ? "" : "s"}</AiBadge>}
               </div>
               <dl className="grid grid-cols-[110px_1fr] gap-y-2 text-sm">
@@ -66,8 +66,8 @@ export function SidePeek({ item, onClose }: { item: TimelineItem | null; onClose
                 <dd className="flex items-center gap-1.5">{item.facilitator ? <><MemberAvatar member={item.facilitator} size="xs" /> {item.facilitator.name}</> : <span className="text-muted-foreground">Not set</span>}</dd>
                 <dt className="text-muted-foreground">Participants</dt>
                 <dd>{item.participants || <span className="text-muted-foreground">Unknown</span>}</dd>
-                <dt className="text-muted-foreground">Tags</dt>
-                <dd className="flex flex-wrap gap-1">{item.tags.length ? item.tags.map((t) => <Badge key={t.id} variant="outline" className="text-[10px]">{t.label}</Badge>) : <span className="text-muted-foreground">None yet</span>}</dd>
+                <dt className="text-muted-foreground">Technologies</dt>
+                <dd className="flex flex-wrap gap-1">{item.technologies.length ? item.technologies.map((t) => <Badge key={t.id} variant="outline" className="text-[10px]">{t.label}</Badge>) : <span className="text-muted-foreground">None yet</span>}</dd>
               </dl>
               {item.session?.summary && <p className="rounded-xl bg-muted/60 p-3 text-sm">{item.session.summary}</p>}
               {topSuggestions.length > 0 && (
@@ -90,7 +90,7 @@ export function SidePeek({ item, onClose }: { item: TimelineItem | null; onClose
                     <Button variant="outline" onClick={dismiss}><X data-icon="inline-start" /> Dismiss</Button>
                   </>
                 ) : (
-                  <Button onClick={() => { onClose(); router.push(sessionHref!); }} className="flex-1">Open session <ArrowUpRight data-icon="inline-end" /></Button>
+                  <Button onClick={() => { onClose(); router.push(sessionHref!); }} className="flex-1">{item.completeness >= 1 ? "Review feedback" : "Enter feedback"} <ArrowUpRight data-icon="inline-end" /></Button>
                 )}
               </div>
             </div>

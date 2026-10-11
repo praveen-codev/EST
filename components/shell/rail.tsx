@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
-import { BarChart3, CalendarDays, Inbox, ListTree, Settings2, Sparkles } from "lucide-react";
+import { BarChart3, CalendarDays, Inbox, ListTree, Settings2, Sparkles, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useOpenCandidateCount } from "@/lib/domain/store";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { DemoControls } from "./demo-controls";
 
 const NAV = [
+  { href: "/", label: "Today", icon: Sun, key: "G H" },
   { href: "/inbox", label: "Inbox", icon: Inbox, key: "G I" },
   { href: "/timeline", label: "Timeline", icon: ListTree, key: "G T" },
   { href: "/calendar", label: "Calendar", icon: CalendarDays, key: "G C" },
@@ -23,12 +24,12 @@ export function Rail() {
   const inboxCount = useOpenCandidateCount();
   return (
     <nav className="flex w-[72px] shrink-0 flex-col items-center border-r border-border/60 bg-background/60 py-3" aria-label="Primary">
-      <Link href="/inbox" className="ai-gradient mb-4 flex size-9 items-center justify-center rounded-xl text-white shadow-md shadow-ai/25" aria-label="Enablement Session Tracker">
+      <Link href="/" className="ai-gradient mb-4 flex size-9 items-center justify-center rounded-xl text-white shadow-md shadow-ai/25" aria-label="Enablement Session Tracker">
         <Sparkles className="size-4.5" />
       </Link>
       <ul className="flex flex-col items-center gap-1">
         {NAV.map(({ href, label, icon: Icon, key }) => {
-          const active = pathname.startsWith(href) || (href === "/timeline" && pathname.startsWith("/sessions"));
+          const active = href === "/" ? pathname === "/" || pathname.startsWith("/sessions") : pathname.startsWith(href);
           const count = href === "/inbox" ? inboxCount : 0;
           return (
             <li key={href}>

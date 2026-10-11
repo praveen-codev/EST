@@ -37,6 +37,20 @@ interface FieldRowProps {
   className?: string;
 }
 
+/** Bare list of suggestion chips, for places that are not a labelled field row. */
+export function SuggestionChips({ pending, onAccept, onReject, label }: { pending: Suggestion[]; onAccept: (s: Suggestion) => void; onReject: (s: Suggestion) => void; label: string }) {
+  if (!pending.length) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5" role="list" aria-label={label}>
+      <AnimatePresence initial={false}>
+        {pending.map((s) => (
+          <SuggestionChip key={s.id} suggestion={s} onAccept={() => onAccept(s)} onReject={() => onReject(s)} />
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export function FieldRow({ id, label, provenance, pending = [], onAccept, onReject, hint, children, className }: FieldRowProps) {
   return (
     <div id={`field-${id}`} className={cn("grid scroll-mt-24 gap-1.5 py-3 sm:grid-cols-[150px_1fr] sm:gap-4", className)}>

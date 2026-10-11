@@ -4,25 +4,28 @@ import { del, get, set } from "idb-keyval";
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
 import { freshId } from "./ids";
-import type { ID, ScenarioId } from "./types";
+import type { CatalogKind, ID, ScenarioId, UseCase } from "./types";
 import {
   acceptAllForSession,
   confirmCandidate,
   decideSuggestion,
   dismissCandidate,
+  addUseCase,
   initialState,
   mergeDuplicate,
-  moveSessionType,
+  moveCatalogItem,
   openCandidatesFor,
   rerunAI,
   restoreCandidate,
   runSync,
   SCHEMA_VERSION,
+  removeUseCase,
   updateSession,
-  upsertSessionType,
+  updateUseCase,
+  upsertCatalogItem,
+  type CatalogPatch,
   type DataState,
   type SessionPatch,
-  type SessionTypePatch,
   type SyncOutcome,
 } from "./ops";
 import { CHIP_THRESHOLD } from "@/lib/ai";
@@ -54,10 +57,12 @@ export interface Actions {
   acceptAllForSession: (sessionId: ID) => void;
   updateSession: (sessionId: ID, patch: SessionPatch) => void;
   rerunAI: (sessionId: ID) => void;
-  upsertSessionType: (id: ID | null, patch: SessionTypePatch) => void;
-  moveSessionType: (id: ID, delta: -1 | 1) => void;
+  upsertCatalogItem: (kind: CatalogKind, id: ID | null, patch: CatalogPatch) => void;
+  moveCatalogItem: (kind: CatalogKind, id: ID, delta: -1 | 1) => void;
+  addUseCase: (sessionId: ID, draft?: Partial<UseCase>) => void;
+  updateUseCase: (sessionId: ID, useCaseId: ID, patch: Partial<Omit<UseCase, "id">>) => void;
+  removeUseCase: (sessionId: ID, useCaseId: ID) => void;
   createPerson: (name: string, clientId: ID | null) => ID;
-  createTag: (label: string) => ID;
   createClient: (name: string) => ID;
   setScenario: (scenario: ScenarioId) => void;
   resetDemo: () => void;
@@ -68,7 +73,7 @@ export interface Actions {
 export type Store = DataState & UiState & Actions;
 
 const dataKeys: Array<keyof DataState> = [
-  "schemaVersion", "anchorIso", "currentMemberId", "settings", "members", "clients", "teams", "people", "tags", "sessionTypes",
+  "schemaVersion", "anchorIso", "currentMemberId", "settings", "members", "clients", "teams", "people", "catalog",
   "events", "candidates", "suggestions", "sessions", "syncRuns", "cursors",
 ];
 
@@ -115,16 +120,14 @@ export const useStore = create<Store>()(
       updateSession: (sessionId, patch) => setState((s) => updateSession(pickData(s), sessionId, patch, s.currentMemberId)),
       rerunAI: (sessionId) => setState((s) => rerunAI(pickData(s), sessionId)),
 
-      upsertSessionType: (id, patch) => setState((s) => upsertSessionType(pickData(s), id, patch, s.currentMemberId)),
-      moveSessionType: (id, delta) => setState((s) => moveSessionType(pickData(s), id, delta)),
+      upsertCatalogItem: (kind, id, patch) => setState((s) => upsertCatalogItem(pickData(s), kind, id, patch, s.currentMemberId)),
+      moveCatalogItem: (kind, id, delta) => setState((s) => moveCatalogItem(pickData(s), kind, id, delta)),
+      addUseCase: (sessionId, draft) => setState((s) => addUseCase(pickData(s), sessionId, s.currentMemberId, draft)),
+      updateUseCase: (sessionId, useCaseId, patch) => setState((s) => updateUseCase(pickData(s), sessionId, useCaseId, patch, s.currentMemberId)),
+      removeUseCase: (sessionId, useCaseId) => setState((s) => removeUseCase(pickData(s), sessionId, useCaseId, s.currentMemberId)),
       createPerson: (name, clientId) => {
         const id = freshId("per");
         setState((s) => ({ people: [...s.people, { id, name, clientId, email: null, role: null }] }));
-        return id;
-      },
-      createTag: (label) => {
-        const id = freshId("tag");
-        setState((s) => ({ tags: [...s.tags, { id, label, category: "useCase", aliases: [label.toLowerCase()] }] }));
         return id;
       },
       createClient: (name) => {

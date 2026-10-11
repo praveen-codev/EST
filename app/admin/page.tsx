@@ -1,5 +1,5 @@
-import { SessionTypesAdmin } from "@/components/admin/session-types-admin";
+import { CatalogAdmin } from "@/components/admin/catalog-admin";
 
 export default function AdminPage() {
-  return <SessionTypesAdmin />;
+  return <CatalogAdmin />;
 }

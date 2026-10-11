@@ -54,41 +54,37 @@ export interface Person {
   role: ContactRole | null;
 }
 
-export type TagCategory =
-  | "technology"
-  | "migration"
-  | "useCase"
-  | "workflow"
-  | "blocker"
-  | "outcome";
-
-export interface Tag {
-  id: ID;
-  label: string;
-  category: TagCategory;
-  /** Lower-cased alias strings resolved to this canonical tag. */
-  aliases: string[];
-}
-
-/** Id of a row in the admin-managed session-types table (see SessionTypeDef). */
+/** Id of a row in the admin-managed session-formats catalogue. */
 export type SessionType = string;
 
-/**
- * The catalogue of enablement session formats the team actually runs.
- * Only events that match one of these count as candidate sessions.
- */
-export interface SessionTypeDef {
+/** Admin-managed reference tables. Each kind is one table; rows share a shape. */
+export type CatalogKind = "sessionType" | "sessionOutcome" | "technology" | "useCaseType";
+
+export interface CatalogItem {
   id: ID;
+  kind: CatalogKind;
   label: string;
   description: string;
-  /** Lower-cased phrases that identify this format in an invite. */
+  /** Lower-cased phrases that identify this row in an invite (used by the AI engine). */
   keywords: string[];
-  /** Typical length, used as a weak classification signal. */
-  typicalMinutes: number;
+  /** Session formats only: typical length, a weak classification signal. */
+  typicalMinutes: number | null;
   archived: boolean;
   sortOrder: number;
   updatedBy: ID | null;
   updatedAt: ISODateTime | null;
+}
+
+/** A session format row (kind = "sessionType"). Kept as a named alias for readability. */
+export type SessionTypeDef = CatalogItem;
+
+/** One thing the client team worked on during the session. Stored inline on the session. */
+export interface UseCase {
+  id: ID;
+  title: string;
+  description: string;
+  useCaseTypeId: ID | null;
+  technologyIds: ID[];
 }
 
 export type SessionState =
@@ -99,9 +95,6 @@ export type SessionState =
   | "cancelled"
   | "ignored";
 
-export type DevinAsk = "plan" | "supportRequest" | "implementation" | "investigation";
-export type AutomationOutcome = "completed" | "partial" | "blocked" | "notApplicable";
-export type SuccessState = "successful" | "partial" | "unsuccessful" | "unknown";
 
 /* ───────────────────────── Evidence layer ───────────────────────── */
 
@@ -170,8 +163,8 @@ export type SuggestionField =
   | "contacts"
   | "participantIds"
   | "participantsEstimated"
-  | "devinAsk"
-  | "tagIds"
+  | "technologyIds"
+  | "useCases"
   | "summary";
 
 export type SuggestionStatus = "proposed" | "accepted" | "rejected" | "edited" | "superseded";
@@ -243,10 +236,11 @@ export interface Session {
   participantIds: ID[];
   participantsEstimated: number | null;
   sessionType: SessionType | null;
-  successState: SuccessState;
-  automationOutcome: AutomationOutcome | null;
-  devinAsk: DevinAsk | null;
-  tagIds: ID[];
+  /** Session outcome, a row of the "sessionOutcome" catalogue. */
+  outcomeId: ID | null;
+  /** Technologies in play across the session; use cases pick a subset. */
+  technologyIds: ID[];
+  useCases: UseCase[];
   summary: string;
   notes: string;
   sourceEventIds: ID[];
@@ -269,10 +263,9 @@ export type EditableField =
   | "participantIds"
   | "participantsEstimated"
   | "sessionType"
-  | "successState"
-  | "automationOutcome"
-  | "devinAsk"
-  | "tagIds"
+  | "outcomeId"
+  | "technologyIds"
+  | "useCases"
   | "summary"
   | "notes"
   | "state";

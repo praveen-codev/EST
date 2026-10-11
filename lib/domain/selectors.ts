@@ -1,9 +1,10 @@
 import { tierFor } from "@/lib/ai";
 import type { DataState } from "./ops";
-import { FIELD_LABELS, sessionTypeLabel } from "./labels";
+import { catalogLabel, FIELD_LABELS } from "./labels";
 import type {
   CalendarEvent,
   Candidate,
+  CatalogItem,
   Client,
   ID,
   Member,
@@ -13,14 +14,14 @@ import type {
   SessionType,
   Suggestion,
   SuggestionField,
-  Tag,
   Team,
+  UseCase,
 } from "./types";
 
 /** Fields the inbox counts toward "N of M fields prefilled". */
 export const KEY_FIELDS: SuggestionField[] = [
   "title", "clientId", "teamId", "sessionType", "facilitatorId", "contacts",
-  "participantIds", "participantsEstimated", "devinAsk", "tagIds", "summary",
+  "participantIds", "participantsEstimated", "technologyIds", "useCases", "summary",
 ];
 
 export interface CandidateVM {
@@ -35,7 +36,8 @@ export interface CandidateVM {
   team: Team | null;
   sessionType: SessionType | null;
   sessionTypeLabel: string | null;
-  tags: Tag[];
+  technologies: CatalogItem[];
+  useCaseDrafts: Suggestion[];
   facilitator: Member | null;
   coverage: { filled: number; total: number };
   externalAttendees: CalendarEvent["attendees"];
@@ -55,7 +57,7 @@ export function candidateVM(state: DataState, candidate: Candidate, depth = 0): 
   const teamSug = best("teamId");
   const typeSug = best("sessionType");
   const facSug = best("facilitatorId");
-  const tagIds = suggestions.filter((s) => s.field === "tagIds" && tierFor(s.confidence) !== "folded").map((s) => s.value as ID);
+  const techIds = suggestions.filter((s) => s.field === "technologyIds" && tierFor(s.confidence) !== "folded").map((s) => s.value as ID);
   const filledFields = new Set(prefill.map((s) => s.field).filter((f) => KEY_FIELDS.includes(f)));
   const dup = candidate.duplicateOfCandidateId && depth === 0 ? state.candidates.find((c) => c.id === candidate.duplicateOfCandidateId) ?? null : null;
   const internalDomain = "cognition.ai";
@@ -70,8 +72,9 @@ export function candidateVM(state: DataState, candidate: Candidate, depth = 0): 
     clientLabel: client?.name ?? clientSug?.label ?? null,
     team: teamSug ? state.teams.find((t) => t.id === teamSug.value) ?? null : null,
     sessionType: (typeSug?.value as SessionType | undefined) ?? null,
-    sessionTypeLabel: sessionTypeLabel(state.sessionTypes, (typeSug?.value as SessionType | undefined) ?? null),
-    tags: tagIds.map((id) => state.tags.find((t) => t.id === id)!).filter(Boolean),
+    sessionTypeLabel: catalogLabel(state.catalog, (typeSug?.value as SessionType | undefined) ?? null),
+    technologies: techIds.map((id) => state.catalog.find((t) => t.id === id)!).filter(Boolean),
+    useCaseDrafts: suggestions.filter((s) => s.field === "useCases"),
     facilitator: facSug ? state.members.find((m) => m.id === facSug.value) ?? null : null,
     coverage: { filled: filledFields.size, total: KEY_FIELDS.length },
     externalAttendees: event.attendees.filter((a) => !a.email.toLowerCase().endsWith(`@${internalDomain}`)),
@@ -151,18 +154,20 @@ export interface SessionVM {
   coFacilitators: Member[];
   contacts: ContactVM[];
   participants: Person[];
-  tags: Tag[];
+  technologies: CatalogItem[];
   sessionTypeLabel: string | null;
+  outcome: CatalogItem | null;
+  useCases: UseCase[];
   pending: Suggestion[];
   pendingByField: Map<SuggestionField, Suggestion[]>;
   sourceEvents: CalendarEvent[];
-  missing: Array<{ field: SuggestionField | "successState" | "automationOutcome"; label: string }>;
+  missing: Array<{ field: SuggestionField | "outcomeId"; label: string }>;
   completeness: number;
   history: Session[];
 }
 
 const COMPLETENESS_FIELDS: Array<SessionVM["missing"][number]["field"]> = [
-  "clientId", "teamId", "sessionType", "facilitatorId", "contacts", "participantIds", "devinAsk", "tagIds", "summary", "successState", "automationOutcome",
+  "clientId", "teamId", "sessionType", "facilitatorId", "contacts", "participantIds", "useCases", "outcomeId",
 ];
 
 export function sessionVM(state: DataState, session: Session): SessionVM {
@@ -173,15 +178,15 @@ export function sessionVM(state: DataState, session: Session): SessionVM {
     switch (field) {
       case "contacts": return session.contacts.length === 0;
       case "participantIds": return session.participantIds.length === 0 && session.participantsEstimated === null;
-      case "tagIds": return session.tagIds.length === 0;
+      case "useCases": return session.useCases.length === 0;
+      case "technologyIds": return session.technologyIds.length === 0;
       case "summary": return session.summary.trim() === "";
-      case "successState": return session.state === "completed" && session.successState === "unknown";
-      case "automationOutcome": return session.state === "completed" && session.automationOutcome === null;
+      case "outcomeId": return session.outcomeId === null;
       default: return (session as unknown as Record<string, unknown>)[field] == null;
     }
   };
   const missing = COMPLETENESS_FIELDS.filter(isEmpty).map((field) => ({ field, label: FIELD_LABELS[field] ?? field }));
-  const applicable = COMPLETENESS_FIELDS.filter((f) => (f === "successState" || f === "automationOutcome" ? session.state === "completed" : true));
+  const applicable = COMPLETENESS_FIELDS;
   return {
     session,
     client: state.clients.find((c) => c.id === session.clientId) ?? null,
@@ -190,8 +195,10 @@ export function sessionVM(state: DataState, session: Session): SessionVM {
     coFacilitators: session.coFacilitatorIds.map((id) => state.members.find((m) => m.id === id)!).filter(Boolean),
     contacts: session.contacts.map((c) => ({ ...c, person: state.people.find((p) => p.id === c.personId)! })).filter((c) => c.person),
     participants: session.participantIds.map((id) => state.people.find((p) => p.id === id)!).filter(Boolean),
-    tags: session.tagIds.map((id) => state.tags.find((t) => t.id === id)!).filter(Boolean),
-    sessionTypeLabel: sessionTypeLabel(state.sessionTypes, session.sessionType),
+    technologies: session.technologyIds.map((id) => state.catalog.find((t) => t.id === id)!).filter(Boolean),
+    sessionTypeLabel: catalogLabel(state.catalog, session.sessionType),
+    outcome: state.catalog.find((c) => c.id === session.outcomeId) ?? null,
+    useCases: session.useCases,
     pending,
     pendingByField,
     sourceEvents: session.sourceEventIds.map((id) => state.events.find((e) => e.id === id)!).filter(Boolean),

@@ -4,11 +4,14 @@ import {
   confirmCandidate,
   decideSuggestion,
   initialState,
+  addUseCase,
   mergeDuplicate,
-  moveSessionType,
+  moveCatalogItem,
+  removeUseCase,
   runSync,
   updateSession,
-  upsertSessionType,
+  updateUseCase,
+  upsertCatalogItem,
   type DataState,
 } from "@/lib/domain/ops";
 import { clientByName, DEFAULT_MEMBER_ID } from "@/lib/mock/seed";
@@ -69,7 +72,7 @@ describe("confirm + provenance", () => {
     expect(session.clientId).toBe(clientByName("Acme Financial").id);
     expect(session.sessionType).toBe("101");
     expect(session.provenance.clientId).toBe("prefilled");
-    expect(session.tagIds.length).toBeGreaterThan(0);
+    expect(session.technologyIds.length).toBeGreaterThan(0);
     const pending = next.suggestions.filter((s) => s.sessionId === session.id && s.status === "proposed");
     expect(pending.length).toBeGreaterThan(0);
     expect(pending.every((s) => s.confidence < 0.85)).toBe(true);
@@ -97,9 +100,9 @@ describe("confirm + provenance", () => {
     let next = confirmCandidate(state, cand.id, DEFAULT_MEMBER_ID, NOW);
     const session = next.sessions.find((s) => s.sourceEventIds.includes(cand.eventId))!;
     const chips = next.suggestions.filter((s) => s.sessionId === session.id && s.status === "proposed");
-    const tagChip = chips.find((c) => c.field === "tagIds")!;
+    const tagChip = chips.find((c) => c.field === "technologyIds")!;
     next = decideSuggestion(next, tagChip.id, "accept", DEFAULT_MEMBER_ID, NOW);
-    expect(next.sessions.find((s) => s.id === session.id)!.tagIds).toContain(tagChip.value);
+    expect(next.sessions.find((s) => s.id === session.id)!.technologyIds).toContain(tagChip.value);
     expect(next.suggestions.find((s) => s.id === tagChip.id)!.status).toBe("accepted");
     const other = next.suggestions.find((s) => s.sessionId === session.id && s.status === "proposed")!;
     next = decideSuggestion(next, other.id, "reject", DEFAULT_MEMBER_ID, NOW);
@@ -122,18 +125,44 @@ describe("confirm + provenance", () => {
     expect(next.people.filter((p) => p.clientId === created.id).length).toBe(2);
   });
 
-  it("admins can add, edit, reorder and archive session formats", () => {
+  it("admins can add, edit, reorder and archive rows in any catalogue", () => {
     let state = initialState("messy", NOW);
-    state = upsertSessionType(state, null, { label: "Lunch & learn", keywords: ["lunch and learn", "L&L"], typicalMinutes: 60 }, DEFAULT_MEMBER_ID, NOW);
-    const added = state.sessionTypes.find((t) => t.label === "Lunch & learn")!;
+    state = upsertCatalogItem(state, "sessionType", null, { label: "Lunch & learn", keywords: ["lunch and learn", "L&L"], typicalMinutes: 60 }, DEFAULT_MEMBER_ID, NOW);
+    const added = state.catalog.find((t) => t.label === "Lunch & learn")!;
     expect(added.id).toBe("lunchLearn");
+    expect(added.kind).toBe("sessionType");
     expect(added.keywords).toEqual(["lunch & learn", "lunch and learn", "l&l"]);
-    state = upsertSessionType(state, added.id, { label: "Lunch and learn", archived: true }, DEFAULT_MEMBER_ID, NOW);
-    expect(state.sessionTypes.find((t) => t.id === added.id)!.archived).toBe(true);
-    const before = [...state.sessionTypes].sort((a, b) => a.sortOrder - b.sortOrder).map((t) => t.id);
-    state = moveSessionType(state, "ama", -1);
-    const after = [...state.sessionTypes].sort((a, b) => a.sortOrder - b.sortOrder).map((t) => t.id);
-    expect(after.indexOf("ama")).toBe(before.indexOf("ama") - 1);
+    state = upsertCatalogItem(state, "sessionType", added.id, { label: "Lunch and learn", archived: true }, DEFAULT_MEMBER_ID, NOW);
+    expect(state.catalog.find((t) => t.id === added.id)!.archived).toBe(true);
+    const types = () => state.catalog.filter((t) => t.kind === "sessionType").sort((a, b) => a.sortOrder - b.sortOrder).map((t) => t.id);
+    const before = types();
+    state = moveCatalogItem(state, "sessionType", "ama", -1);
+    expect(types().indexOf("ama")).toBe(before.indexOf("ama") - 1);
+    state = upsertCatalogItem(state, "technology", null, { label: "Ab Initio GDE", keywords: ["gde"] }, DEFAULT_MEMBER_ID, NOW);
+    expect(state.catalog.find((t) => t.label === "Ab Initio GDE")!.typicalMinutes).toBeNull();
+    state = upsertCatalogItem(state, "sessionOutcome", null, { label: "Demo recorded" }, DEFAULT_MEMBER_ID, NOW);
+    expect(state.catalog.filter((t) => t.kind === "sessionOutcome").map((t) => t.label)).toContain("Demo recorded");
+  });
+
+  it("use cases: add, edit (technologies roll up to the session), remove, and accepting an AI draft", () => {
+    const { state } = runSync(initialState("messy", NOW), NOW);
+    const { cand } = find(state, "evt-mb-101-today");
+    let next = confirmCandidate(state, cand.id, DEFAULT_MEMBER_ID, NOW);
+    const sessionId = next.sessions.find((s) => s.sourceEventIds.includes(cand.eventId))!.id;
+    const draft = next.suggestions.find((s) => s.sessionId === sessionId && s.field === "useCases" && s.status === "proposed")!;
+    next = decideSuggestion(next, draft.id, "accept", DEFAULT_MEMBER_ID, NOW);
+    expect(next.sessions.find((s) => s.id === sessionId)!.useCases).toHaveLength(1);
+    next = addUseCase(next, sessionId, DEFAULT_MEMBER_ID, { title: "Fleet KPI pack" }, NOW);
+    const added = next.sessions.find((s) => s.id === sessionId)!.useCases[1]!;
+    next = updateUseCase(next, sessionId, added.id, { useCaseTypeId: "excelToDashboard", technologyIds: ["excel", "powerBi"] }, DEFAULT_MEMBER_ID, NOW);
+    const session = next.sessions.find((s) => s.id === sessionId)!;
+    expect(session.useCases[1]!.useCaseTypeId).toBe("excelToDashboard");
+    expect(session.technologyIds).toEqual(expect.arrayContaining(["excel", "powerBi"]));
+    expect(session.provenance.useCases).toBe("manual");
+    next = removeUseCase(next, sessionId, added.id, DEFAULT_MEMBER_ID, NOW);
+    expect(next.sessions.find((s) => s.id === sessionId)!.useCases).toHaveLength(1);
+    next = updateSession(next, sessionId, { outcomeId: "prRaised" }, DEFAULT_MEMBER_ID, NOW);
+    expect(next.sessions.find((s) => s.id === sessionId)!.outcomeId).toBe("prRaised");
   });
 
   it("merging a duplicate attaches its event to the original session", () => {

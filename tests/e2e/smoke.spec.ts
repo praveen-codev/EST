@@ -53,7 +53,6 @@ test("capture workflow: sync → one-click confirm → timeline → re-sync with
   await expect(page.getByText(/Synced \d+ events/)).toBeVisible({ timeout: 10_000 });
   await page.goto(sessionUrl);
   await expect(page.getByRole("textbox", { name: "Session title" })).toHaveValue("Acme office hours — my title");
-  await page.getByRole("button", { name: /Advanced/ }).click();
   await expect(page.getByText(/Raj Patel/).first()).toBeVisible(); // refreshed evidence shows in the side panel
 
   // Re-syncing identical data creates no new sessions or candidates.
@@ -90,7 +89,7 @@ test("only the team's formats count; admins manage the catalogue, members read i
   // Members see the catalogue read-only.
   await page.goto("/admin");
   await expect(page.getByText(/Read-only/)).toBeVisible();
-  await expect(page.getByRole("textbox", { name: "Format label", exact: true }).first()).toBeDisabled();
+  await expect(page.getByRole("textbox", { name: "format label", exact: true }).first()).toBeDisabled();
 
   // The admin can add a format.
   await page.getByRole("button", { name: /Switch persona/ }).click();
@@ -99,7 +98,41 @@ test("only the team's formats count; admins manage the catalogue, members read i
   await page.getByRole("textbox", { name: "New format label" }).fill("Lunch & learn");
   await page.getByRole("textbox", { name: "New format keywords" }).fill("lunch and learn");
   await page.getByRole("button", { name: "Add", exact: true }).click();
-  await expect(page.getByRole("textbox", { name: "Format label", exact: true }).last()).toHaveValue("Lunch & learn");
+  await expect(page.getByRole("textbox", { name: "format label", exact: true }).last()).toHaveValue("Lunch & learn");
   await page.getByRole("button", { name: "Archive format" }).last().click();
   await expect(page.getByText(/1 archived/)).toBeVisible();
+});
+
+test("home shows only today's sessions; the CTA opens a prefilled feedback form with use cases and outcome", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: /Enter feedback/ }).first()).toBeVisible({ timeout: 20_000 });
+  // Only today's two Mercedes sessions, nothing else.
+  await expect(page.getByText(/2 sessions today/)).toBeVisible();
+  await expect(page.getByText("Mercedes-Benz Data Engineering — Devin 101 session (Ab Initio squad)")).toBeVisible();
+  await expect(page.getByText("Vantage Claims — Sprint in a day")).toHaveCount(0);
+
+  await page.getByRole("button", { name: /Enter feedback/ }).first().click();
+  await expect(page).toHaveURL(/\/sessions\//);
+  // Prefilled from the invite + teammates' history.
+  await expect(page.locator("#field-clientId").getByText("Mercedes-Benz Tech")).toBeVisible();
+  await expect(page.getByRole("radio", { name: "101 session" })).toHaveAttribute("data-state", "on");
+  await expect(page.getByRole("spinbutton", { name: "Number of participants" })).toHaveValue("12");
+  await expect(page.locator("#field-contacts").getByText("Katrin Vogel", { exact: true })).toBeVisible();
+
+  // Accept the AI-drafted use case (type + technologies come with it), add a manual one, pick an outcome.
+  await page.getByRole("button", { name: /^Accept .*Ab Initio/ }).first().click();
+  await expect(page.getByRole("textbox", { name: "Use case 1 title" })).toHaveValue(/Ab Initio/);
+  await expect(page.getByRole("combobox", { name: "Use case 1 type" })).toContainText("ETL tool migration");
+  await page.getByRole("button", { name: "Add use case" }).click();
+  const title2 = page.getByRole("textbox", { name: "Use case 2 title" });
+  await expect(title2).toBeFocused();
+  await title2.fill("Fleet KPI pack to Power BI");
+  await page.getByRole("combobox", { name: "Use case 2 type" }).click();
+  await page.getByRole("option", { name: "Excel to dashboard" }).click();
+  await page.getByRole("radio", { name: "PR raised" }).click();
+  await expect(page.getByText("All changes saved")).toBeVisible();
+
+  await page.goto("/");
+  await expect(page.getByText("Feedback complete")).toBeVisible();
+  await expect(page.getByText(/1 with feedback in/)).toBeVisible();
 });

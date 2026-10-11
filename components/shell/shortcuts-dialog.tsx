@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
 
 const GROUPS: Array<[string, Array<[string[], string]>]> = [
-  ["Everywhere", [[["⌘", "K"], "Search or jump to anything"], [["G", "I"], "Inbox"], [["G", "T"], "Timeline"], [["G", "C"], "Calendar"], [["G", "A"], "Admin"], [["?"], "This help"]]],
+  ["Everywhere", [[["⌘", "K"], "Search or jump to anything"], [["G", "H"], "Today"], [["G", "I"], "Inbox"], [["G", "T"], "Timeline"], [["G", "C"], "Calendar"], [["G", "A"], "Admin"], [["?"], "This help"]]],
   ["Inbox", [[["J"], "Next card"], [["K"], "Previous card"], [["Enter"], "Confirm highlighted card"], [["X"], "Dismiss highlighted card"], [["E"], "Open and edit before confirming"], [["⇧", "Enter"], "Confirm all likely"]]],
   ["Session", [[["Tab"], "Move between suggestions"], [["Enter"], "Accept focused suggestion"], [["Backspace"], "Reject focused suggestion"], [["⌘", "⇧", "A"], "Accept all remaining"]]],
 ];

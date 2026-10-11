@@ -33,8 +33,12 @@ pnpm e2e        # needs `pnpm exec playwright install chromium` once; starts its
   Wrap anything using `useParams`/`useSearchParams` in `<Suspense>` (Next 16 prerender validation).
 - Seed data lives in `lib/mock/seed.ts` and `lib/mock/calendar.ts`; fixtures are relative to Monday of the
   current week. Bump `SCHEMA_VERSION` in `ops.ts` when the persisted shape changes so stale IndexedDB data resets.
-- Session formats are data (`state.sessionTypes`, seeded from `SESSION_TYPES` in `lib/mock/seed.ts`), never a TS union.
-  The classifier caps any event without a format match at `NO_TYPE_CAP` (review bucket); extraction never guesses a type.
+- Reference data lives in one `state.catalog` array of `CatalogItem { kind, … }` (kinds: sessionType, sessionOutcome,
+  technology, useCaseType), seeded from `CATALOG` in `lib/mock/seed.ts` and edited via `upsertCatalogItem`/`moveCatalogItem`.
+  Never hard-code these lists in UI; use `catalogOf(state.catalog, kind)`. The classifier caps any event without a format
+  match at `NO_TYPE_CAP` (review bucket); extraction never guesses a type.
+- Use cases are inline on the session (`session.useCases: UseCase[]`); their technologies roll up into
+  `session.technologyIds` via `updateUseCase`. The home page is `/` (Today); `/inbox` is secondary.
 - Palette: no purple. Tokens (`--ai`, `--success`, `--warning`, `--surface`, shadcn base) are defined once in
   `app/globals.css`; entity colours come from `hueStyle()` in `components/common/marks.tsx` using `light-dark()`.
 - Do not reintroduce `setState` directly inside effects — the Next ESLint config flags it; derive instead.

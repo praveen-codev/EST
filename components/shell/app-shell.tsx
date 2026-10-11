@@ -24,6 +24,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useShortcuts(
     {
       "mod+k": () => setPaletteOpen((o) => !o),
+      "g h": () => router.push("/"),
       "g i": () => router.push("/inbox"),
       "g t": () => router.push("/timeline"),
       "g c": () => router.push("/calendar"),

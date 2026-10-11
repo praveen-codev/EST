@@ -34,7 +34,8 @@ export function CandidateCard({ vm, highlighted, showReasoning, variant, onConfi
   const clientSug = best("clientId");
   const teamSug = best("teamId");
   const typeSug = best("sessionType");
-  const tagSugs = vm.suggestions.filter((s) => s.field === "tagIds").sort((a, b) => b.confidence - a.confidence).slice(0, 4);
+  const tagSugs = vm.suggestions.filter((s) => s.field === "technologyIds").sort((a, b) => b.confidence - a.confidence).slice(0, 4);
+  const ucDraft = best("useCases");
   const muted = variant === "unlikely" || variant === "dismissed";
   const attendeeNames = vm.externalAttendees.map((a) => a.name ?? a.email);
 
@@ -99,6 +100,7 @@ export function CandidateCard({ vm, highlighted, showReasoning, variant, onConfi
               {tagSugs.map((t) => (
                 <ProposalChip key={t.id} suggestion={t} />
               ))}
+              {ucDraft && <ProposalChip suggestion={ucDraft} prefix="Use case" />}
               {vm.suggestions.length > 4 + [clientSug, teamSug, typeSug].filter(Boolean).length && (
                 <span className="text-[11px] text-muted-foreground">+{vm.suggestions.length - tagSugs.length - [clientSug, teamSug, typeSug].filter(Boolean).length} more</span>
               )}

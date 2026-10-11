@@ -1,15 +1,16 @@
 import { addDays, addMinutes, setHours, setMinutes, startOfWeek } from "date-fns";
 import { stableId } from "@/lib/domain/ids";
 import type {
+  CatalogItem,
+  CatalogKind,
   Client,
   ContactRole,
   Member,
   Person,
   Session,
   SessionType,
-  SessionTypeDef,
-  Tag,
   Team,
+  UseCase,
 } from "@/lib/domain/types";
 
 export const ORG_DOMAIN = "cognition.ai";
@@ -82,6 +83,16 @@ const clientSpecs: Array<[string, string[], string, number, Array<[string, strin
     190,
     [["Claims Modernization", ["claims", "modernization", "modernisation"]]],
   ],
+  [
+    "Mercedes-Benz Tech",
+    ["mercedes-benz.com", "mbtech.io"],
+    "Automotive",
+    95,
+    [
+      ["Data Engineering", ["data engineering", "data eng", "ab initio", "etl"]],
+      ["Connected Car", ["connected car", "telematics"]],
+    ],
+  ],
 ];
 
 export const CLIENTS: Client[] = clientSpecs.map(([name, domains, industry, hue]) => ({
@@ -137,6 +148,12 @@ const peopleSpecs: Array<[string, string, string, ContactRole | null]> = [
   ["Vantage Insurance", "Nadia Rahman", "nadia.rahman@vantage-ins.com", "executiveSponsor"],
   ["Vantage Insurance", "Felix Brandt", "felix.brandt@vantage-ins.com", "architect"],
   ["Vantage Insurance", "Zoe Martin", "zoe.martin@vantage-ins.com", "projectManager"],
+  // Mercedes-Benz Tech
+  ["Mercedes-Benz Tech", "Katrin Vogel", "katrin.vogel@mercedes-benz.com", "productOwner"],
+  ["Mercedes-Benz Tech", "Jonas Keller", "jonas.keller@mercedes-benz.com", "architect"],
+  ["Mercedes-Benz Tech", "Anika Schulz", "anika.schulz@mercedes-benz.com", "engineeringManager"],
+  ["Mercedes-Benz Tech", "Ravi Menon", "ravi.menon@mercedes-benz.com", "engineer"],
+  ["Mercedes-Benz Tech", "Lukas Brandt", "lukas.brandt@mercedes-benz.com", "engineer"],
 ];
 
 export const PEOPLE: Person[] = peopleSpecs.map(([clientName, name, email, role]) => ({
@@ -150,83 +167,91 @@ export const PEOPLE: Person[] = peopleSpecs.map(([clientName, name, email, role]
 export const personByEmail = (email: string) =>
   PEOPLE.find((p) => p.email?.toLowerCase() === email.toLowerCase()) ?? null;
 
-/* ───────────────────────── Taxonomy ───────────────────────── */
+/* ───────────────────────── Catalogues (admin-managed tables) ───────────────────────── */
 
-const tagSpecs: Array<[string, Tag["category"], string[]]> = [
-  ["Java", "technology", ["java"]],
-  ["Spring Boot", "technology", ["springboot", "spring", "spring-boot"]],
-  ["Kotlin", "technology", ["kotlin"]],
-  ["Python", "technology", ["python", "py"]],
-  ["TypeScript", "technology", ["typescript", "ts"]],
-  ["React", "technology", ["react", "reactjs", "react.js"]],
-  ["Angular", "technology", ["angular", "angularjs"]],
-  ["Node.js", "technology", ["node", "nodejs", "node.js"]],
-  [".NET", "technology", [".net", "dotnet", "c#", "csharp"]],
-  ["Go", "technology", ["golang"]],
-  ["Kubernetes", "technology", ["k8s", "kubernetes"]],
-  ["Terraform", "technology", ["terraform", "tf"]],
-  ["AWS", "technology", ["aws", "amazon web services"]],
-  ["GCP", "technology", ["gcp", "google cloud"]],
-  ["Azure", "technology", ["azure"]],
-  ["PostgreSQL", "technology", ["postgres", "postgresql"]],
-  ["Oracle DB", "technology", ["oracle", "oracle db", "pl/sql", "plsql"]],
-  ["Kafka", "technology", ["kafka"]],
-  ["GitHub", "workflow", ["github", "gh"]],
-  ["GitLab", "workflow", ["gitlab"]],
-  ["Bitbucket", "workflow", ["bitbucket"]],
-  ["Jenkins", "workflow", ["jenkins"]],
-  ["Jira", "workflow", ["jira"]],
-  ["Java 8 → 21 upgrade", "migration", ["java upgrade", "jdk upgrade", "java 8", "java 17", "java 21"]],
-  ["Spring Boot 2 → 3", "migration", ["spring boot 3", "boot 3", "spring upgrade"]],
-  ["AngularJS → Angular", "migration", ["angularjs migration", "angular upgrade"]],
-  ["Monolith → microservices", "migration", ["microservices", "monolith", "decomposition"]],
-  ["COBOL modernization", "migration", ["cobol", "mainframe"]],
-  ["Unit test generation", "useCase", ["unit tests", "test generation", "test coverage", "tests"]],
-  ["Code review automation", "useCase", ["code review", "pr review"]],
-  ["Bug triage", "useCase", ["bug triage", "triage", "bugs"]],
-  ["Documentation generation", "useCase", ["docs", "documentation", "readme"]],
-  ["Dependency upgrades", "useCase", ["dependency upgrade", "dependabot", "cve", "vulnerabilities"]],
-  ["Feature implementation", "useCase", ["feature", "implementation"]],
-  ["Codebase Q&A", "useCase", ["q&a", "onboarding questions", "deepwiki"]],
-  ["Devin Playbooks", "workflow", ["playbook", "playbooks"]],
-  ["Devin Review", "workflow", ["devin review"]],
-  ["Slack integration", "workflow", ["slack"]],
-  ["Air-gapped / VDI", "blocker", ["air-gapped", "airgapped", "vdi", "no wifi"]],
-  ["SSO / access pending", "blocker", ["sso", "access pending", "okta"]],
-  ["Pilot approved", "outcome", ["pilot", "pilot approved"]],
-  ["Expansion opportunity", "outcome", ["expansion", "upsell"]],
+type CatalogSpec = [string, string, string[], number | null, string?];
+
+const SESSION_TYPE_SPECS: CatalogSpec[] = [
+  ["101", "101 session", ["101", "101 session", "devin 101", "intro session"], 90, "First hands-on introduction to Devin for a new team."],
+  ["pairProgramming", "Pair programming", ["pair programming", "pair-programming", "pairing session", "pairing"], 60, "One engineer, one Devin, one real ticket, side by side."],
+  ["201", "201 session", ["201", "201 session", "devin 201", "advanced session"], 90, "Advanced follow-on: playbooks, review, integrations."],
+  ["ama", "Ask me anything", ["ask me anything", "ama"], 45, "Open Q&A with a team already using Devin."],
+  ["sprintInADay", "Sprint in a day", ["sprint in a day", "sprint-in-a-day", "sprint day"], 360, "A full day shipping a backlog slice with Devin."],
 ];
 
-export const TAGS: Tag[] = tagSpecs.map(([label, category, aliases]) => ({
-  id: stableId("tag", label),
-  label,
-  category,
-  aliases: [label.toLowerCase(), ...aliases.map((a) => a.toLowerCase())],
-}));
-
-export const tagByLabel = (label: string) => TAGS.find((t) => t.label === label)!;
-
-/* ───────────────────────── Session types (admin-managed table) ───────────────────────── */
-
-const sessionTypeSpecs: Array<[string, string, string, string[], number]> = [
-  ["101", "101 session", "First hands-on introduction to Devin for a new team.", ["101", "101 session", "devin 101", "intro session"], 90],
-  ["pairProgramming", "Pair programming", "One engineer, one Devin, one real ticket, side by side.", ["pair programming", "pair-programming", "pairing session", "pairing"], 60],
-  ["201", "201 session", "Advanced follow-on: playbooks, review, integrations.", ["201", "201 session", "devin 201", "advanced session"], 90],
-  ["ama", "Ask me anything", "Open Q&A with a team already using Devin.", ["ask me anything", "ama"], 45],
-  ["sprintInADay", "Sprint in a day", "A full day shipping a backlog slice with Devin.", ["sprint in a day", "sprint-in-a-day", "sprint day"], 360],
+const SESSION_OUTCOME_SPECS: CatalogSpec[] = [
+  ["analysisDone", "Analysis done", [], null, "Devin analysed the codebase or problem; no code change yet."],
+  ["devinSession", "Devin session", [], null, "The team ran Devin on real work during the session."],
+  ["prRaised", "PR raised", [], null, "At least one pull request came out of the session."],
+  ["playbookCreated", "Playbook / automation created", [], null, "A reusable playbook or automation now exists."],
 ];
 
-export const SESSION_TYPES: SessionTypeDef[] = sessionTypeSpecs.map(([id, label, description, keywords, typicalMinutes], i) => ({
-  id,
-  label,
-  description,
-  keywords: keywords.map((k) => k.toLowerCase()),
-  typicalMinutes,
-  archived: false,
-  sortOrder: i,
-  updatedBy: null,
-  updatedAt: null,
-}));
+const TECHNOLOGY_SPECS: CatalogSpec[] = [
+  ["java", "Java", ["java", "jdk", "java 8", "java 17", "java 21"], null],
+  ["springBoot", "Spring Boot", ["spring boot", "springboot", "spring"], null],
+  ["kotlin", "Kotlin", ["kotlin"], null],
+  ["python", "Python", ["python", "py"], null],
+  ["typescript", "TypeScript", ["typescript", "ts"], null],
+  ["react", "React", ["react", "reactjs"], null],
+  ["angular", "Angular", ["angular", "angularjs"], null],
+  ["nodejs", "Node.js", ["node", "nodejs", "node.js"], null],
+  ["dotnet", ".NET", [".net", "dotnet", "c#", "csharp"], null],
+  ["go", "Go", ["golang"], null],
+  ["cobol", "COBOL", ["cobol", "mainframe"], null],
+  ["abInitio", "Ab Initio", ["ab initio", "abinitio"], null],
+  ["informatica", "Informatica", ["informatica", "powercenter"], null],
+  ["excel", "Excel", ["excel", "spreadsheet", "xlsx", "vba"], null],
+  ["powerBi", "Power BI", ["power bi", "powerbi"], null],
+  ["tableau", "Tableau", ["tableau"], null],
+  ["sql", "SQL", ["sql", "stored procedures", "pl/sql", "plsql", "t-sql"], null],
+  ["oracle", "Oracle DB", ["oracle"], null],
+  ["postgres", "PostgreSQL", ["postgres", "postgresql"], null],
+  ["snowflake", "Snowflake", ["snowflake"], null],
+  ["databricks", "Databricks", ["databricks", "spark", "pyspark"], null],
+  ["kafka", "Kafka", ["kafka"], null],
+  ["kubernetes", "Kubernetes", ["k8s", "kubernetes"], null],
+  ["terraform", "Terraform", ["terraform"], null],
+  ["aws", "AWS", ["aws", "amazon web services"], null],
+  ["gcp", "GCP", ["gcp", "google cloud"], null],
+  ["azure", "Azure", ["azure"], null],
+  ["jenkins", "Jenkins", ["jenkins"], null],
+  ["githubActions", "GitHub Actions", ["github actions", "gh actions"], null],
+  ["gitlabCi", "GitLab CI", ["gitlab ci", "gitlab"], null],
+  ["jira", "Jira", ["jira"], null],
+];
+
+const USE_CASE_TYPE_SPECS: CatalogSpec[] = [
+  ["excelToDashboard", "Excel to dashboard", ["excel to dashboard", "dashboard", "spreadsheet to", "power bi", "tableau", "reporting"], null],
+  ["etlMigration", "ETL tool migration", ["etl", "ab initio", "informatica", "datastage", "pipeline migration", "ingestion pipelines"], null],
+  ["languageMigration", "Language migrations", ["language migration", "java 21", "jdk upgrade", "cobol", "angularjs", "python 3", "upgrade", "migration"], null],
+  ["platformMigration", "Platform migrations", ["platform migration", "cloud migration", "to aws", "to gcp", "to azure", "kubernetes", "microservices", "decomposition"], null],
+  ["devops", "Devops work", ["devops", "ci/cd", "pipeline credentials", "jenkins", "github actions", "terraform", "deployment"], null],
+];
+
+function catalogRows(kind: CatalogKind, specs: CatalogSpec[]): CatalogItem[] {
+  return specs.map(([id, label, keywords, typicalMinutes, description], i) => ({
+    id,
+    kind,
+    label,
+    description: description ?? "",
+    keywords: [...new Set([label.toLowerCase(), ...keywords.map((k) => k.toLowerCase())])],
+    typicalMinutes,
+    archived: false,
+    sortOrder: i,
+    updatedBy: null,
+    updatedAt: null,
+  }));
+}
+
+export const CATALOG: CatalogItem[] = [
+  ...catalogRows("sessionType", SESSION_TYPE_SPECS),
+  ...catalogRows("sessionOutcome", SESSION_OUTCOME_SPECS),
+  ...catalogRows("technology", TECHNOLOGY_SPECS),
+  ...catalogRows("useCaseType", USE_CASE_TYPE_SPECS),
+];
+
+export const SESSION_TYPES = CATALOG.filter((c) => c.kind === "sessionType");
+export const techByLabel = (label: string) => CATALOG.find((c) => c.kind === "technology" && c.label === label)!;
 
 /* ───────────────────────── Time anchor ───────────────────────── */
 
@@ -253,10 +278,9 @@ interface HistorySpec {
   contacts: Array<[string, ContactRole]>; // person email, role
   participants: string[]; // person emails
   estimated: number | null;
-  tags: string[];
-  ask: Session["devinAsk"];
-  outcome: Session["automationOutcome"];
-  success: Session["successState"];
+  tech: string[]; // technology labels
+  outcome: string; // sessionOutcome id
+  useCases: Array<[string, string, string[]]>; // title, useCaseType id, technology labels
   summary: string;
 }
 
@@ -266,7 +290,7 @@ const H: HistorySpec[] = [
     type: "101", title: "Acme Platform — Devin 101 session",
     contacts: [["jane.doe@acmefinancial.com", "productOwner"], ["raj.patel@acmefinancial.com", "architect"], ["tom.becker@acmefinancial.com", "projectManager"]],
     participants: ["lena.fischer@acmefinancial.com", "omar.haddad@acmefinancial.com"], estimated: 12,
-    tags: ["Java", "Spring Boot", "Jenkins", "Java 8 → 21 upgrade", "Codebase Q&A"], ask: "plan", outcome: "notApplicable", success: "successful",
+    tech: ["Java", "Spring Boot", "Jenkins"], outcome: "analysisDone", useCases: [["JDK 8 → 21 upgrade across 14 Spring Boot services", "languageMigration", ["Java", "Spring Boot"]]],
     summary: "Kickoff with the Acme platform team. Agreed to pilot Devin on the JDK upgrade across 14 Spring Boot services.",
   },
   {
@@ -274,7 +298,7 @@ const H: HistorySpec[] = [
     type: "sprintInADay", title: "Acme Platform — Sprint in a day",
     contacts: [["jane.doe@acmefinancial.com", "productOwner"], ["raj.patel@acmefinancial.com", "architect"]],
     participants: ["lena.fischer@acmefinancial.com", "omar.haddad@acmefinancial.com", "yuki.tanaka@acmefinancial.com"], estimated: 10,
-    tags: ["Java", "Spring Boot", "Jenkins", "Java 8 → 21 upgrade", "Unit test generation"], ask: "implementation", outcome: "partial", success: "partial",
+    tech: ["Java", "Spring Boot", "Jenkins"], outcome: "prRaised", useCases: [["Upgrade payments-ledger and fx-rates services to Java 21", "languageMigration", ["Java", "Spring Boot"]], ["Jenkins pipeline credentials for Devin", "devops", ["Jenkins"]]],
     summary: "Upgraded two services live. Jenkins pipeline credentials blocked the third; follow-up scheduled.",
   },
   {
@@ -282,7 +306,7 @@ const H: HistorySpec[] = [
     type: "201", title: "Acme Platform — 201 session: playbooks",
     contacts: [["jane.doe@acmefinancial.com", "productOwner"], ["raj.patel@acmefinancial.com", "architect"]],
     participants: ["lena.fischer@acmefinancial.com", "omar.haddad@acmefinancial.com", "yuki.tanaka@acmefinancial.com"], estimated: 10,
-    tags: ["Java", "Spring Boot", "Java 8 → 21 upgrade", "Unit test generation", "Devin Playbooks"], ask: "implementation", outcome: "completed", success: "successful",
+    tech: ["Java", "Spring Boot"], outcome: "playbookCreated", useCases: [["Shared playbook for the remaining service upgrades", "languageMigration", ["Java", "Spring Boot"]]],
     summary: "Finished the remaining services with a shared playbook. Team now self-serving.",
   },
   {
@@ -290,7 +314,7 @@ const H: HistorySpec[] = [
     type: "101", title: "Acme Payments — Devin 101 session",
     contacts: [["chris.lowe@acmefinancial.com", "engineeringManager"], ["raj.patel@acmefinancial.com", "architect"]],
     participants: ["yuki.tanaka@acmefinancial.com"], estimated: 8,
-    tags: ["Kotlin", "Kafka", "Code review automation", "GitHub"], ask: "plan", outcome: "notApplicable", success: "successful",
+    tech: ["Kotlin", "Kafka", "GitHub Actions"], outcome: "analysisDone", useCases: [["Devin Review on Kafka consumer PRs", "devops", ["Kotlin", "Kafka", "GitHub Actions"]]],
     summary: "Payments team wants Devin Review on all Kafka consumer PRs first.",
   },
   {
@@ -298,7 +322,7 @@ const H: HistorySpec[] = [
     type: "ama", title: "Acme Payments — Ask me anything",
     contacts: [["chris.lowe@acmefinancial.com", "engineeringManager"]],
     participants: ["yuki.tanaka@acmefinancial.com"], estimated: 5,
-    tags: ["Kotlin", "Code review automation", "Devin Review"], ask: "supportRequest", outcome: "completed", success: "successful",
+    tech: ["Kotlin"], outcome: "devinSession", useCases: [["Tune Devin Review rules for consumer repos", "devops", ["Kotlin"]]],
     summary: "Tuned Devin Review rules; three PRs reviewed live.",
   },
   {
@@ -306,7 +330,7 @@ const H: HistorySpec[] = [
     type: "101", title: "Northwind WMS — Devin 101 session",
     contacts: [["maya.okafor@northwind.io", "productOwner"], ["ben.carter@northwind.io", "architect"]],
     participants: ["ingrid.solberg@northwind.io", "diego.ruiz@northwind.io"], estimated: 15,
-    tags: [".NET", "Azure", "GitLab", "Monolith → microservices", "Documentation generation"], ask: "investigation", outcome: "notApplicable", success: "successful",
+    tech: [".NET", "Azure", "GitLab CI"], outcome: "analysisDone", useCases: [["Architecture documentation of the WMS monolith", "platformMigration", [".NET"]]],
     summary: "Northwind wants to decompose the WMS monolith; first ask is architecture documentation.",
   },
   {
@@ -314,7 +338,7 @@ const H: HistorySpec[] = [
     type: "pairProgramming", title: "Northwind WMS — Pair programming: documentation",
     contacts: [["maya.okafor@northwind.io", "productOwner"], ["ben.carter@northwind.io", "architect"]],
     participants: ["ingrid.solberg@northwind.io", "diego.ruiz@northwind.io"], estimated: 12,
-    tags: [".NET", "GitLab", "Documentation generation", "Codebase Q&A"], ask: "implementation", outcome: "completed", success: "successful",
+    tech: [".NET", "GitLab CI"], outcome: "prRaised", useCases: [["Module docs for 6 bounded contexts", "platformMigration", [".NET"]], ["GitLab CI changes for the extracted services", "devops", ["GitLab CI"]]],
     summary: "Generated module docs for 6 bounded contexts; team adopted DeepWiki for onboarding.",
   },
   {
@@ -322,7 +346,7 @@ const H: HistorySpec[] = [
     type: "101", title: "Helios Grid — Devin 101 session",
     contacts: [["sam.whitaker@helios-energy.com", "projectManager"], ["aisha.bello@helios-energy.com", "architect"]],
     participants: ["noah.kim@helios-energy.com"], estimated: 9,
-    tags: ["Python", "Go", "Kubernetes", "Terraform", "Unit test generation", "Air-gapped / VDI"], ask: "plan", outcome: "notApplicable", success: "partial",
+    tech: ["Python", "Go", "Kubernetes", "Terraform"], outcome: "analysisDone", useCases: [["Restricted-network rollout plan for grid services", "platformMigration", ["Kubernetes", "Terraform"]]],
     summary: "VDI-only environment; agreed on a restricted-network rollout plan before hands-on.",
   },
   {
@@ -330,7 +354,7 @@ const H: HistorySpec[] = [
     type: "101", title: "Meridian Clinical — Devin 101 session",
     contacts: [["grace.liu@meridianhealth.org", "productOwner"], ["victor.mensah@meridianhealth.org", "engineeringManager"]],
     participants: ["hannah.weiss@meridianhealth.org", "luis.ortega@meridianhealth.org"], estimated: 14,
-    tags: ["Angular", "TypeScript", "Node.js", "AngularJS → Angular", "Bitbucket"], ask: "plan", outcome: "notApplicable", success: "successful",
+    tech: ["Angular", "TypeScript", "Node.js"], outcome: "analysisDone", useCases: [["AngularJS → Angular migration of the scheduling app", "languageMigration", ["Angular", "TypeScript"]]],
     summary: "Clinical Apps team targets the AngularJS → Angular migration of the scheduling app.",
   },
   {
@@ -338,7 +362,7 @@ const H: HistorySpec[] = [
     type: "pairProgramming", title: "Meridian Clinical — Pair programming: Angular migration",
     contacts: [["grace.liu@meridianhealth.org", "productOwner"]],
     participants: ["hannah.weiss@meridianhealth.org", "luis.ortega@meridianhealth.org"], estimated: 11,
-    tags: ["Angular", "TypeScript", "AngularJS → Angular", "Unit test generation", "Bitbucket"], ask: "implementation", outcome: "partial", success: "partial",
+    tech: ["Angular", "TypeScript"], outcome: "prRaised", useCases: [["Migrate 4 scheduling components to Angular", "languageMigration", ["Angular", "TypeScript"]]],
     summary: "Migrated 4 of 9 components; SSO for Bitbucket blocked the rest for half the room.",
   },
   {
@@ -346,7 +370,7 @@ const H: HistorySpec[] = [
     type: "101", title: "Meridian Data Platform — Devin 101 session",
     contacts: [["victor.mensah@meridianhealth.org", "engineeringManager"]],
     participants: ["luis.ortega@meridianhealth.org"], estimated: 7,
-    tags: ["Python", "PostgreSQL", "GCP", "Bug triage", "Jira"], ask: "investigation", outcome: "notApplicable", success: "successful",
+    tech: ["Python", "PostgreSQL", "GCP", "Jira"], outcome: "analysisDone", useCases: [["Jira bug triage for the ingestion pipelines", "etlMigration", ["Python", "PostgreSQL", "Jira"]]],
     summary: "Data platform wants Devin on Jira bug triage for the ingestion pipelines.",
   },
   {
@@ -354,7 +378,7 @@ const H: HistorySpec[] = [
     type: "101", title: "Orbital Storefront — Devin 101 session",
     contacts: [["pavel.novak@orbitalretail.com", "productOwner"]],
     participants: ["emma.clarke@orbitalretail.com"], estimated: 10,
-    tags: ["React", "TypeScript", "Node.js", "GitHub", "Feature implementation", "Slack integration"], ask: "implementation", outcome: "notApplicable", success: "successful",
+    tech: ["React", "TypeScript", "Node.js"], outcome: "devinSession", useCases: [["Promo banner feature via Slack-triggered Devin", "devops", ["React", "TypeScript"]]],
     summary: "Storefront team wants Slack-triggered feature work; first ask is a promo banner feature.",
   },
   {
@@ -362,7 +386,7 @@ const H: HistorySpec[] = [
     type: "ama", title: "Orbital Storefront — Ask me anything",
     contacts: [["pavel.novak@orbitalretail.com", "productOwner"]],
     participants: ["emma.clarke@orbitalretail.com"], estimated: 4,
-    tags: ["React", "Slack integration", "Feature implementation", "Pilot approved"], ask: "supportRequest", outcome: "completed", success: "successful",
+    tech: ["React"], outcome: "prRaised", useCases: [["Two storefront features shipped through Slack", "devops", ["React"]]],
     summary: "Pilot approved for Q4. Two features shipped by Devin via Slack.",
   },
   {
@@ -370,15 +394,24 @@ const H: HistorySpec[] = [
     type: "101", title: "Vantage Claims — Devin 101 session",
     contacts: [["nadia.rahman@vantage-ins.com", "executiveSponsor"], ["felix.brandt@vantage-ins.com", "architect"], ["zoe.martin@vantage-ins.com", "projectManager"]],
     participants: [], estimated: 18,
-    tags: ["Java", "Oracle DB", "COBOL modernization", "Jenkins", "Documentation generation"], ask: "plan", outcome: "notApplicable", success: "successful",
+    tech: ["Java", "Oracle DB", "COBOL", "Jenkins"], outcome: "analysisDone", useCases: [["COBOL claims engine documentation", "languageMigration", ["COBOL", "Java"]]],
     summary: "Executive sponsor present; COBOL-to-Java claims engine documentation is phase one.",
+  },
+  {
+    by: "sofia@cognition.ai", client: "Mercedes-Benz Tech", team: "Data Engineering", dayOffset: -12, hour: 10, duration: 90,
+    type: "101", title: "Mercedes-Benz Data Engineering — Devin 101 session",
+    contacts: [["katrin.vogel@mercedes-benz.com", "productOwner"], ["jonas.keller@mercedes-benz.com", "architect"]],
+    participants: ["ravi.menon@mercedes-benz.com", "lukas.brandt@mercedes-benz.com"], estimated: 14,
+    tech: ["Ab Initio", "Python", "Databricks", "Excel"], outcome: "analysisDone",
+    useCases: [["Ab Initio graphs → PySpark on Databricks", "etlMigration", ["Ab Initio", "Python", "Databricks"]], ["Fleet KPI spreadsheets → Power BI", "excelToDashboard", ["Excel", "Power BI"]]],
+    summary: "Data Engineering wants Devin on the Ab Initio retirement; Excel KPI packs are the quick win.",
   },
   {
     by: "marcus@cognition.ai", client: "Helios Energy", team: "Grid Software", dayOffset: -3, hour: 13, duration: 75,
     type: "pairProgramming", title: "Helios Grid — Pair programming (restricted network)",
     contacts: [["aisha.bello@helios-energy.com", "architect"], ["sam.whitaker@helios-energy.com", "projectManager"]],
     participants: ["noah.kim@helios-energy.com"], estimated: 8,
-    tags: ["Python", "Kubernetes", "Unit test generation", "Air-gapped / VDI"], ask: "implementation", outcome: "blocked", success: "unsuccessful",
+    tech: ["Python", "Kubernetes"], outcome: "analysisDone", useCases: [["Unit test generation for grid services (blocked by egress)", "platformMigration", ["Python", "Kubernetes"]]],
     summary: "Outbound egress still blocked from VDI; session converted to a planning discussion.",
   },
 ];
@@ -395,13 +428,20 @@ export function buildHistoricalSessions(anchor: Date): Session[] {
     const provenance: Session["provenance"] = {};
     for (const f of [
       "title", "clientId", "teamId", "facilitatorId", "contacts", "participantIds",
-      "participantsEstimated", "sessionType", "successState", "automationOutcome", "devinAsk", "tagIds", "summary",
+      "participantsEstimated", "sessionType", "technologyIds",
     ] as const) {
       provenance[f] = "accepted";
     }
     provenance.summary = "manual";
-    provenance.successState = "manual";
-    provenance.automationOutcome = "manual";
+    provenance.outcomeId = "manual";
+    provenance.useCases = "manual";
+    const useCases: UseCase[] = h.useCases.map(([title, useCaseTypeId, tech], i) => ({
+      id: stableId("uc", `${id}/${i}/${title}`),
+      title,
+      description: "",
+      useCaseTypeId,
+      technologyIds: tech.map((t) => techByLabel(t).id),
+    }));
     return {
       id,
       state: "completed",
@@ -418,10 +458,9 @@ export function buildHistoricalSessions(anchor: Date): Session[] {
       participantIds: h.participants.map((e) => personByEmail(e)!.id),
       participantsEstimated: h.estimated,
       sessionType: h.type,
-      successState: h.success,
-      automationOutcome: h.outcome,
-      devinAsk: h.ask,
-      tagIds: h.tags.map((t) => tagByLabel(t).id),
+      outcomeId: h.outcome,
+      technologyIds: h.tech.map((t) => techByLabel(t).id),
+      useCases,
       summary: h.summary,
       notes: "",
       sourceEventIds: [],

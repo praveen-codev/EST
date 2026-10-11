@@ -1,4 +1,5 @@
 import { stableId } from "@/lib/domain/ids";
+import { catalogOf } from "@/lib/domain/labels";
 import type { CalendarEvent, Classification, Person, Suggestion } from "@/lib/domain/types";
 import { classify } from "./classify";
 import { extract, matchSessionType, PROMPT_VERSION, type EngineContext } from "./extract";
@@ -40,7 +41,7 @@ export function analyzeEvent(event: CalendarEvent, candidateId: string, ctx: Eng
   const n = normalizeEvent(safeEvent);
 
   const extraction = n.cancelled ? { suggestions: [], newPeople: [], matchedClient: null } : extract(n, ctx);
-  const typeMatch = n.cancelled ? null : matchSessionType(n, ctx.sessionTypes);
+  const typeMatch = n.cancelled ? null : matchSessionType(n, catalogOf(ctx.catalog, "sessionType"));
   const classification = classify(n, extraction.matchedClient !== null, typeMatch ? { label: typeMatch.type.label, keyword: typeMatch.keyword, typicalMinutes: typeMatch.type.typicalMinutes } : null);
 
   const suggestions: Suggestion[] = classification.bucket === "unlikely"

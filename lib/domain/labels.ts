@@ -1,19 +1,24 @@
-import type {
-  AutomationOutcome,
-  ContactRole,
-  DevinAsk,
-  SessionState,
-  SessionType,
-  SessionTypeDef,
-  SuccessState,
-  TagCategory,
-} from "./types";
+import type { CatalogItem, CatalogKind, ContactRole, ID, SessionState } from "./types";
 
-/** Label for a session type id, falling back to the raw id for archived/unknown rows. */
-export function sessionTypeLabel(types: SessionTypeDef[], id: SessionType | null): string | null {
-  if (!id) return null;
-  return types.find((t) => t.id === id)?.label ?? id;
+/** Rows of one catalogue, active first by sort order. Archived rows are kept only when `includeArchived`. */
+export function catalogOf(catalog: CatalogItem[], kind: CatalogKind, includeArchived = false): CatalogItem[] {
+  return catalog.filter((c) => c.kind === kind && (includeArchived || !c.archived)).sort((a, b) => a.sortOrder - b.sortOrder);
 }
+
+/** Label for a catalogue row id, falling back to the raw id for archived/unknown rows. */
+export function catalogLabel(catalog: CatalogItem[], id: ID | null): string | null {
+  if (!id) return null;
+  return catalog.find((c) => c.id === id)?.label ?? id;
+}
+
+export const sessionTypeLabel = catalogLabel;
+
+export const CATALOG_KIND_META: Record<CatalogKind, { title: string; singular: string; hint: string; hasKeywords: boolean; hasMinutes: boolean }> = {
+  sessionType: { title: "Session formats", singular: "format", hint: "The only meetings that count as enablement sessions. Keywords are matched against calendar invites.", hasKeywords: true, hasMinutes: true },
+  sessionOutcome: { title: "Session outcomes", singular: "outcome", hint: "What a session produced. Picked once per session on the feedback form.", hasKeywords: false, hasMinutes: false },
+  technology: { title: "Technologies", singular: "technology", hint: "Languages, tools and platforms. Keywords let the AI suggest them from invite text.", hasKeywords: true, hasMinutes: false },
+  useCaseType: { title: "Use-case types", singular: "use-case type", hint: "How use cases are classified for reporting. Keywords let the AI pre-select a type.", hasKeywords: true, hasMinutes: false },
+};
 
 export const SESSION_STATE_LABELS: Record<SessionState, string> = {
   candidate: "Candidate",
@@ -22,27 +27,6 @@ export const SESSION_STATE_LABELS: Record<SessionState, string> = {
   incomplete: "Incomplete",
   cancelled: "Cancelled",
   ignored: "Ignored",
-};
-
-export const DEVIN_ASK_LABELS: Record<DevinAsk, string> = {
-  plan: "Plan",
-  supportRequest: "Support request",
-  implementation: "Implementation",
-  investigation: "Investigation",
-};
-
-export const AUTOMATION_OUTCOME_LABELS: Record<AutomationOutcome, string> = {
-  completed: "Completed",
-  partial: "Partial",
-  blocked: "Blocked",
-  notApplicable: "Not applicable",
-};
-
-export const SUCCESS_STATE_LABELS: Record<SuccessState, string> = {
-  successful: "Successful",
-  partial: "Partial",
-  unsuccessful: "Unsuccessful",
-  unknown: "Not yet rated",
 };
 
 export const CONTACT_ROLE_LABELS: Record<ContactRole, string> = {
@@ -54,18 +38,6 @@ export const CONTACT_ROLE_LABELS: Record<ContactRole, string> = {
   engineer: "Engineer",
 };
 
-export const TAG_CATEGORY_LABELS: Record<TagCategory, string> = {
-  technology: "Technology",
-  migration: "Migration",
-  useCase: "Use case",
-  workflow: "Workflow",
-  blocker: "Blocker",
-  outcome: "Outcome",
-};
-
-export const DEVIN_ASKS = Object.keys(DEVIN_ASK_LABELS) as DevinAsk[];
-export const AUTOMATION_OUTCOMES = Object.keys(AUTOMATION_OUTCOME_LABELS) as AutomationOutcome[];
-export const SUCCESS_STATES = Object.keys(SUCCESS_STATE_LABELS) as SuccessState[];
 export const CONTACT_ROLES = Object.keys(CONTACT_ROLE_LABELS) as ContactRole[];
 
 export const FIELD_LABELS: Record<string, string> = {
@@ -77,13 +49,12 @@ export const FIELD_LABELS: Record<string, string> = {
   coFacilitatorIds: "Co-facilitators",
   contacts: "Contacts",
   participantIds: "Participants",
-  participantsEstimated: "Estimated participants",
-  devinAsk: "Devin ask",
-  tagIds: "Tags",
+  participantsEstimated: "Participants",
+  technologyIds: "Technologies",
+  useCases: "Use cases",
+  outcomeId: "Session outcome",
   summary: "Summary",
   notes: "Notes",
-  successState: "Success",
-  automationOutcome: "Automation outcome",
   state: "State",
 };
 

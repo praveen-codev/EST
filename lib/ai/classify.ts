@@ -19,7 +19,7 @@ export function bucketFor(score: number): ClassificationBucket {
   return "unlikely";
 }
 
-export function classify(n: NormalizedEvent, knownClient: boolean, matchedType: { label: string; keyword: string; typicalMinutes: number } | null): Classification {
+export function classify(n: NormalizedEvent, knownClient: boolean, matchedType: { label: string; keyword: string; typicalMinutes: number | null } | null): Classification {
   if (n.cancelled) {
     return { score: 0.05, bucket: "unlikely", reasons: ["Event was cancelled"] };
   }
@@ -35,7 +35,7 @@ export function classify(n: NormalizedEvent, knownClient: boolean, matchedType: 
   if (matchedType) {
     score += 0.4;
     reasons.push(`"${matchedType.keyword}" matches the ${matchedType.label} format`);
-    if (Math.abs(n.durationMin - matchedType.typicalMinutes) <= matchedType.typicalMinutes * 0.5) score += 0.05;
+    if (matchedType.typicalMinutes && Math.abs(n.durationMin - matchedType.typicalMinutes) <= matchedType.typicalMinutes * 0.5) score += 0.05;
   }
   const strong = SUPPORTING.filter((k) => n.text.includes(k));
   if (strong.length) {

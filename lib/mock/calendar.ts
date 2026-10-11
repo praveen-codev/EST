@@ -1,4 +1,4 @@
-import { addMinutes } from "date-fns";
+import { addMinutes, differenceInCalendarDays } from "date-fns";
 import type { CalendarAttendee, ScenarioId } from "@/lib/domain/types";
 import { MEMBERS, PEOPLE, at } from "./seed";
 
@@ -23,7 +23,8 @@ interface RawSpec {
   id: string;
   title: string;
   desc?: string;
-  day: number;
+  /** Days relative to the week anchor, or "today" / "today+1" relative to the actual current day. */
+  day: number | "today" | "today+1" | "today-1";
   hour: number;
   minute?: number;
   duration: number;
@@ -51,8 +52,13 @@ function nameFor(email: string): string | null {
     .join(" ");
 }
 
-function toProviderEvent(anchor: Date, s: RawSpec): ProviderEvent {
-  const start = at(anchor, s.day, s.hour, s.minute ?? 0);
+function resolveDay(day: RawSpec["day"], todayOffset: number): number {
+  if (typeof day === "number") return day;
+  return todayOffset + (day === "today+1" ? 1 : day === "today-1" ? -1 : 0);
+}
+
+function toProviderEvent(anchor: Date, s: RawSpec, todayOffset: number): ProviderEvent {
+  const start = at(anchor, resolveDay(s.day, todayOffset), s.hour, s.minute ?? 0);
   return {
     providerEventId: s.id,
     recurringEventId: s.recurring ?? null,
@@ -86,6 +92,22 @@ const MEET = "https://meet.google.com/abc-defg-hij";
 /* ───────────────────────── Alex (default persona) ───────────────────────── */
 
 const alexLikely: RawSpec[] = [
+  {
+    id: "evt-mb-101-today",
+    title: "Mercedes-Benz Data Engineering — Devin 101 session (Ab Initio squad)",
+    desc: "101 session for the Ab Initio squad. Goal: retire Ab Initio graphs by moving the ingestion pipelines to PySpark on Databricks. PO: Katrin Vogel. Architect: Jonas Keller. ~12 engineers.\n\nJoin: " + MEET,
+    day: "today", hour: 10, duration: 90, organizer: "katrin.vogel@mercedes-benz.com",
+    attendees: [ALEX, "katrin.vogel@mercedes-benz.com", "jonas.keller@mercedes-benz.com", "ravi.menon@mercedes-benz.com", "lukas.brandt@mercedes-benz.com", "mei.lin@mercedes-benz.com"],
+    conferencing: MEET,
+  },
+  {
+    id: "evt-mb-pair-today",
+    title: "Mercedes-Benz — Pair programming: fleet KPI Excel to Power BI",
+    desc: "Pairing session with Ravi on the fleet KPI spreadsheets: rebuild the Excel macros as a Power BI dashboard fed from Databricks. EM: Anika Schulz.",
+    day: "today", hour: 14, duration: 90, organizer: ALEX,
+    attendees: [ALEX, "ravi.menon@mercedes-benz.com", "anika.schulz@mercedes-benz.com"],
+    conferencing: MEET,
+  },
   {
     id: "evt-acme-oh-1",
     title: "Acme Platform — Devin 101 session (Jenkins squad)",
@@ -197,13 +219,15 @@ const alexNoise: RawSpec[] = [
   { id: "evt-dentist", title: "Dentist", day: 6, hour: 8, duration: 60, organizer: ALEX, attendees: [ALEX] },
 ];
 
+const byId = (id: string) => alexLikely.find((e) => e.id === id)!;
+
 const alexBatch1 = (updatedDesc: boolean): RawSpec[] => [
   {
-    ...alexLikely[0]!,
-    desc: alexLikely[0]!.desc + (updatedDesc ? "\n\nUpdate: Architect Raj Patel joining to cover the Jenkins pipeline migration." : ""),
+    ...byId("evt-acme-oh-1"),
+    desc: byId("evt-acme-oh-1").desc + (updatedDesc ? "\n\nUpdate: Architect Raj Patel joining to cover the Jenkins pipeline migration." : ""),
     etag: updatedDesc ? "etag-evt-acme-oh-1-2" : undefined,
   },
-  { ...alexLikely[3]! },
+  { ...byId("evt-northwind-fu") },
   {
     id: "evt-helios-vdi-ws",
     title: "Helios Grid — Pair programming (VDI environment)",
@@ -245,6 +269,14 @@ const alexBatch2: RawSpec[] = [
 
 const priyaBatch0: RawSpec[] = [
   {
+    id: "evt-p-meridian-ama-today",
+    title: "Meridian Clinical — Ask me anything",
+    desc: "AMA with the clinical apps team after the Angular migration. PO: Grace Liu.",
+    day: "today", hour: 11, duration: 45, organizer: PRIYA,
+    attendees: [PRIYA, "grace.liu@meridianhealth.org", "hannah.weiss@meridianhealth.org"],
+    conferencing: MEET,
+  },
+  {
     id: "evt-p-meridian-clinical-d2",
     title: "Meridian Clinical — 201 session (part 2)",
     desc: "201 session: continue the AngularJS → Angular migration of the scheduling app. PO: Grace Liu. ~11 engineers.",
@@ -265,7 +297,7 @@ const priyaBatch0: RawSpec[] = [
 ];
 
 const marcusBatch0: RawSpec[] = [
-  { ...alexLikely[5]!, id: "evt-m-acme-pay-review" },
+  { ...byId("evt-acme-pay-review"), id: "evt-m-acme-pay-review" },
   {
     id: "evt-m-helios-oh",
     title: "Helios Grid — Ask me anything",
@@ -330,11 +362,13 @@ export function fetchCalendarPage(
   scenario: ScenarioId,
   cursor: number,
   anchor: Date,
+  now: Date = new Date(),
 ): ProviderPage {
   const batches = scenarioBatches(scenario)[memberEmail] ?? [];
   const page = batches[cursor] ?? [];
+  const todayOffset = differenceInCalendarDays(now, anchor);
   return {
-    events: page.map((s) => toProviderEvent(anchor, s)),
+    events: page.map((s) => toProviderEvent(anchor, s, todayOffset)),
     nextCursor: Math.min(cursor + 1, batches.length),
     hasMore: cursor + 1 < batches.length,
   };

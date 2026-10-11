@@ -1,16 +1,17 @@
 # Enablement Session Tracker — rapid prototype
 
-A clickable MVP of the capture workflow from `enablement-session-tracker-plan.md`: calendar events become
-candidate sessions, a (simulated) AI prefills almost every field from the invite **and** from sessions that
-teammates already logged, and the member confirms in one click. Everything runs in the browser — no sign-in,
-no server, no API keys.
+A clickable MVP whose core job is **entering enablement-session feedback with almost no typing**. The home
+page lists only *today's* sessions for the signed-in Applied AI Engineer with one CTA — *Enter feedback* — that
+opens a form already filled from the calendar invite **and** from sessions teammates logged with the same client.
+Everything runs in the browser — no sign-in, no server, no API keys.
 
 ```bash
 pnpm install
 pnpm dev            # http://localhost:3000 → redirects to /inbox
 ```
 
-The first visit auto-runs the initial calendar lookback for the default persona (Alex). Use **Sync calendar**
+The first visit auto-runs the initial calendar lookback for the default persona (Alex), whose calendar has two
+Mercedes-Benz sessions *today*. Use **Sync calendar**
 in the top bar to pull the next incremental batch, the avatar menu to switch persona, and the flask icon
 (bottom-left) for scenarios, "show AI reasoning" and **Reset demo**.
 
@@ -18,16 +19,18 @@ in the top bar to pull the next incremental batch, the avatar menu to switch per
 
 | Surface | Why it matters |
 |---|---|
+| **Today** `/` (home) | Only the current member's sessions scheduled today — if you have two Mercedes sessions, you see two cards. Each shows what the AI already knows and an **Enter feedback** CTA (confirming the calendar event on the way if needed). A footer link counts earlier sessions still missing feedback. |
+| **Session feedback** `/sessions/:id` | Four steps. **1 · Basics** (client, team, format, facilitator, contacts) prefilled or offered as one-click accept/reject chips with evidence. **2 · Participants** — a number, plus known names from the invite. **3 · Use cases** — *Add use case* appends a card with title, description, a **use-case type** dropdown and **technology** toggles; the AI drafts the first card from the invite's stated goal. **4 · Session outcome** — one choice from the admin list. Summary/notes/audit are folded under "more". |
 | **Capture inbox** `/inbox` | Only the team's own formats count: an event must match a **session format** from the admin table (101 session, Pair programming, 201 session, Ask me anything, Sprint in a day) to be *Likely*; generic workshops/kickoffs with a client are capped at *Needs a look*. Grouped into *Likely* / *Needs a look* / *Possible duplicates* / *skipped*. Each card shows what the AI proposes, its confidence, and "N of 11 fields prefilled". **Confirm** (or `Enter`) creates the session with every high-confidence value already decided. **Confirm all likely** (`⇧↵`) does a whole week in one click. Hover a chip for the evidence. `J`/`K`/`X`/`E` for keyboard triage. |
-| **Session workspace** `/sessions/:id` | Progressive disclosure: Essentials → People → Tags → Summary → Advanced. Every field has a provenance dot (prefilled / accepted / manual) and inline suggestion chips with accept ✓ / reject ✕; `Tab` to a chip, `Enter` accepts, `Backspace` rejects. "Still missing" links jump to gaps. The right panel shows **what the AI saw** (post-redaction) and the **team's history** with this client. |
 | **Timeline** `/timeline` | Group by day / week / client / member; filter by client, facilitator, tag, state, mine/everyone; candidates appear as ghost rows you can confirm from a side peek. |
 | **Calendar** `/calendar` | Month and week views; confirmed sessions solid in the client's colour, candidates dashed. |
-| **Admin** `/admin` | The `session_types` table: label, keywords that identify the format in an invite, typical length, archive/restore, reorder. Editable by the ADMIN role (Dana); members see it read-only. Archiving keeps old sessions valid but stops new matches. |
+| **Admin** `/admin` | Four reference tables, one tabbed editor: **Session formats** (101 session, Pair programming, 201 session, Ask me anything, Sprint in a day — the only meetings that count), **Session outcomes** (Analysis done, Devin session, PR raised, Playbook / automation created), **Use-case types** (Excel to dashboard, ETL tool migration, Language migrations, Platform migrations, Devops work) and **Technologies** (Java, Python, Ab Initio, Excel, …). Add, rename, reorder, archive; keywords drive the AI. ADMIN role (Dana) edits, others read. |
 | **⌘K** | Jump to any session or client, confirm all likely, sync, switch persona. `?` lists shortcuts. |
 
 ### Things worth demonstrating
 
-- **Cross-user suggestions.** Alex has never run an Acme office hours, yet the card proposes *Jane Doe · Product owner* and the *Jenkins* / *Java 8 → 21 upgrade* tags — evidence reads "Recorded on 3 Acme sessions by Priya". Switch to Priya to see her own inbox; the history is shared.
+- **Feedback in under a minute.** Home → *Enter feedback* on the Mercedes 101 → client, team, format, contacts and "12 participants" are already there; accept the drafted *Ab Initio → PySpark* use case (type *ETL tool migration*, technologies attached), add one more, tap *PR raised*. Back on Home the card reads *Feedback complete*.
+- **Cross-user suggestions.** Alex has never run a session with Acme, yet the form proposes *Jane Doe · Product owner* and *Spring Boot* — evidence reads "Recorded on 3 Acme sessions by Priya". Switch to Priya to see her own day; the history is shared.
 - **Sync never duplicates.** Press *Sync calendar* repeatedly: changed events refresh evidence and add new chips, unchanged ones are reported as such, and the forwarded copy of the Vantage workshop is caught as a duplicate.
 - **Manual edits win.** Type a title in a session, sync again: the title stays, and the AI only adds suggestions for fields you haven't set by hand.
 - **Dialled down on purpose.** "Helios Grid — enablement workshop" has a known client and external attendees, yet it lands in *Needs a look* with the reason "No recognised session format". Archive *Ask me anything* in Admin and re-run AI: AMA events stop matching.
@@ -43,9 +46,11 @@ lib/
   domain/store.ts      zustand store persisted to IndexedDB (idb-keyval); versioned, resettable
   domain/selectors.ts  view models for inbox cards and the session workspace
   domain/timeline.ts   unified items + grouping/filtering for timeline and calendar
-  ai/                  deterministic engine: normalize → redact → classify → extract/match → Suggestion[] with confidence + evidence
+  domain/today.ts      the home board: today's sessions for the member + overdue feedback
+  ai/                  deterministic engine: normalize → redact → classify (format match required) → extract/match (client, team, people,
+                       technologies, a drafted use case with type) → Suggestion[] with confidence + evidence
   sync/sync.ts         provider event → evidence record, content hash, duplicate detection
-  mock/seed.ts         org, 5 personas, 6 clients, teams, people, 42 canonical tags with aliases, the 5 session formats, 15 historical sessions by other engineers
+  mock/seed.ts         org, 5 personas, 7 clients, teams, people, the four catalogues, 16 historical sessions (with use cases) by other engineers
   mock/calendar.ts     "Google Calendar" fixture batches per persona and scenario (initial lookback + 2 incremental syncs)
 components/            shell (rail, top bar, persona switcher, sync pill, ⌘K), inbox, session, timeline, calendar, common
 app/                   Next.js 16 App Router pages (thin; all state lives client-side)

@@ -1,9 +1,9 @@
 import { stableId } from "@/lib/domain/ids";
-import { CONTACT_ROLE_LABELS, DEVIN_ASK_LABELS } from "@/lib/domain/labels";
+import { catalogOf, CONTACT_ROLE_LABELS } from "@/lib/domain/labels";
 import type {
+  CatalogItem,
   Client,
   ContactRole,
-  DevinAsk,
   Evidence,
   ID,
   Member,
@@ -13,8 +13,8 @@ import type {
   SessionTypeDef,
   Suggestion,
   SuggestionField,
-  Tag,
   Team,
+  UseCase,
 } from "@/lib/domain/types";
 import type { NormalizedEvent } from "./normalize";
 
@@ -25,8 +25,8 @@ export interface EngineContext {
   clients: Client[];
   teams: Team[];
   people: Person[];
-  tags: Tag[];
-  sessionTypes: SessionTypeDef[];
+  /** All admin-managed catalogues (formats, outcomes, technologies, use-case types). */
+  catalog: CatalogItem[];
   sessions: Session[];
   ownerMemberId: ID;
 }
@@ -45,7 +45,7 @@ export interface ExtractionResult {
 }
 
 /** Fields whose suggestions are individual items appended to a list on accept. */
-export const ITEM_FIELDS: ReadonlySet<SuggestionField> = new Set(["coFacilitatorIds", "contacts", "tagIds"]);
+export const ITEM_FIELDS: ReadonlySet<SuggestionField> = new Set(["coFacilitatorIds", "contacts", "technologyIds", "useCases"]);
 
 /** Role prefix (case-insensitive) followed by a capitalised full name (case-sensitive). */
 const ROLE_PREFIXES: Array<[RegExp, ContactRole]> = [
@@ -66,13 +66,6 @@ function* roleMentions(description: string): Generator<{ name: string; role: Con
     }
   }
 }
-
-const ASK_KEYWORDS: Record<DevinAsk, string[]> = {
-  plan: ["kickoff", "kick-off", "plan", "roadmap", "intro", "scoping"],
-  supportRequest: ["office hours", "support", "q&a", "troubleshoot", "follow-up", "follow up", "stragglers"],
-  implementation: ["hands-on", "hands on", "workshop", "upgrade", "migrat", "generat", "rollout", "roll out", "implement", "extract", "finish"],
-  investigation: ["investigat", "assess", "evaluat", "readout", "triage", "review results"],
-};
 
 function nameFromEmail(email: string): string {
   const local = email.split("@")[0] ?? "";
@@ -202,7 +195,7 @@ export function extract(n: NormalizedEvent, ctx: EngineContext): ExtractionResul
   if (cleanTitle) add("title", cleanTitle, cleanTitle, 0.95, [{ source: "calendar.title", excerpt: n.title }]);
 
   /* ── Session type (from the admin-managed table; no guessing) ── */
-  const typeMatch = matchSessionType(n, ctx.sessionTypes);
+  const typeMatch = matchSessionType(n, catalogOf(ctx.catalog, "sessionType"));
   if (typeMatch) {
     add("sessionType", typeMatch.type.id, typeMatch.type.label, 0.94, [
       { source: typeMatch.inTitle ? "calendar.title" : "calendar.description", excerpt: `"${typeMatch.keyword}"` },
@@ -310,51 +303,66 @@ export function extract(n: NormalizedEvent, ctx: EngineContext): ExtractionResul
     ]);
   }
 
-  /* ── Devin ask ── */
-  const askScores = (Object.keys(ASK_KEYWORDS) as DevinAsk[]).map((ask) => {
-    const hits = ASK_KEYWORDS[ask].filter((k) => n.text.includes(k));
-    return { ask, hits };
-  });
-  const bestAsk = askScores.sort((a, b) => b.hits.length - a.hits.length)[0];
-  if (bestAsk && bestAsk.hits.length) {
-    add("devinAsk", bestAsk.ask, DEVIN_ASK_LABELS[bestAsk.ask], Math.min(0.88, 0.6 + 0.12 * bestAsk.hits.length), [
-      { source: n.title.toLowerCase().includes(bestAsk.hits[0]!) ? "calendar.title" : "calendar.description", excerpt: `"${bestAsk.hits.slice(0, 2).join('", "')}"` },
-    ]);
-  }
-
-  /* ── Tags ── */
-  const matchedTagIds = new Set<ID>();
-  for (const tag of ctx.tags) {
-    const alias = tag.aliases.find((a) => containsTerm(n.text, a));
-    if (!alias) continue;
-    matchedTagIds.add(tag.id);
-    add("tagIds", tag.id, tag.label, alias === tag.label.toLowerCase() ? 0.92 : 0.88, [
-      { source: alias === tag.label.toLowerCase() ? "calendar.description" : "taxonomy.alias", excerpt: alias === tag.label.toLowerCase() ? `"${tag.label}" in the invite` : `"${alias}" → ${tag.label}` },
+  /* ── Technologies (catalogue keywords + what teammates recorded for this client) ── */
+  const technologies = catalogOf(ctx.catalog, "technology");
+  const matchedTech = new Map<ID, string>();
+  for (const tech of technologies) {
+    const keyword = tech.keywords.find((k) => containsTerm(n.text, k));
+    if (!keyword) continue;
+    matchedTech.set(tech.id, keyword);
+    const exact = keyword === tech.label.toLowerCase();
+    add("technologyIds", tech.id, tech.label, exact ? 0.92 : 0.88, [
+      { source: exact ? "calendar.description" : "taxonomy.alias", excerpt: exact ? `"${tech.label}" in the invite` : `"${keyword}" → ${tech.label}` },
     ]);
   }
   if (client) {
     const scope = ctx.sessions.filter((s) => s.clientId === client!.id);
-    const tagStats = new Map<ID, { count: number; by: Set<ID> }>();
+    const stats = new Map<ID, { count: number; by: Set<ID> }>();
     for (const s of scope) {
-      for (const t of s.tagIds) {
-        const e = tagStats.get(t) ?? { count: 0, by: new Set<ID>() };
+      for (const t of s.technologyIds) {
+        const e = stats.get(t) ?? { count: 0, by: new Set<ID>() };
         e.count += 1;
         if (s.facilitatorId) e.by.add(s.facilitatorId);
-        tagStats.set(t, e);
+        stats.set(t, e);
       }
     }
-    for (const [tagId, stat] of [...tagStats.entries()].sort((a, b) => b[1].count - a[1].count)) {
-      if (matchedTagIds.has(tagId) || stat.count < 2) continue;
-      const tag = ctx.tags.find((t) => t.id === tagId)!;
+    for (const [techId, stat] of [...stats.entries()].sort((a, b) => b[1].count - a[1].count)) {
+      if (matchedTech.has(techId)) continue;
+      const tech = technologies.find((t) => t.id === techId);
+      if (!tech) continue;
       const names = [...stat.by].map(memberName);
-      add("tagIds", tag.id, tag.label, Math.min(0.75, 0.45 + 0.1 * stat.count), [
+      add("technologyIds", tech.id, tech.label, Math.min(0.75, 0.45 + 0.1 * stat.count), [
         {
           source: "history.tags",
-          excerpt: `Used on ${stat.count} of ${scope.length} ${client.name} sessions`,
+          excerpt: `Recorded on ${stat.count} of ${scope.length} ${client.name} session${scope.length === 1 ? "" : "s"}`,
           attribution: `by ${names.slice(0, 2).join(" & ")}`,
         },
       ]);
     }
+  }
+
+  /* ── Draft use case from the stated goal of the invite ── */
+  const goal = n.description.match(/(?:goal|focus|topic|objective|aim)s?\s*(?:is|are)?\s*[:\-–]?\s*([^.\n]{12,160})/i)
+    ?? n.description.match(/\b(?:rebuild|migrate|retire|move|upgrade|extract|generate|automate)\b[^.\n]{8,160}/i);
+  if (goal && n.external.length) {
+    const sentence = (goal[1] ?? goal[0]).trim().replace(/^[:\-–\s]+/, "");
+    const title = sentence.charAt(0).toUpperCase() + sentence.slice(1).replace(/[.;]+$/, "");
+    const useCaseTypes = catalogOf(ctx.catalog, "useCaseType");
+    let bestType: { type: CatalogItem; keyword: string } | null = null;
+    for (const type of useCaseTypes) {
+      const keyword = type.keywords.find((k) => containsTerm(n.text, k));
+      if (keyword && (!bestType || keyword.length > bestType.keyword.length)) bestType = { type, keyword };
+    }
+    const value: UseCase = {
+      id: stableId("uc", `${n.title}|${title}`),
+      title,
+      description: "",
+      useCaseTypeId: bestType?.type.id ?? null,
+      technologyIds: [...matchedTech.keys()],
+    };
+    const evidence: Evidence[] = [{ source: "calendar.description", excerpt: `"${(goal[0] ?? "").trim().slice(0, 120)}"` }];
+    if (bestType) evidence.push({ source: "taxonomy.alias", excerpt: `"${bestType.keyword}" → ${bestType.type.label}` });
+    add("useCases", value, `${title}${bestType ? ` · ${bestType.type.label}` : ""}`, bestType ? 0.72 : 0.6, evidence);
   }
 
   /* ── Draft summary ── */

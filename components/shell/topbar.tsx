@@ -10,15 +10,15 @@ import { ThemeToggle } from "./theme-toggle";
 
 const TITLES: Array<[string, string, string]> = [
   ["/inbox", "Capture inbox", "Review what your calendar found. Confirm in one click."],
+  ["/sessions", "Session feedback", "Prefilled from the invite and your teammates. Approve, adjust, done."],
   ["/timeline", "Timeline", "Every session across the team, grouped your way."],
   ["/calendar", "Calendar", "Candidates ghosted, confirmed sessions solid."],
-  ["/sessions", "Session", "Prefilled from evidence. You decide what sticks."],
-  ["/admin", "Admin · session formats", "The catalogue of enablement formats the team actually runs."],
+  ["/admin", "Admin · reference tables", "Session formats, outcomes, use-case types and technologies."],
 ];
 
 export function Topbar({ onOpenPalette }: { onOpenPalette: () => void }) {
   const pathname = usePathname();
-  const [, title, subtitle] = TITLES.find(([p]) => pathname.startsWith(p)) ?? ["", "Enablement Session Tracker", ""];
+  const [, title, subtitle] = TITLES.find(([p]) => pathname.startsWith(p)) ?? ["", "Today", "Your sessions for today, ready for feedback."];
   return (
     <header className="glass sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border/60 px-5">
       <div className="min-w-0 flex-1">

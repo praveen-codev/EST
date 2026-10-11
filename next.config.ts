@@ -6,9 +6,6 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1", "localhost"],
   // The dev indicator sits exactly over the rail's bottom controls (theme, demo).
   devIndicators: false,
-  async redirects() {
-    return [{ source: "/", destination: "/inbox", permanent: false }];
-  },
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {
