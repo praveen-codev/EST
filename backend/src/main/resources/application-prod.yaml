@@ -10,3 +10,12 @@ management:
   endpoint:
     health:
       show-details: never
+logging:
+  structured:
+    format:
+      console: ecs
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
