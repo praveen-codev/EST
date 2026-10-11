@@ -34,7 +34,12 @@ public record EstProperties(
              * pair is generated.
              */
             @DefaultValue("") String privateKeyPem,
-            @DefaultValue("") String publicKeyPem) {}
+            @DefaultValue("") String publicKeyPem,
+            /**
+             * Secure flag on the refresh/CSRF cookies; only the local profile (plain http) turns it
+             * off.
+             */
+            @DefaultValue("true") boolean cookieSecure) {}
 
     public record Google(
             /**

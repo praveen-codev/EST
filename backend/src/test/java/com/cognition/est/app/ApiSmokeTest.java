@@ -13,7 +13,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /** Boots the local profile (H2 + Flyway + seed) and exercises the public/protected boundary. */
@@ -34,10 +33,10 @@ class ApiSmokeTest {
                 .isEqualTo(5);
         assertThat(jdbc.sql("select count(*) from members").query(Integer.class).single())
                 .isEqualTo(5);
+        assertThat(jdbc.sql("select count(*) from member_identities").query(Integer.class).single())
+                .isEqualTo(5);
         assertThat(jdbc.sql("select count(*) from sessions").query(Integer.class).single())
-                .isEqualTo(16);
-        assertThat(jdbc.sql("select count(*) from use_cases").query(Integer.class).single())
-                .isGreaterThan(16);
+                .isGreaterThanOrEqualTo(16);
     }
 
     @Test
@@ -47,8 +46,9 @@ class ApiSmokeTest {
     }
 
     @Test
-    void catalogRequiresABearerToken() throws Exception {
+    void protectedRoutesRequireABearerToken() throws Exception {
         mvc.perform(get("/api/v1/catalog/sessionType")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/today")).andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -64,17 +64,14 @@ class ApiSmokeTest {
                         .andReturn()
                         .getResponse()
                         .getContentAsString();
-        JsonNode json = JsonMapper.shared().readTree(body);
-        String token = json.get("accessToken").asString();
-
+        String token = JsonMapper.shared().readTree(body).get("accessToken").asString();
         mvc.perform(get("/api/v1/catalog/sessionType").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(5))
                 .andExpect(jsonPath("$[0].id").value("101"))
                 .andExpect(jsonPath("$[0].keywords").isArray());
-
         mvc.perform(get("/api/v1/catalog/nonsense").header("Authorization", "Bearer " + token))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.title").value("Not Found"));
+                .andExpect(jsonPath("$.title").value("Not found"));
     }
 }

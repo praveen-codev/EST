@@ -11,12 +11,10 @@ spring:
       path: /h2-console
   flyway:
     locations: classpath:db/migration/common,classpath:db/migration/{vendor},classpath:db/migration/local
-  jpa:
-    properties:
-      hibernate:
-        format_sql: true
 
 est:
+  jwt:
+    cookie-secure: false
   allowed-domains: cognition.ai
   bootstrap-admin-emails: dana@cognition.ai
   google:

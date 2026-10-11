@@ -118,6 +118,20 @@ public class LocalSeedRunner implements ApplicationRunner {
                     .param("hue", m.hue())
                     .param("now", now)
                     .update();
+            // One mock "Google" identity per persona so calendar sync works without credentials.
+            jdbc.sql(
+                            """
+                    insert into member_identities (id, organization_id, member_id, provider, provider_sub, email, display_name, scopes, status, created_at, updated_at)
+                    values (:id, :org, :m, 'mock', :sub, :email, :name, 'calendar.readonly', 'ACTIVE', :now, :now)
+                    """)
+                    .param("id", "idn_" + m.id())
+                    .param("org", ORG)
+                    .param("m", m.id())
+                    .param("sub", "mock-" + m.id())
+                    .param("email", m.email())
+                    .param("name", m.name())
+                    .param("now", now)
+                    .update();
         }
     }
 

@@ -2,6 +2,7 @@ package com.cognition.est.app;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
+import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
@@ -10,7 +11,9 @@ import com.tngtech.archunit.lang.ArchRule;
  * Layering rules enforced from day one; the AI engine must stay framework-free so it can be
  * golden-tested.
  */
-@AnalyzeClasses(packages = "com.cognition.est")
+@AnalyzeClasses(
+        packages = "com.cognition.est",
+        importOptions = ImportOption.DoNotIncludeTests.class)
 class ArchitectureTest {
 
     @ArchTest

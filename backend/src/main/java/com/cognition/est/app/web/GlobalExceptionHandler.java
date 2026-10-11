@@ -1,6 +1,5 @@
 package com.cognition.est.app.web;
 
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import java.util.List;
@@ -36,9 +35,24 @@ public class GlobalExceptionHandler {
                 errors);
     }
 
-    @ExceptionHandler(EntityNotFoundException.class)
-    ResponseEntity<ApiError> onNotFound(EntityNotFoundException ex, HttpServletRequest req) {
+    @ExceptionHandler(NotFoundException.class)
+    ResponseEntity<ApiError> onNotFound(NotFoundException ex, HttpServletRequest req) {
         return build(HttpStatus.NOT_FOUND, "Not found", ex.getMessage(), req, List.of());
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    ResponseEntity<ApiError> onConflict(ConflictException ex, HttpServletRequest req) {
+        return build(
+                HttpStatus.PRECONDITION_FAILED,
+                "Version conflict",
+                ex.getMessage(),
+                req,
+                List.of());
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    ResponseEntity<ApiError> onBadRequest(IllegalArgumentException ex, HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, "Bad request", ex.getMessage(), req, List.of());
     }
 
     @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
