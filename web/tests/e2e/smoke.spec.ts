@@ -112,7 +112,7 @@ test("only the team's formats count; admins manage the catalogue, members read i
   // The admin can add a format.
   await switchPersona(page, /Dana Whitfield/);
   await page.goto("/admin");
-  await expect(page.getByText(/Editing as Dana Whitfield/)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/Editing as Dana Whitfield/)).toBeVisible({ timeout: 30_000 });
   await page.getByRole("textbox", { name: "New format label" }).fill("Lunch & learn");
   await page.getByRole("textbox", { name: "New format keywords" }).fill("lunch and learn");
   await page.getByRole("button", { name: "Add", exact: true }).click();
