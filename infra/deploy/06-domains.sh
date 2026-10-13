@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Step 10: attach your own domain names to both services and print the DNS records to create.
 source "$(dirname "$0")/common.sh"
+[ "$DOMAIN_MODE" = custom ] || { ok "DOMAIN_MODE=none — no domain to attach; your app lives at ${WEB_URL:-<run 05-deploy-web.sh>}. Skip to 07-verify.sh."; exit 0; }
 require PROJECT_ID REGION WEB_HOST API_HOST
 gcloud config set project "$PROJECT_ID" >/dev/null
 map() { # service host

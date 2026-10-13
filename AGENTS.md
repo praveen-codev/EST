@@ -30,6 +30,9 @@ cd web && pnpm e2e     # Playwright; starts the API (local profile) and the web 
 - **Contract first.** Change `contracts/openapi.yaml` before changing a controller. The web reads one
   `/snapshot` (`web/lib/domain/state.ts` maps wire shapes: `roleId`→`role` on contacts/people) and keeps
   its pure selectors; every write in `web/lib/domain/store.ts` calls the endpoint and reloads the snapshot.
+- **Deploy modes**: `DOMAIN_MODE=none` (single host — the Next server proxies `/api/*` to the API via
+  `API_INTERNAL_URL`, `NEXT_PUBLIC_API_URL=""`) or `custom` (two hosts on one domain). Anything that
+  builds a URL on the web side must stay relative to `API_URL` so both modes keep working.
 - **Web auth**: access token in memory only (`web/lib/api/client.ts`), refresh via httpOnly cookie +
   `X-CSRF` (nonce also returned in the token body and kept in localStorage — it is not a secret). Public
   routes: `/sign-in`, `/pending`. `GET /api/v1/features` tells the sign-in page about dev mode and the

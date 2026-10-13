@@ -3,6 +3,7 @@
  * client tries one silent refresh via the httpOnly cookie + double-submit CSRF header, then
  * retries the request once. Base URL comes from NEXT_PUBLIC_API_URL.
  */
+/** Empty string = same origin (single-host deployments proxy /api/* to the API); default = local dev API. */
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080").replace(/\/$/, "");
 
 let accessToken: string | null = null;
