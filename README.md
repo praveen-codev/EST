@@ -63,7 +63,7 @@ contracts/      openapi.yaml · ai-fixtures/alex-messy.json (frozen TypeScript e
 Three layers never mix: **calendar events** (evidence, written only by sync) → **suggestions** (AI proposals that
 need a decision) → **sessions** (member-owned, per-field provenance; a manual field is never overwritten).
 
-Security design and threat model: `infra/runbooks/security.md`. First production deploy (Cloud Run + Supabase): `infra/runbooks/deploy-gcp-supabase.md`.
+Security design and threat model: `infra/runbooks/security.md`. First production deploy (Cloud Run + Supabase): `infra/runbooks/deploy-gcp-supabase.html`.
 
 ### What is still simulated in the `local` profile
 

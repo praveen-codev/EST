@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EST — First deployment to Google Cloud Run + Supabase</title>
+<style>
+  :root { --bg:#0b1020; --card:#111a2e; --ink:#e8ecf5; --muted:#9aa6c0; --line:#243052; --accent:#5b9dff; --ok:#3ecf8e; --warn:#f5b84b; --bad:#ff6b6b; --code:#0a0f1d; }
+  @media (prefers-color-scheme: light) { :root { --bg:#f6f8fc; --card:#fff; --ink:#111827; --muted:#5b6578; --line:#dfe5f0; --accent:#1d4ed8; --code:#0f172a; } }
+  * { box-sizing:border-box }
+  body { margin:0; font:16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; background:var(--bg); color:var(--ink) }
+  .wrap { max-width:960px; margin:0 auto; padding:32px 20px 96px }
+  h1 { font-size:30px; margin:0 0 6px } h2 { font-size:22px; margin:40px 0 8px; padding-top:24px; border-top:1px solid var(--line) } h3 { font-size:17px; margin:22px 0 6px }
+  p { margin:8px 0 } .lead { color:var(--muted); font-size:17px }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px 20px; margin:14px 0 }
+  .step { counter-increment: step } .step h2::before { content: counter(step) ". "; color:var(--accent) }
+  .meta { display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 12px }
+  .where { display:inline-flex; align-items:center; gap:6px; font-size:13px; padding:3px 10px; border-radius:999px; border:1px solid var(--line); background:rgba(91,157,255,.08) }
+  .where.term::before { content:"⌨︎" } .where.web::before { content:"🌐" } .where.wait::before { content:"⏳" }
+  .time { font-size:13px; color:var(--muted); padding:3px 0 }
+  pre { position:relative; background:var(--code); color:#e6edf7; border-radius:10px; padding:14px 110px 14px 16px; overflow:auto; font:13.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; margin:10px 0 }
+  pre .ph { color:#f5b84b } pre .cm { color:#7e8aa6 }
+  button.copy { position:absolute; top:8px; right:8px; font:12px/1 inherit; padding:7px 10px; border-radius:7px; border:1px solid #2f3b5f; background:#1a2440; color:#e6edf7; cursor:pointer }
+  button.copy:hover { background:#24305a } button.copy.done { background:#1d5c43; border-color:#2b8a63 }
+  .verify { border-left:4px solid var(--ok); background:rgba(62,207,142,.08); padding:10px 14px; border-radius:0 10px 10px 0; margin:12px 0 }
+  .verify::before { content:"✔ Verify"; display:block; font-weight:600; color:var(--ok); margin-bottom:4px }
+  .warn { border-left:4px solid var(--warn); background:rgba(245,184,75,.1); padding:10px 14px; border-radius:0 10px 10px 0; margin:12px 0 }
+  .warn::before { content:"⚠ Important"; display:block; font-weight:600; color:var(--warn); margin-bottom:4px }
+  .danger { border-left:4px solid var(--bad); background:rgba(255,107,107,.08); padding:10px 14px; border-radius:0 10px 10px 0; margin:12px 0 }
+  ol.clicks li, ul li { margin:5px 0 } ol.clicks { padding-left:22px }
+  kbd { font:12.5px ui-monospace, Menlo, monospace; background:rgba(127,127,127,.15); border:1px solid var(--line); border-bottom-width:2px; border-radius:5px; padding:1px 6px }
+  code { font:13.5px ui-monospace, Menlo, monospace; background:rgba(127,127,127,.15); padding:1px 5px; border-radius:5px }
+  table { width:100%; border-collapse:collapse; font-size:14px; margin:10px 0 } th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top } th { color:var(--muted); font-weight:600 }
+  .toc { columns:2; gap:28px; font-size:15px } .toc a { color:var(--accent); text-decoration:none } .toc li { margin:3px 0; break-inside:avoid }
+  details { margin:8px 0 } summary { cursor:pointer; color:var(--accent) }
+  .check { display:flex; gap:10px; align-items:flex-start; padding:6px 0 } .check input { margin-top:5px; transform:scale(1.2) }
+  .pill { font-size:12px; padding:2px 8px; border-radius:999px; background:rgba(127,127,127,.15) }
+  footer { color:var(--muted); font-size:13px; margin-top:48px }
+  @media print { button.copy { display:none } pre { padding-right:16px } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Enablement Session Tracker — first deployment</h1>
+<p class="lead">Google Cloud Run (API + web) · Supabase Postgres (database) · Google sign-in and Calendar. Written for someone who has never deployed before: every step says <em>where</em> to do it, <em>what</em> to do, and <em>how to check</em> it worked.</p>
+
+<div class="card">
+  <h3 style="margin-top:0">How to read this page</h3>
+  <div class="meta">
+    <span class="where term">Terminal</span><span>= the <strong>Terminal</strong> app on your Mac (<kbd>⌘</kbd><kbd>Space</kbd>, type <em>Terminal</em>). Commands are run from the project folder unless said otherwise.</span>
+  </div>
+  <div class="meta"><span class="where web">Browser</span><span>= a web console you click through (Google Cloud, Supabase, your domain provider).</span></div>
+  <div class="meta"><span class="where wait">Wait</span><span>= nothing to do but wait for something to finish.</span></div>
+  <p>Every command block has a <strong>Copy</strong> button. Paste into Terminal with <kbd>⌘</kbd><kbd>V</kbd> and press <kbd>Return</kbd>. Text shown in <span class="ph" style="color:#b8860b">orange</span> is a value you replace with your own. Green <em>Verify</em> boxes tell you exactly what "working" looks like; don't move on until you see it.</p>
+  <p>Most steps are one script in <code>infra/deploy/</code>. The scripts read a single settings file (<code>~/est-deploy.env</code>), refuse to run if a value is missing, do nothing harmful when re-run, and end with their own checks. If a script prints a line starting with <strong>✖</strong>, read it — it says what to fix.</p>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0">What you need before starting</h3>
+  <div class="check"><input type="checkbox"><div>A Mac with the project cloned (the folder that contains <code>web/</code>, <code>backend/</code>, <code>infra/</code>).</div></div>
+  <div class="check"><input type="checkbox"><div><strong>Docker Desktop</strong> installed and running (whale icon in the menu bar).</div></div>
+  <div class="check"><input type="checkbox"><div>A Google account that can <strong>create a Google Cloud project and attach a billing account</strong> (or someone who can do that for you once).</div></div>
+  <div class="check"><input type="checkbox"><div>A <strong>Supabase</strong> account (free tier is fine to start).</div></div>
+  <div class="check"><input type="checkbox"><div>A <strong>domain you control</strong> (for example <code>acme.com</code>) and access to its DNS settings. You will create two names: <code>app.acme.com</code> and <code>api.acme.com</code>.</div></div>
+  <div class="warn">The web app and the API <strong>must</strong> live under the same domain (<code>app.acme.com</code> + <code>api.acme.com</code>). The login cookie is deliberately strict and is only sent between names on the same domain. Using the free <code>…run.app</code> addresses for both will look like it works, then log everyone out on every page refresh.</div>
+  <p class="time">Total time the first time: about 60–90 minutes, of which ~30 is waiting for DNS and certificates.</p>
+</div>
+
+<h3>Steps</h3>
+<ol class="toc">
+  <li><a href="#s1">Create the settings file</a></li>
+  <li><a href="#s2">Install tools and log in</a></li>
+  <li><a href="#s3">Google Cloud project</a></li>
+  <li><a href="#s4">Supabase database</a></li>
+  <li><a href="#s5">Google sign-in (OAuth client)</a></li>
+  <li><a href="#s6">Store the secrets</a></li>
+  <li><a href="#s7">Build and upload the app</a></li>
+  <li><a href="#s8">Deploy the API</a></li>
+  <li><a href="#s9">Deploy the web app</a></li>
+  <li><a href="#s10">Point your domain at it</a></li>
+  <li><a href="#s11">Verify everything</a></li>
+  <li><a href="#s12">First sign-in and smoke test</a></li>
+  <li><a href="#ref">Reference: every setting and secret by name</a></li>
+  <li><a href="#later">Later: updates, rollback, rotation</a></li>
+  <li><a href="#trouble">Troubleshooting</a></li>
+</ol>
+
+<!-- ───────────────────────── 1 ───────────────────────── -->
+<section class="step" id="s1">
+<h2>Create the settings file</h2>
+<div class="meta"><span class="where term">Terminal</span><span class="time">5 min</span></div>
+<p>All scripts read one file in your home folder: <code>~/est-deploy.env</code>. You will fill it in gradually as you collect values in the next steps. Create it from the template now:</p>
+<pre><code>cd <span class="ph">/path/to/EST</span>          <span class="cm"># the project folder; e.g. ~/Documents/work/repos/EST</span>
+cp infra/deploy/est-deploy.env.example ~/est-deploy.env
+open -e ~/est-deploy.env      <span class="cm"># opens it in TextEdit</span></code><button class="copy">Copy</button></pre>
+<p>Fill in the <strong>Google Cloud</strong>, <strong>domain</strong> and <strong>who may sign in</strong> sections now (you choose these yourself). Leave the Supabase and Google OAuth lines for later steps. Rules: no spaces around <code>=</code>, no quotes needed, lines starting with <code>#</code> are comments.</p>
+<table>
+  <tr><th>Setting</th><th>What to put</th><th>Example</th></tr>
+  <tr><td><code>PROJECT_ID</code></td><td>A new, globally unique id for your Google Cloud project: lowercase letters, digits, dashes, 6–30 chars</td><td><code>est-prod-acme</code></td></tr>
+  <tr><td><code>REGION</code></td><td>The Cloud Run region closest to your users</td><td><code>europe-west1</code>, <code>us-central1</code>, <code>asia-south1</code></td></tr>
+  <tr><td><code>DOMAIN</code></td><td>Your domain</td><td><code>acme.com</code></td></tr>
+  <tr><td><code>WEB_HOST</code> / <code>API_HOST</code></td><td>The two names you will create under it</td><td><code>app.acme.com</code> / <code>api.acme.com</code></td></tr>
+  <tr><td><code>ALLOWED_DOMAINS</code></td><td>Email domains allowed to sign in (comma-separated)</td><td><code>acme.com</code></td></tr>
+  <tr><td><code>BOOTSTRAP_ADMINS</code></td><td>Your email(s) — become admins automatically on first sign-in</td><td><code>you@acme.com</code></td></tr>
+</table>
+<div class="verify">In TextEdit the file shows your values and the Supabase/Google lines still say <code>change-me</code>. Save with <kbd>⌘</kbd><kbd>S</kbd>. Keep this file private — it will hold passwords.</div>
+</section>
+
+<!-- ───────────────────────── 2 ───────────────────────── -->
+<section class="step" id="s2">
+<h2>Install tools and log in to Google Cloud</h2>
+<div class="meta"><span class="where term">Terminal</span><span class="time">10 min</span></div>
+<p>Install the Google Cloud command-line tool (one time). If you don't have Homebrew, follow <a href="https://cloud.google.com/sdk/docs/install" target="_blank" rel="noopener">cloud.google.com/sdk/docs/install</a> instead.</p>
+<pre><code>brew install --cask google-cloud-sdk
+gcloud components install beta --quiet</code><button class="copy">Copy</button></pre>
+<p>Log in. A browser window opens — pick the Google account that will own the project.</p>
+<pre><code>gcloud auth login</code><button class="copy">Copy</button></pre>
+<p>Now run the first check script. It confirms Docker is running, you are logged in, and your settings file has the basics.</p>
+<pre><code>infra/deploy/00-check-tools.sh</code><button class="copy">Copy</button></pre>
+<div class="verify">Four ✔ lines: gcloud version + your account, Docker running, settings file OK. If you see ✖, it tells you what is missing (e.g. "Docker Desktop is not running").</div>
+</section>
+
+<!-- ───────────────────────── 3 ───────────────────────── -->
+<section class="step" id="s3">
+<h2>Google Cloud project</h2>
+<div class="meta"><span class="where web">Browser</span><span class="where term">Terminal</span><span class="time">10 min</span></div>
+<h3>3a. Create the project and attach billing</h3>
+<ol class="clicks">
+  <li>Open <a href="https://console.cloud.google.com/projectcreate" target="_blank" rel="noopener">console.cloud.google.com/projectcreate</a>.</li>
+  <li><strong>Project name</strong>: <em>Enablement Session Tracker</em>. Click <strong>Edit</strong> next to the generated id and set it to exactly your <code>PROJECT_ID</code> from the settings file. Click <strong>Create</strong>.</li>
+  <li>Open <a href="https://console.cloud.google.com/billing/linkedaccount" target="_blank" rel="noopener">Billing → Account management</a>, select your new project and <strong>link a billing account</strong>. (Cloud Run has a generous free tier; expect a few dollars a month for one always-on small instance.)</li>
+</ol>
+<div class="verify">At <a href="https://console.cloud.google.com/billing/projects" target="_blank" rel="noopener">Billing → My projects</a> your project shows a billing account, not "Billing is disabled".</div>
+<h3>3b. Turn on the services EST uses</h3>
+<pre><code>infra/deploy/01-gcp-project.sh</code><button class="copy">Copy</button></pre>
+<p>This enables Cloud Run, Artifact Registry (image storage), Secret Manager, Cloud Build and the Calendar API; creates the image repository <code>est</code>; creates the identity the API runs as. Takes 1–2 minutes.</p>
+<div class="verify">The script ends with ✔ lines and a link. Open it: the <strong>Artifact Registry</strong> page lists a repository named <code>est</code> in your region.</div>
+<details><summary>What the script runs (for the curious)</summary>
+<pre><code>gcloud config set project <span class="ph">PROJECT_ID</span>
+gcloud services enable run.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com cloudbuild.googleapis.com calendar-json.googleapis.com iamcredentials.googleapis.com
+gcloud artifacts repositories create est --repository-format=docker --location=<span class="ph">REGION</span>
+gcloud auth configure-docker <span class="ph">REGION</span>-docker.pkg.dev
+gcloud iam service-accounts create est-api --display-name="EST API runtime"</code><button class="copy">Copy</button></pre>
+</details>
+</section>
+
+<!-- ───────────────────────── 4 ───────────────────────── -->
+<section class="step" id="s4">
+<h2>Supabase database</h2>
+<div class="meta"><span class="where web">Browser</span><span class="time">10 min</span></div>
+<p>EST uses Supabase <strong>only as a PostgreSQL database</strong>. You will not use Supabase Auth, its API keys or its table editor.</p>
+<ol class="clicks">
+  <li>Go to <a href="https://supabase.com/dashboard/projects" target="_blank" rel="noopener">supabase.com/dashboard</a> → <strong>New project</strong>.</li>
+  <li><strong>Name</strong>: <em>est</em>. <strong>Region</strong>: the one closest to your <code>REGION</code> (e.g. Cloud Run <em>europe-west1</em> → Supabase <em>West EU (Ireland)</em>).</li>
+  <li><strong>Database password</strong>: click <em>Generate a password</em>, then <strong>copy it</strong> into your settings file as <code>SUPABASE_DB_PASSWORD</code> right away — Supabase will not show it again.</li>
+  <li>Click <strong>Create new project</strong> and wait ~2 minutes until the project says <em>Active</em>.</li>
+  <li>Open <strong>Project Settings</strong> (gear icon, bottom left) → <strong>Database</strong>. Find <strong>Connection string</strong> and switch the method to <strong>"Session pooler"</strong> (not <em>Direct connection</em>, not <em>Transaction pooler</em>).</li>
+  <li>From the shown string, copy two things into your settings file:
+    <ul>
+      <li><code>SUPABASE_POOLER_HOST</code> = the host, looks like <code>aws-0-eu-west-1.pooler.supabase.com</code></li>
+      <li><code>SUPABASE_PROJECT_REF</code> = the 20 characters after <code>postgres.</code> in the user name (also visible in your dashboard URL)</li>
+    </ul>
+  </li>
+</ol>
+<div class="warn">Why the Session pooler: Google Cloud Run talks IPv4 only, and Supabase's <em>Direct connection</em> is IPv6-only on the free tier (it would simply never connect). The <em>Transaction pooler</em> (port 6543) breaks the Java database driver. The <strong>Session pooler on port 5432</strong> is the one that works.</div>
+<p>Optional but recommended, defence in depth: <strong>Project Settings → API → Exposed schemas</strong>: remove <code>public</code>. EST keeps all its tables in its own schema <code>est</code>, which Supabase never exposes to the internet anyway.</p>
+<div class="verify">Your settings file now has <code>SUPABASE_PROJECT_REF</code>, <code>SUPABASE_POOLER_HOST</code> and <code>SUPABASE_DB_PASSWORD</code> filled in, none saying <code>change-me</code>. Quick connectivity test from Terminal (replace the orange host with yours):
+<pre><code>nc -zv <span class="ph">aws-0-eu-west-1.pooler.supabase.com</span> 5432</code><button class="copy">Copy</button></pre>
+Expected: <code>Connection to … port 5432 [tcp/postgresql] succeeded!</code></div>
+</section>
+
+<!-- ───────────────────────── 5 ───────────────────────── -->
+<section class="step" id="s5">
+<h2>Google sign-in (OAuth client)</h2>
+<div class="meta"><span class="where web">Browser</span><span class="time">10 min</span></div>
+<p>This is what lets people sign in with their Google account and lets EST read their calendars (read-only). You create it once in your Google Cloud project.</p>
+<h3>5a. Consent screen</h3>
+<ol class="clicks">
+  <li>Open <a href="https://console.cloud.google.com/auth/overview" target="_blank" rel="noopener">Google Auth Platform → Overview</a> (make sure your project is selected at the top) → <strong>Get started</strong>.</li>
+  <li><strong>App name</strong>: <em>Enablement Session Tracker</em>. <strong>User support email</strong>: yours.</li>
+  <li><strong>Audience</strong>: choose <strong>Internal</strong> if your company uses Google Workspace on this domain (recommended — no review needed). Otherwise <strong>External</strong>.</li>
+  <li><strong>Contact information</strong>: your email. Agree, <strong>Create</strong>.</li>
+  <li>Left menu → <strong>Data access</strong> → <strong>Add or remove scopes</strong>. Tick: <code>…/auth/userinfo.email</code>, <code>…/auth/userinfo.profile</code>, <code>openid</code>, and under <em>Google Calendar API</em>: <code>…/auth/calendar.readonly</code> and <code>…/auth/calendar.events.readonly</code>. <strong>Update</strong>, then <strong>Save</strong>.</li>
+  <li>If you chose <strong>External</strong>: left menu → <strong>Audience</strong> → under <em>Test users</em> add every colleague's email. While the app is in <em>Testing</em>, only these people can link their calendar. (Publishing to everyone requires Google's verification because calendar access is a sensitive scope.)</li>
+</ol>
+<h3>5b. The OAuth client</h3>
+<ol class="clicks">
+  <li>Left menu → <strong>Clients</strong> → <strong>Create client</strong>.</li>
+  <li><strong>Application type</strong>: <em>Web application</em>. <strong>Name</strong>: <em>est-api</em>.</li>
+  <li><strong>Authorised JavaScript origins</strong> → Add URI: <code>https://<span class="ph">app.acme.com</span></code> (your <code>WEB_HOST</code>, with <code>https://</code>, no trailing slash).</li>
+  <li><strong>Authorised redirect URIs</strong> → Add URI: <code>https://<span class="ph">api.acme.com</span>/api/v1/calendar/identities/link/callback</code> (your <code>API_HOST</code> + that exact path).</li>
+  <li><strong>Create</strong>. A dialog shows the <strong>Client ID</strong> and <strong>Client secret</strong>. Copy both into the settings file as <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code>.</li>
+</ol>
+<div class="verify">Settings file: <code>GOOGLE_CLIENT_ID</code> ends with <code>.apps.googleusercontent.com</code>; <code>GOOGLE_CLIENT_SECRET</code> starts with <code>GOCSPX-</code>. In the console, the client <em>est-api</em> shows one origin and one redirect URI exactly matching your two hostnames.</div>
+</section>
+
+<!-- ───────────────────────── 6 ───────────────────────── -->
+<section class="step" id="s6">
+<h2>Store the secrets</h2>
+<div class="meta"><span class="where term">Terminal</span><span class="time">3 min</span></div>
+<p>The script generates the app's own signing keys (for login tokens) and encryption key (for stored calendar access), and puts them together with your Supabase password and Google client secret into <strong>Secret Manager</strong>. The API reads them from there — nothing secret is ever typed into Cloud Run by hand.</p>
+<pre><code>infra/deploy/02-secrets.sh</code><button class="copy">Copy</button></pre>
+<div class="verify">Five ✔ "Created secret est-…" lines and "API runtime identity may read all five secrets". Open <a href="https://console.cloud.google.com/security/secret-manager" target="_blank" rel="noopener">Secret Manager</a>: <code>est-jwt-private-key</code>, <code>est-jwt-public-key</code>, <code>est-crypto-key</code>, <code>est-db-password</code>, <code>est-google-client-secret</code>.</div>
+<p>Re-running the script later only <em>updates</em> the Supabase password and Google secret; the signing/encryption keys are kept (changing them would log everyone out and require re-linking calendars).</p>
+</section>
+
+<!-- ───────────────────────── 7 ───────────────────────── -->
+<section class="step" id="s7">
+<h2>Build and upload the app</h2>
+<div class="meta"><span class="where term">Terminal</span><span class="where wait">Wait</span><span class="time">5–10 min</span></div>
+<p>Builds two container images on your Mac — the API (Java) and the web app — and uploads them to your Artifact Registry. The web image has the API address baked in, which is why the settings file must be complete first.</p>
+<pre><code>infra/deploy/03-build-push.sh</code><button class="copy">Copy</button></pre>
+<div class="verify">Two "✔ Pushed …/est-api:&lt;tag&gt;" / "…/est-web:&lt;tag&gt;" lines. The tag is the short git commit id; the script remembers it for the next steps. The Artifact Registry page now shows both images.</div>
+</section>
+
+<!-- ───────────────────────── 8 ───────────────────────── -->
+<section class="step" id="s8">
+<h2>Deploy the API</h2>
+<div class="meta"><span class="where term">Terminal</span><span class="where wait">Wait</span><span class="time">3 min</span></div>
+<pre><code>infra/deploy/04-deploy-api.sh</code><button class="copy">Copy</button></pre>
+<p>This creates the Cloud Run service <strong>est-api</strong> with all its settings and secret references, keeps exactly one instance always on (the calendar sync runs inside it every 15 minutes), waits for it to start, and checks its health. On first start the API creates the database schema <code>est</code> in Supabase and applies its 3 migrations.</p>
+<div class="verify">"✔ API is UP and connected to Supabase", "✔ Production flags: devMode=false…", and a "✔ Flyway: Successfully applied 3 migrations" line. In Supabase → <strong>Table Editor</strong>, switch the schema dropdown (top left) from <em>public</em> to <em>est</em>: you see tables like <code>members</code>, <code>sessions</code>, <code>catalog_items</code>.</div>
+<div class="danger">If it says the API is not healthy, run the log command it prints. The most common causes are in <a href="#trouble">Troubleshooting</a> (wrong pooler host, wrong password, missing Google client id).</div>
+</section>
+
+<!-- ───────────────────────── 9 ───────────────────────── -->
+<section class="step" id="s9">
+<h2>Deploy the web app</h2>
+<div class="meta"><span class="where term">Terminal</span><span class="time">2 min</span></div>
+<pre><code>infra/deploy/05-deploy-web.sh</code><button class="copy">Copy</button></pre>
+<div class="verify">"✔ Web is serving. Temporary address: https://est-web-….run.app". Opening that address shows the sign-in page. <strong>Do not try to sign in yet</strong> — it only works once your own domain is attached (next step).</div>
+</section>
+
+<!-- ───────────────────────── 10 ───────────────────────── -->
+<section class="step" id="s10">
+<h2>Point your domain at it</h2>
+<div class="meta"><span class="where term">Terminal</span><span class="where web">Browser (your domain provider)</span><span class="where wait">Wait</span><span class="time">10 min + waiting</span></div>
+<p>Tell Cloud Run which hostnames belong to which service, then create the DNS records it asks for.</p>
+<pre><code>infra/deploy/06-domains.sh</code><button class="copy">Copy</button></pre>
+<p>The script prints a small table with two records, typically:</p>
+<pre><code><span class="ph">api.acme.com</span>   CNAME   ghs.googlehosted.com.
+<span class="ph">app.acme.com</span>   CNAME   ghs.googlehosted.com.</code><button class="copy">Copy</button></pre>
+<p>Now in your domain provider's DNS page (Cloudflare, GoDaddy, Namecheap, Route 53, …) add exactly those records. Common gotchas:</p>
+<ul>
+  <li>In the <em>Name</em>/<em>Host</em> field most providers want only the part before your domain: <code>api</code> and <code>app</code>, not the full name.</li>
+  <li>If your provider is <strong>Cloudflare</strong>, set the proxy status to <strong>DNS only</strong> (grey cloud), not proxied, or the certificate step will fail.</li>
+  <li>If the script printed <code>A</code>/<code>AAAA</code> records instead of a CNAME (this happens for a bare domain), create all of them.</li>
+</ul>
+<div class="verify">Wait 5–30 minutes, then run the verification in the next step. You can watch certificate progress in <a href="https://console.cloud.google.com/run/domains" target="_blank" rel="noopener">Cloud Run → Domain mappings</a> — both rows turn to a green check.</div>
+</section>
+
+<!-- ───────────────────────── 11 ───────────────────────── -->
+<section class="step" id="s11">
+<h2>Verify everything</h2>
+<div class="meta"><span class="where term">Terminal</span><span class="time">1 min, repeat as needed</span></div>
+<pre><code>infra/deploy/07-verify.sh</code><button class="copy">Copy</button></pre>
+<div class="verify">All lines ✔: DNS resolves for both names, certificates ready, API health UP over <code>https://api…</code>, the API knows your Google client id, protected routes answer 401, developer endpoints answer 404, the web sign-in page loads. The last line says <em>All checks passed</em>. Any ✖ about DNS or certificates just means "wait a bit longer" — re-run the script.</div>
+</section>
+
+<!-- ───────────────────────── 12 ───────────────────────── -->
+<section class="step" id="s12">
+<h2>First sign-in and smoke test</h2>
+<div class="meta"><span class="where web">Browser</span><span class="time">5 min</span></div>
+<ol class="clicks">
+  <li>Open <code>https://<span class="ph">app.acme.com</span></code> → <strong>Sign in with Google</strong> using one of your <code>BOOTSTRAP_ADMINS</code> addresses. You land on <strong>Today</strong> and the <strong>Admin</strong> item in the left rail is enabled — you are an admin.</li>
+  <li>Account menu (top right) → <strong>Linked calendars</strong> → <strong>Add Google account</strong>. Google asks for consent (read-only calendar). After consenting you return to the page with a "Calendar linked" message and the first import has already run.</li>
+  <li>Add a second Google account the same way if you have one — this is the "partner accounts" feature.</li>
+  <li>Click <strong>Sync calendar</strong> in the top bar twice. The second time it reports <em>unchanged</em> events and creates no duplicates.</li>
+  <li>Go to <strong>Inbox</strong> and <strong>Today</strong>: your real meetings that match the team's session formats (101, 201, pair programming, AMA, sprint in a day) appear as candidates.</li>
+  <li>Ask a colleague on an allowed domain to sign in: they see "Waiting for approval". In <strong>Admin</strong> you approve them (or call <code>PATCH /api/v1/admin/members/{id}</code> with <code>{"status":"ACTIVE"}</code>).</li>
+</ol>
+<div class="verify">After a page refresh you are <strong>still signed in</strong> (this proves the same-domain cookie works). Linked calendars shows your account as <em>active</em> with a "last sync" time.</div>
+<div class="warn">If refreshing the page sends you back to sign-in, the web and API hostnames are not on the same domain, or you opened the temporary <code>…run.app</code> address. Always use <code>https://app.your-domain</code>.</div>
+</section>
+
+<!-- ───────────────────────── reference ───────────────────────── -->
+<section id="ref">
+<h2 style="border-top:1px solid var(--line)">Reference: every setting and secret by name</h2>
+<p>You normally never set these by hand — <code>04-deploy-api.sh</code> derives them from <code>~/est-deploy.env</code>. This table is for checking the Cloud Run <em>Variables &amp; Secrets</em> tab or for other hosting.</p>
+<h3>API service <code>est-api</code></h3>
+<table>
+  <tr><th>Variable</th><th>Kind</th><th>Value</th></tr>
+  <tr><td><code>SPRING_PROFILES_ACTIVE</code></td><td>env</td><td><code>prod</code></td></tr>
+  <tr><td><code>PORT</code></td><td>set by Cloud Run</td><td><code>8080</code></td></tr>
+  <tr><td><code>SPRING_DATASOURCE_URL</code></td><td>env</td><td><code>jdbc:postgresql://<span class="ph">SUPABASE_POOLER_HOST</span>:5432/postgres?sslmode=require&amp;currentSchema=est</code></td></tr>
+  <tr><td><code>SPRING_DATASOURCE_USERNAME</code></td><td>env</td><td><code>postgres.<span class="ph">SUPABASE_PROJECT_REF</span></code></td></tr>
+  <tr><td><code>SPRING_DATASOURCE_PASSWORD</code></td><td>secret <code>est-db-password</code></td><td>Supabase database password</td></tr>
+  <tr><td><code>EST_DB_SCHEMA</code></td><td>env</td><td><code>est</code> — the API creates and migrates this schema</td></tr>
+  <tr><td><code>EST_DB_POOL_SIZE</code></td><td>env</td><td><code>5</code> (Supabase free tier allows ~15 pooled connections)</td></tr>
+  <tr><td><code>EST_WEB_ORIGINS</code></td><td>env</td><td><code>https://<span class="ph">WEB_HOST</span></code> — browsers allowed to call the API</td></tr>
+  <tr><td><code>EST_ALLOWED_DOMAINS</code></td><td>env</td><td>comma-separated email domains; empty = any verified Google account</td></tr>
+  <tr><td><code>EST_BOOTSTRAP_ADMIN_EMAILS</code></td><td>env</td><td>become ADMIN + ACTIVE on first sign-in</td></tr>
+  <tr><td><code>EST_JWT_ISSUER</code></td><td>env</td><td><code>https://<span class="ph">API_HOST</span></code></td></tr>
+  <tr><td><code>EST_JWT_ACCESS_TTL</code> / <code>EST_JWT_REFRESH_TTL</code></td><td>env, optional</td><td>defaults <code>PT15M</code> / <code>P14D</code></td></tr>
+  <tr><td><code>EST_JWT_PRIVATE_KEY</code> / <code>EST_JWT_PUBLIC_KEY</code></td><td>secrets <code>est-jwt-private-key</code> / <code>est-jwt-public-key</code></td><td>RSA 2048 PEM pair (signs login tokens)</td></tr>
+  <tr><td><code>EST_COOKIE_SECURE</code></td><td>env</td><td><code>true</code></td></tr>
+  <tr><td><code>EST_CRYPTO_KEY</code></td><td>secret <code>est-crypto-key</code></td><td>base64 of 32 random bytes (encrypts stored Google calendar access)</td></tr>
+  <tr><td><code>GOOGLE_CLIENT_ID</code></td><td>env</td><td>OAuth Web client id (public)</td></tr>
+  <tr><td><code>GOOGLE_CLIENT_SECRET</code></td><td>secret <code>est-google-client-secret</code></td><td>OAuth Web client secret</td></tr>
+  <tr><td><code>GOOGLE_REDIRECT_URI</code></td><td>env</td><td><code>https://<span class="ph">API_HOST</span>/api/v1/calendar/identities/link/callback</code> — must match the OAuth client exactly</td></tr>
+  <tr><td><code>EST_SYNC_ENABLED</code> / <code>EST_SYNC_INTERVAL</code></td><td>env</td><td><code>true</code> / <code>PT15M</code></td></tr>
+</table>
+<h3>Web service <code>est-web</code> (build-time, baked into the image by <code>03-build-push.sh</code>)</h3>
+<table>
+  <tr><th>Variable</th><th>Value</th></tr>
+  <tr><td><code>NEXT_PUBLIC_API_URL</code></td><td><code>https://<span class="ph">API_HOST</span></code></td></tr>
+  <tr><td><code>NEXT_PUBLIC_GOOGLE_CLIENT_ID</code></td><td>optional — the sign-in page also fetches it from the API</td></tr>
+</table>
+<h3>Never configure</h3>
+<p>Supabase <em>anon</em>/<em>service_role</em> keys, Supabase Auth, Supabase JWT secret — EST does not use them. Developer endpoints (<code>/api/v1/dev/…</code>) exist only on a developer's laptop profile and are impossible to turn on in <code>prod</code>.</p>
+</section>
+
+<!-- ───────────────────────── later ───────────────────────── -->
+<section id="later">
+<h2>Later: updating, rolling back, rotating</h2>
+<div class="meta"><span class="where term">Terminal</span></div>
+<p><strong>Deploy a new version</strong> (after pulling the latest code):</p>
+<pre><code>infra/deploy/03-build-push.sh && infra/deploy/04-deploy-api.sh && infra/deploy/05-deploy-web.sh && infra/deploy/07-verify.sh</code><button class="copy">Copy</button></pre>
+<p><strong>Roll the API back</strong> to the previous version (list revisions, then send all traffic to one):</p>
+<pre><code>gcloud run revisions list --service est-api --region <span class="ph">REGION</span>
+gcloud run services update-traffic est-api --region <span class="ph">REGION</span> --to-revisions <span class="ph">est-api-00012-abc</span>=100</code><button class="copy">Copy</button></pre>
+<p><strong>Change the Supabase password or Google client secret</strong>: update <code>~/est-deploy.env</code>, then</p>
+<pre><code>infra/deploy/02-secrets.sh && infra/deploy/04-deploy-api.sh</code><button class="copy">Copy</button></pre>
+<p><strong>Rotate the login signing keys</strong> (everyone is signed out within 15 minutes; calendars stay linked):</p>
+<pre><code>ROTATE_KEYS=yes infra/deploy/02-secrets.sh && infra/deploy/04-deploy-api.sh</code><button class="copy">Copy</button></pre>
+<div class="warn">Rotating <code>est-crypto-key</code> (part of <code>ROTATE_KEYS=yes</code>) makes previously stored calendar access unreadable: every member must re-link their Google account. Do it only if the key may have leaked.</div>
+<p><strong>Read logs</strong>:</p>
+<pre><code>gcloud run services logs read est-api --region <span class="ph">REGION</span> --limit 100</code><button class="copy">Copy</button></pre>
+</section>
+
+<!-- ───────────────────────── troubleshooting ───────────────────────── -->
+<section id="trouble">
+<h2>Troubleshooting</h2>
+<table>
+  <tr><th>What you see</th><th>Why / what to do</th></tr>
+  <tr><td>Script: <code>✖ Settings file not found</code></td><td>Step 1 was skipped — copy the template to <code>~/est-deploy.env</code>.</td></tr>
+  <tr><td>Script: <code>✖ … is missing or still a placeholder</code></td><td>Fill that line in the settings file (no <code>change-me</code> left).</td></tr>
+  <tr><td><code>Billing is not enabled</code></td><td>Step 3a: link a billing account to the project in the console.</td></tr>
+  <tr><td><code>permission denied</code> while pushing images</td><td>Run <code>gcloud auth configure-docker <span class="ph">REGION</span>-docker.pkg.dev</code> (01-gcp-project.sh does this) and make sure Docker Desktop is running.</td></tr>
+  <tr><td>API not healthy; log says <code>EST_JWT_PRIVATE_KEY … must be set</code></td><td>Step 6 was not run, or the runtime identity lacks access — re-run <code>02-secrets.sh</code>, then <code>04-deploy-api.sh</code>.</td></tr>
+  <tr><td>Log: <code>GOOGLE_CLIENT_ID must be set</code></td><td>Fill <code>GOOGLE_CLIENT_ID</code> in the settings file (Step 5) and redeploy.</td></tr>
+  <tr><td>Log: <code>Connection … refused / timed out</code> to Supabase</td><td>You used the <em>Direct connection</em> host. Use the <strong>Session pooler</strong> host (Step 4) and redeploy.</td></tr>
+  <tr><td>Log: <code>password authentication failed</code></td><td>Wrong <code>SUPABASE_DB_PASSWORD</code>. Reset it in Supabase → Database → Reset password, update the settings file, run <code>02-secrets.sh</code> then <code>04-deploy-api.sh</code>.</td></tr>
+  <tr><td>Log: <code>prepared statement "S_1" already exists</code></td><td>You used the <em>Transaction pooler</em> (port 6543). Switch to the Session pooler on 5432.</td></tr>
+  <tr><td>Sign-in button missing; page says Google sign-in not configured</td><td>The API's <code>GOOGLE_CLIENT_ID</code> is empty — see above.</td></tr>
+  <tr><td>Sign-in popup: <code>origin_mismatch</code> / 400</td><td>The OAuth client's <em>Authorised JavaScript origins</em> must contain exactly <code>https://<span class="ph">WEB_HOST</span></code>. Also you must be on your own domain, not <code>…run.app</code>.</td></tr>
+  <tr><td>Sign-in works but refreshing the page signs you out</td><td>Web and API are not on the same domain — complete Step 10 and use <code>https://app.…</code>.</td></tr>
+  <tr><td>"Your account is waiting for an admin to approve it"</td><td>Expected for anyone not in <code>BOOTSTRAP_ADMINS</code>. An admin approves them under <strong>Admin</strong>.</td></tr>
+  <tr><td>"Accounts from … cannot sign in here"</td><td>Their email domain is not in <code>EST_ALLOWED_DOMAINS</code>.</td></tr>
+  <tr><td>Linking a calendar: <code>redirect_uri_mismatch</code></td><td>The OAuth client's redirect URI must be exactly <code>https://<span class="ph">API_HOST</span>/api/v1/calendar/identities/link/callback</code>.</td></tr>
+  <tr><td>Linking a calendar: <code>access_denied</code> / "app not verified"</td><td>External consent screen in <em>Testing</em>: add the person as a test user (Step 5a), or request verification from Google.</td></tr>
+  <tr><td>Linked calendar shows <em>needs re-link</em></td><td>Google revoked or expired the access (e.g. password change). The member clicks <strong>Add Google account</strong> again.</td></tr>
+  <tr><td>Certificate never becomes ready</td><td>DNS record wrong or proxied (Cloudflare orange cloud). Fix the record, wait up to an hour.</td></tr>
+</table>
+</section>
+
+<footer>
+  Scripts: <code>infra/deploy/*.sh</code> · Settings template: <code>infra/deploy/est-deploy.env.example</code> · Security design: <code>infra/runbooks/security.md</code> · OAuth details: <code>infra/runbooks/google-cloud.md</code>
+</footer>
+</div>
+
+<script>
+  document.querySelectorAll('pre').forEach((pre) => {
+    const btn = pre.querySelector('button.copy'); if (!btn) return;
+    btn.addEventListener('click', async () => {
+      const text = pre.querySelector('code').innerText.replace(/\n+$/, '');
+      try { await navigator.clipboard.writeText(text); }
+      catch { const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+      btn.textContent = 'Copied!'; btn.classList.add('done');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1600);
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-# Production: everything from the environment, strict defaults. See infra/runbooks/deploy-gcp-supabase.md.
+# Production: everything from the environment, strict defaults. See infra/runbooks/deploy-gcp-supabase.html.
 spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL}
