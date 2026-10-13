@@ -11,7 +11,8 @@ gcloud services enable run.googleapis.com artifactregistry.googleapis.com secret
 ok "Services enabled"
 gcloud artifacts repositories describe est --location="$REGION" >/dev/null 2>&1 \
   || gcloud artifacts repositories create est --repository-format=docker --location="$REGION" --description="EST images" >/dev/null
-ok "Image repository: $IMG"
+gcloud artifacts repositories set-cleanup-policies est --location="$REGION" --policy="$REPO_ROOT/infra/deploy/cleanup-policy.json" --no-dry-run --quiet >/dev/null 2>&1 || true
+ok "Image repository: $IMG (keeps the 3 newest images per service, deletes older than 30 days — stays inside the free 0.5 GB)"
 gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet >/dev/null
 ok "Docker can push to Artifact Registry"
 gcloud iam service-accounts describe "$API_SA" >/dev/null 2>&1 \

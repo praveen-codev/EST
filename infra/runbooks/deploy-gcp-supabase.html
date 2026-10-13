@@ -43,7 +43,7 @@
 <div class="wrap">
 
 <h1>Enablement Session Tracker — first deployment</h1>
-<p class="lead">Google Cloud Run (API + web) · Supabase Postgres (database) · Google sign-in and Calendar. Written for someone who has never deployed before: every step says <em>where</em> to do it, <em>what</em> to do, and <em>how to check</em> it worked.</p>
+<p class="lead">Google Cloud Run (API + web) · Supabase Postgres (database) · Google sign-in and Calendar · no domain to buy. Written for someone who has never deployed before: every step says <em>where</em> to do it, <em>what</em> to do, and <em>how to check</em> it worked. Running costs are explained at the <a href="#costs">end</a>.</p>
 
 <div class="card">
   <h3 style="margin-top:0">How to read this page</h3>
@@ -62,18 +62,8 @@
   <div class="check"><input type="checkbox"><div><strong>Docker Desktop</strong> installed and running (whale icon in the menu bar).</div></div>
   <div class="check"><input type="checkbox"><div>A Google account that can <strong>create a Google Cloud project and attach a billing account</strong> (or someone who can do that for you once).</div></div>
   <div class="check"><input type="checkbox"><div>A <strong>Supabase</strong> account (free tier is fine to start).</div></div>
-  <div class="check"><input type="checkbox"><div><strong>Optional:</strong> a domain you control (for example <code>acme.com</code>). <strong>Not required</strong> — see the two paths below.</div></div>
-  <h3>Choose your path</h3>
-  <table>
-    <tr><th></th><th>Path A — no domain (free)</th><th>Path B — your own domain</th></tr>
-    <tr><td>Address</td><td>One Google address like <code>https://est-web-abc123-ew.a.run.app</code>; the web app proxies <code>/api/…</code> to the API internally</td><td><code>https://app.acme.com</code> and <code>https://api.acme.com</code></td></tr>
-    <tr><td>Cost</td><td>$0 beyond Cloud Run/Supabase usage</td><td>Domain price (≈ $2–15/yr) or a free subdomain, see <a href="#freedomains">Free domain options</a></td></tr>
-    <tr><td>Setting</td><td><code>DOMAIN_MODE=none</code> (the default)</td><td><code>DOMAIN_MODE=custom</code> + <code>WEB_HOST</code>/<code>API_HOST</code></td></tr>
-    <tr><td>Extra steps</td><td>Deploy the API twice (the web address is only known after the web deploy)</td><td>DNS records + waiting for certificates</td></tr>
-    <tr><td>Good for</td><td>Pilots, internal tools, trying it out today</td><td>A memorable address for the whole team</td></tr>
-  </table>
-  <div class="warn">If you go for Path B, the web app and the API <strong>must</strong> live under the same domain (<code>app.acme.com</code> + <code>api.acme.com</code>). The login cookie is deliberately strict and is only sent between names on the same domain. Two different free addresses (e.g. <code>…run.app</code> for the API and <code>…vercel.app</code> for the web) would log everyone out on every page refresh — that is exactly what Path A's proxy avoids.</div>
-  <p class="time">Total time the first time: Path A about 45–60 minutes; Path B 60–90 minutes, of which ~30 is waiting for DNS and certificates.</p>
+  <div class="check"><input type="checkbox"><div><strong>No domain needed.</strong> Your app will live at a free Google address like <code>https://est-web-abc123-ew.a.run.app</code>; the web app and the API share it (the web server forwards <code>/api/…</code> to the API internally, so sign-in cookies and Google redirects all stay on one address).</div></div>
+  <p class="time">Total time the first time: about 45–60 minutes.</p>
 </div>
 
 <h3>Steps</h3>
@@ -84,13 +74,12 @@
   <li><a href="#s4">Supabase database</a></li>
   <li><a href="#s5">Google sign-in (OAuth client)</a></li>
   <li><a href="#s6">Store the secrets</a></li>
-  <li><a href="#s7">Build and upload the app</a></li>
-  <li><a href="#s8">Deploy the API</a></li>
-  <li><a href="#s9">Deploy the web app</a></li>
-  <li><a href="#s10">Point your domain at it</a></li>
+  <li><a href="#s7">Deploy the API (first pass)</a></li>
+  <li><a href="#s8">Build and upload the web app</a></li>
+  <li><a href="#s9">Deploy the web app and connect the address</a></li>
   <li><a href="#s11">Verify everything</a></li>
   <li><a href="#s12">First sign-in and smoke test</a></li>
-  <li><a href="#freedomains">Free domain options (for Path B)</a></li>
+  <li><a href="#costs">What it costs (and the free-tier limits)</a></li>
   <li><a href="#ref">Reference: every setting and secret by name</a></li>
   <li><a href="#later">Later: updates, rollback, rotation</a></li>
   <li><a href="#trouble">Troubleshooting</a></li>
@@ -104,14 +93,11 @@
 <pre><code>cd <span class="ph">/path/to/EST</span>          <span class="cm"># the project folder; e.g. ~/Documents/work/repos/EST</span>
 cp infra/deploy/est-deploy.env.example ~/est-deploy.env
 open -e ~/est-deploy.env      <span class="cm"># opens it in TextEdit</span></code><button class="copy">Copy</button></pre>
-<p>Fill in the <strong>Google Cloud</strong>, <strong>Addresses</strong> and <strong>who may sign in</strong> sections now (you choose these yourself). Leave the Supabase and Google OAuth lines for later steps. Rules: no spaces around <code>=</code>, no quotes needed, lines starting with <code>#</code> are comments.</p>
+<p>Fill in the <strong>Google Cloud</strong> and <strong>who may sign in</strong> sections now (you choose these yourself). Leave the Supabase and Google OAuth lines for later steps. Rules: no spaces around <code>=</code>, no quotes needed, lines starting with <code>#</code> are comments.</p>
 <table>
   <tr><th>Setting</th><th>What to put</th><th>Example</th></tr>
   <tr><td><code>PROJECT_ID</code></td><td>A new, globally unique id for your Google Cloud project: lowercase letters, digits, dashes, 6–30 chars</td><td><code>est-prod-acme</code></td></tr>
   <tr><td><code>REGION</code></td><td>The Cloud Run region closest to your users</td><td><code>europe-west1</code>, <code>us-central1</code>, <code>asia-south1</code></td></tr>
-  <tr><td><code>DOMAIN_MODE</code></td><td><code>none</code> for Path A (free, no domain) or <code>custom</code> for Path B</td><td><code>none</code></td></tr>
-  <tr><td><code>DOMAIN</code></td><td>Path B only: your domain</td><td><code>acme.com</code></td></tr>
-  <tr><td><code>WEB_HOST</code> / <code>API_HOST</code></td><td>Path B only: the two names you will create under it (ignored on Path A)</td><td><code>app.acme.com</code> / <code>api.acme.com</code></td></tr>
   <tr><td><code>ALLOWED_DOMAINS</code></td><td>Email domains allowed to sign in (comma-separated)</td><td><code>acme.com</code></td></tr>
   <tr><td><code>BOOTSTRAP_ADMINS</code></td><td>Your email(s) — become admins automatically on first sign-in</td><td><code>you@acme.com</code></td></tr>
 </table>
@@ -129,7 +115,7 @@ gcloud components install beta --quiet</code><button class="copy">Copy</button><
 <pre><code>gcloud auth login</code><button class="copy">Copy</button></pre>
 <p>Now run the first check script. It confirms Docker is running, you are logged in, and your settings file has the basics.</p>
 <pre><code>infra/deploy/00-check-tools.sh</code><button class="copy">Copy</button></pre>
-<div class="verify">Four ✔ lines: gcloud version + your account, Docker running, settings file OK. If you see ✖, it tells you what is missing (e.g. "Docker Desktop is not running").</div>
+<div class="verify">Three ✔ lines: gcloud version + your account, Docker running, settings file OK. If you see ✖, it tells you what is missing (e.g. "Docker Desktop is not running").</div>
 </section>
 
 <!-- ───────────────────────── 3 ───────────────────────── -->
@@ -199,10 +185,10 @@ Expected: <code>Connection to … port 5432 [tcp/postgresql] succeeded!</code></
 <ol class="clicks">
   <li>Left menu → <strong>Clients</strong> → <strong>Create client</strong>.</li>
   <li><strong>Application type</strong>: <em>Web application</em>. <strong>Name</strong>: <em>est-api</em>.</li>
-  <li><strong>Path B only</strong> — <strong>Authorised JavaScript origins</strong> → Add URI: <code>https://<span class="ph">app.acme.com</span></code> (your <code>WEB_HOST</code>, with <code>https://</code>, no trailing slash). <strong>Authorised redirect URIs</strong> → Add URI: <code>https://<span class="ph">api.acme.com</span>/api/v1/calendar/identities/link/callback</code>.<br><strong>Path A</strong>: leave both lists empty for now — you will add your <code>…run.app</code> address in Step 9 once you know it.</li>
+  <li>Leave <strong>Authorised JavaScript origins</strong> and <strong>Authorised redirect URIs</strong> empty for now — you will add your app's address in Step 9, once Google has assigned it.</li>
   <li><strong>Create</strong>. A dialog shows the <strong>Client ID</strong> and <strong>Client secret</strong>. Copy both into the settings file as <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code>.</li>
 </ol>
-<div class="verify">Settings file: <code>GOOGLE_CLIENT_ID</code> ends with <code>.apps.googleusercontent.com</code>; <code>GOOGLE_CLIENT_SECRET</code> starts with <code>GOCSPX-</code>. Path B: in the console the client <em>est-api</em> shows one origin and one redirect URI exactly matching your two hostnames.</div>
+<div class="verify">Settings file: <code>GOOGLE_CLIENT_ID</code> ends with <code>.apps.googleusercontent.com</code>; <code>GOOGLE_CLIENT_SECRET</code> starts with <code>GOCSPX-</code>.</div>
 </section>
 
 <!-- ───────────────────────── 6 ───────────────────────── -->
@@ -217,57 +203,40 @@ Expected: <code>Connection to … port 5432 [tcp/postgresql] succeeded!</code></
 
 <!-- ───────────────────────── 7 ───────────────────────── -->
 <section class="step" id="s7">
-<h2>Build and upload the app</h2>
-<div class="meta"><span class="where term">Terminal</span><span class="where wait">Wait</span><span class="time">5–10 min</span></div>
-<p>Builds two container images on your Mac — the API (Java) and the web app — and uploads them to your Artifact Registry. The web image has the API's address baked in, so the order differs by path:</p>
-<p><strong>Path A (no domain)</strong> — the API must exist first so its address can be built into the web app. Run the API deploy now (it builds and pushes the API image itself), then build:</p>
-<pre><code>infra/deploy/04-deploy-api.sh && infra/deploy/03-build-push.sh</code><button class="copy">Copy</button></pre>
-<p><strong>Path B (own domain)</strong> — the addresses are known up front:</p>
-<pre><code>infra/deploy/03-build-push.sh</code><button class="copy">Copy</button></pre>
-<div class="verify">Two "✔ Pushed …/est-api:&lt;tag&gt;" / "…/est-web:&lt;tag&gt;" lines. On Path A the API deploy also printed "✔ API is UP" and a note that it used a placeholder web address for now — expected. The Artifact Registry page shows both images.</div>
+<h2>Deploy the API (first pass)</h2>
+<div class="meta"><span class="where term">Terminal</span><span class="where wait">Wait</span><span class="time">5–8 min</span></div>
+<p>The web app needs the API's address baked in, so the API goes first. This script builds the API container on your Mac, uploads it, creates the Cloud Run service <strong>est-api</strong> with all settings and secret references, keeps exactly one instance always on (the calendar sync runs inside it every 15 minutes), waits for it to start and checks its health. On first start the API creates the database schema <code>est</code> in Supabase and applies its 3 migrations.</p>
+<pre><code>infra/deploy/04-deploy-api.sh</code><button class="copy">Copy</button></pre>
+<div class="verify">"✔ API is UP and connected to Supabase", "✔ Production flags: devMode=false…", "✔ Flyway: Successfully applied 3 migrations", and a note that the web address is <em>not known yet</em> — expected; the script tells you to come back after Step 9. In Supabase → <strong>Table Editor</strong>, switch the schema dropdown (top left) from <em>public</em> to <em>est</em>: you see tables like <code>members</code>, <code>sessions</code>, <code>catalog_items</code>.</div>
+<div class="danger">If it says the API is not healthy, run the log command it prints. The most common causes are in <a href="#trouble">Troubleshooting</a> (wrong pooler host, wrong password, missing Google client id).</div>
 </section>
 
 <!-- ───────────────────────── 8 ───────────────────────── -->
 <section class="step" id="s8">
-<h2>Deploy the API</h2>
-<div class="meta"><span class="where term">Terminal</span><span class="where wait">Wait</span><span class="time">3 min</span></div>
-<p><strong>Path A</strong>: you already did this in Step 7 — skip to Step 9. <strong>Path B</strong>:</p>
-<pre><code>infra/deploy/04-deploy-api.sh</code><button class="copy">Copy</button></pre>
-<p>This creates the Cloud Run service <strong>est-api</strong> with all its settings and secret references, keeps exactly one instance always on (the calendar sync runs inside it every 15 minutes), waits for it to start, and checks its health. On first start the API creates the database schema <code>est</code> in Supabase and applies its 3 migrations.</p>
-<div class="verify">"✔ API is UP and connected to Supabase", "✔ Production flags: devMode=false…", and a "✔ Flyway: Successfully applied 3 migrations" line. In Supabase → <strong>Table Editor</strong>, switch the schema dropdown (top left) from <em>public</em> to <em>est</em>: you see tables like <code>members</code>, <code>sessions</code>, <code>catalog_items</code>.</div>
-<div class="danger">If it says the API is not healthy, run the log command it prints. The most common causes are in <a href="#trouble">Troubleshooting</a> (wrong pooler host, wrong password, missing Google client id).</div>
+<h2>Build and upload the web app</h2>
+<div class="meta"><span class="where term">Terminal</span><span class="where wait">Wait</span><span class="time">3–5 min</span></div>
+<p>Builds the web container with the API's address compiled in and uploads it (the API image is already up to date from Step 7).</p>
+<pre><code>infra/deploy/03-build-push.sh</code><button class="copy">Copy</button></pre>
+<div class="verify">"✔ Pushed …/est-api:&lt;tag&gt;" and "✔ Pushed …/est-web:&lt;tag&gt;" (the tag is the short git commit id). The build log line says the browser will reach the API at <em>this same host</em>. The Artifact Registry page shows both images.</div>
 </section>
 
 <!-- ───────────────────────── 9 ───────────────────────── -->
 <section class="step" id="s9">
-<h2>Deploy the web app</h2>
-<div class="meta"><span class="where term">Terminal</span><span class="where web">Browser (Path A)</span><span class="time">5 min</span></div>
+<h2>Deploy the web app and connect the address</h2>
+<div class="meta"><span class="where term">Terminal</span><span class="where web">Browser</span><span class="time">5 min</span></div>
 <pre><code>infra/deploy/05-deploy-web.sh</code><button class="copy">Copy</button></pre>
-<p><strong>Path A</strong> — the script prints your app's address (<code>https://est-web-….run.app</code>). Two more things:</p>
+<p>The script prints <strong>your app's address</strong> — something like <code>https://est-web-abc123-ew.a.run.app</code>. Write it down. Two more things make it official:</p>
 <ol class="clicks">
-  <li>Tell the API about that address (sign-in origin and Google redirect) by deploying it once more:
+  <li>Tell the API about the address (it becomes the allowed sign-in origin and the Google redirect target) by deploying the API once more — it now picks the address up automatically:
     <pre><code>infra/deploy/04-deploy-api.sh</code><button class="copy">Copy</button></pre></li>
-  <li>Add the address to the OAuth client: <a href="https://console.cloud.google.com/auth/clients" target="_blank" rel="noopener">Google Auth Platform → Clients</a> → <em>est-api</em> → <strong>Authorised JavaScript origins</strong>: <code>https://<span class="ph">est-web-abc123-ew.a.run.app</span></code> and <strong>Authorised redirect URIs</strong>: <code>https://<span class="ph">est-web-abc123-ew.a.run.app</span>/api/v1/calendar/identities/link/callback</code> (the script prints both lines ready to paste) → <strong>Save</strong>. Then skip Step 10.</li>
+  <li>Add the address to the OAuth client from Step 5: <a href="https://console.cloud.google.com/auth/clients" target="_blank" rel="noopener">Google Auth Platform → Clients</a> → <em>est-api</em> →
+    <ul>
+      <li><strong>Authorised JavaScript origins</strong> → Add URI: <code>https://<span class="ph">est-web-abc123-ew.a.run.app</span></code></li>
+      <li><strong>Authorised redirect URIs</strong> → Add URI: <code>https://<span class="ph">est-web-abc123-ew.a.run.app</span>/api/v1/calendar/identities/link/callback</code></li>
+    </ul>
+    (the web deploy script printed both lines ready to paste) → <strong>Save</strong>. Google says changes can take a few minutes to apply.</li>
 </ol>
-<div class="verify">Path A: the second API deploy ends with "✔ API now trusts the web address https://est-web-…". Path B: "✔ Web is serving. Temporary address: …run.app" — opening it shows the sign-in page, but <strong>do not sign in yet</strong>; it only works once your own domain is attached (next step).</div>
-</section>
-
-<!-- ───────────────────────── 10 ───────────────────────── -->
-<section class="step" id="s10">
-<h2>Point your domain at it (Path B only)</h2>
-<div class="meta"><span class="where term">Terminal</span><span class="where web">Browser (your domain provider)</span><span class="where wait">Wait</span><span class="time">10 min + waiting</span></div>
-<p><strong>Path A</strong>: nothing to do here (the script just confirms that). <strong>Path B</strong>: tell Cloud Run which hostnames belong to which service, then create the DNS records it asks for.</p>
-<pre><code>infra/deploy/06-domains.sh</code><button class="copy">Copy</button></pre>
-<p>The script prints a small table with two records, typically:</p>
-<pre><code><span class="ph">api.acme.com</span>   CNAME   ghs.googlehosted.com.
-<span class="ph">app.acme.com</span>   CNAME   ghs.googlehosted.com.</code><button class="copy">Copy</button></pre>
-<p>Now in your domain provider's DNS page (Cloudflare, GoDaddy, Namecheap, Route 53, …) add exactly those records. Common gotchas:</p>
-<ul>
-  <li>In the <em>Name</em>/<em>Host</em> field most providers want only the part before your domain: <code>api</code> and <code>app</code>, not the full name.</li>
-  <li>If your provider is <strong>Cloudflare</strong>, set the proxy status to <strong>DNS only</strong> (grey cloud), not proxied, or the certificate step will fail.</li>
-  <li>If the script printed <code>A</code>/<code>AAAA</code> records instead of a CNAME (this happens for a bare domain), create all of them.</li>
-</ul>
-<div class="verify">Wait 5–30 minutes, then run the verification in the next step. You can watch certificate progress in <a href="https://console.cloud.google.com/run/domains" target="_blank" rel="noopener">Cloud Run → Domain mappings</a> — both rows turn to a green check.</div>
+<div class="verify">The second API deploy ends with "✔ API now trusts the web address https://est-web-…". The OAuth client shows one origin and one redirect URI, both starting with your address.</div>
 </section>
 
 <!-- ───────────────────────── 11 ───────────────────────── -->
@@ -275,7 +244,7 @@ Expected: <code>Connection to … port 5432 [tcp/postgresql] succeeded!</code></
 <h2>Verify everything</h2>
 <div class="meta"><span class="where term">Terminal</span><span class="time">1 min, repeat as needed</span></div>
 <pre><code>infra/deploy/07-verify.sh</code><button class="copy">Copy</button></pre>
-<div class="verify">All lines ✔: (Path B) DNS resolves for both names and certificates are ready; API health UP, the API knows your Google client id, protected routes answer 401, developer endpoints answer 404, the sign-in page loads, and (Path A) the API no longer holds the placeholder web address. The last line says <em>All checks passed</em>. Any ✖ about DNS or certificates just means "wait a bit longer" — re-run the script.</div>
+<div class="verify">All lines ✔: API health UP, the API knows your Google client id, protected routes answer 401, developer endpoints answer 404, the sign-in page loads, and the API no longer holds the placeholder web address. The last line says <em>All checks passed</em> and prints your address.</div>
 </section>
 
 <!-- ───────────────────────── 12 ───────────────────────── -->
@@ -283,37 +252,128 @@ Expected: <code>Connection to … port 5432 [tcp/postgresql] succeeded!</code></
 <h2>First sign-in and smoke test</h2>
 <div class="meta"><span class="where web">Browser</span><span class="time">5 min</span></div>
 <ol class="clicks">
-  <li>Open your app — Path A: the <code>https://est-web-….run.app</code> address, Path B: <code>https://<span class="ph">app.acme.com</span></code> → <strong>Sign in with Google</strong> using one of your <code>BOOTSTRAP_ADMINS</code> addresses. You land on <strong>Today</strong> and the <strong>Admin</strong> item in the left rail is enabled — you are an admin.</li>
+  <li>Open your app's address (<code>https://est-web-….run.app</code>) → <strong>Sign in with Google</strong> using one of your <code>BOOTSTRAP_ADMINS</code> addresses. You land on <strong>Today</strong> and the <strong>Admin</strong> item in the left rail is enabled — you are an admin.</li>
   <li>Account menu (top right) → <strong>Linked calendars</strong> → <strong>Add Google account</strong>. Google asks for consent (read-only calendar). After consenting you return to the page with a "Calendar linked" message and the first import has already run.</li>
   <li>Add a second Google account the same way if you have one — this is the "partner accounts" feature.</li>
   <li>Click <strong>Sync calendar</strong> in the top bar twice. The second time it reports <em>unchanged</em> events and creates no duplicates.</li>
   <li>Go to <strong>Inbox</strong> and <strong>Today</strong>: your real meetings that match the team's session formats (101, 201, pair programming, AMA, sprint in a day) appear as candidates.</li>
   <li>Ask a colleague on an allowed domain to sign in: they see "Waiting for approval". In <strong>Admin</strong> you approve them (or call <code>PATCH /api/v1/admin/members/{id}</code> with <code>{"status":"ACTIVE"}</code>).</li>
 </ol>
-<div class="verify">After a page refresh you are <strong>still signed in</strong> (this proves the same-domain cookie works). Linked calendars shows your account as <em>active</em> with a "last sync" time.</div>
-<div class="warn">Path B only: if refreshing the page sends you back to sign-in, the web and API hostnames are not on the same domain, or you opened the temporary <code>…run.app</code> address instead of <code>https://app.your-domain</code>.</div>
+<div class="verify">After a page refresh you are <strong>still signed in</strong>. Linked calendars shows your account as <em>active</em> with a "last sync" time.</div>
 </section>
 
-<!-- ───────────────────────── free domains ───────────────────────── -->
-<section id="freedomains">
-<h2 style="border-top:1px solid var(--line)">Free domain options (only if you want Path B)</h2>
-<p>Short version: <strong>nobody gives away real domains for free any more</strong> (Freenom, the old <code>.tk/.ml/.ga</code> source, shut down), and <strong>Cloudflare does not offer free domains</strong> — its registrar sells them at cost (about $10/yr for <code>.com</code>) and its free products (<code>pages.dev</code>, <code>workers.dev</code>) cannot point at Cloud Run. What exists for $0 are <em>free sub-domains</em> of someone else's domain. Any of these works for Path B as long as you can create <strong>CNAME records</strong> for <code>app.…</code> and <code>api.…</code>.</p>
+<!-- ───────────────────────── costs ───────────────────────── -->
+<section id="costs">
+<h2 style="border-top:1px solid var(--line)">What it costs (and the free-tier limits)</h2>
+<p>Prices are list prices in USD from the official pricing pages (<a href="https://cloud.google.com/run/pricing" target="_blank" rel="noopener">Cloud Run</a>, <a href="https://cloud.google.com/secret-manager/pricing" target="_blank" rel="noopener">Secret Manager</a>, <a href="https://cloud.google.com/artifact-registry/pricing" target="_blank" rel="noopener">Artifact Registry</a>, <a href="https://supabase.com/pricing" target="_blank" rel="noopener">Supabase</a>) as of October 2026, Tier-1 regions such as <code>europe-west1</code> / <code>us-central1</code>. Google bills monthly in arrears; Supabase bills monthly per organisation. Nothing here has an annual commitment — "per year" is simply ×12.</p>
+
+<h3>The short version</h3>
 <table>
-  <tr><th>Option</th><th>You get</th><th>Works with Cloud Run?</th><th>Catch</th></tr>
-  <tr><td><strong>Path A (this guide)</strong></td><td><code>est-web-….run.app</code> from Google</td><td>Yes — no DNS at all</td><td>Ugly address; otherwise none. <em>Recommended.</em></td></tr>
-  <tr><td><a href="https://freedns.afraid.org" target="_blank" rel="noopener">FreeDNS (afraid.org)</a></td><td><code>yourname.mooo.com</code>, <code>…chickenkiller.com</code>, dozens of shared domains; create <code>app.yourname.mooo.com</code> and <code>api.yourname.mooo.com</code> as two records</td><td>Yes — supports CNAME/TXT, changes are live immediately</td><td>Shared domains have a spammy reputation; some are on blocklists. Free tier limited to a handful of records.</td></tr>
-  <tr><td><a href="https://www.is-a.dev" target="_blank" rel="noopener">is-a.dev</a></td><td><code>yourname.is-a.dev</code> plus nested <code>app.yourname.is-a.dev</code> / <code>api.yourname.is-a.dev</code> (one JSON file each, via GitHub pull request)</td><td>Yes — CNAME records supported</td><td>Terms require the root name to relate to software development; approval by volunteers (hours–days). Fine for an engineering team's internal tool.</td></tr>
-  <tr><td><a href="https://nic.eu.org" target="_blank" rel="noopener">eu.org</a></td><td>A real delegated domain <code>yourname.eu.org</code> you host on free Cloudflare DNS, any records you like</td><td>Yes — the cleanest free result</td><td>Approval is manual and notoriously slow: days if lucky, often months.</td></tr>
-  <tr><td>DuckDNS, No-IP free, etc.</td><td>Dynamic-DNS names</td><td><strong>No</strong> — A records only, no CNAME; Cloud Run domain mapping needs a CNAME</td><td>—</td></tr>
-  <tr><td>Cheap paid (not free)</td><td>Your own <code>.xyz</code>, <code>.click</code>, <code>.site</code> from Porkbun / Namecheap / Cloudflare Registrar</td><td>Yes</td><td>≈ $1–3 first year for the "ugly" TLDs, $10 for <code>.com</code>. Honestly the best value if Path A's address bothers you.</td></tr>
+  <tr><th>Setup</th><th>Per month</th><th>Per year</th><th>What you give up</th></tr>
+  <tr><td><strong>Standard</strong> (this guide as written): API always on, Supabase Free</td><td><strong>≈ $13–14</strong></td><td><strong>≈ $160–170</strong></td><td>No database backups (Supabase Free)</td></tr>
+  <tr><td><strong>Recommended once real data matters</strong>: same + Supabase Pro</td><td>≈ $38–39</td><td>≈ $460–470</td><td>—</td></tr>
+  <tr><td><strong>Pilot / near-zero</strong>: API allowed to sleep (<code>min-instances 0</code>), Supabase Free</td><td>≈ $0–1</td><td>≈ $0–12</td><td>Calendars only sync while someone is using the app (the 15-minute background sync sleeps with the API); first request after idle takes ~5–10 s; Supabase may pause after a quiet week</td></tr>
 </table>
-<p>With any of these, set <code>DOMAIN_MODE=custom</code>, <code>WEB_HOST=app.<span class="ph">yourname.mooo.com</span></code>, <code>API_HOST=api.<span class="ph">yourname.mooo.com</span></code> and follow Path B. Cloud Run will also ask you to <strong>verify ownership</strong> of the parent name in Google Search Console the first time (it offers a TXT record to add — all the services above support TXT).</p>
+<p>New Google Cloud billing accounts also get <strong>$300 of credits valid for 90 days</strong>, which covers the first quarter of the Standard setup entirely.</p>
+
+<h3>Line by line — Google Cloud</h3>
+<table>
+  <tr><th>Item</th><th>Free allowance (per billing account, per month)</th><th>Price beyond it</th><th>EST usage &amp; monthly cost</th></tr>
+  <tr>
+    <td><strong>Cloud Run — API service</strong> (<code>est-api</code>, 1 vCPU, 1 GiB, <code>min-instances 1</code>)</td>
+    <td>180,000 vCPU-seconds + 360,000 GiB-seconds of <em>active</em> time, 2 million requests</td>
+    <td>Active: $0.000024 per vCPU-s, $0.0000025 per GiB-s · <strong>Idle (kept-warm minimum instance): $0.0000025 per vCPU-s and per GiB-s</strong> · $0.40 per million requests</td>
+    <td>This is the one real cost. Keeping 1 instance warm all month = 2.63 M seconds × ($0.0000025 CPU + $0.0000025 memory) ≈ <strong>$13.1</strong>. Active time (requests + the 15-minute calendar sync, well under 50 hours/month) and requests (a few thousand) stay inside the free allowance → $0. The <code>--cpu-boost</code> flag only speeds up start-up and does not change the price.</td>
+  </tr>
+  <tr>
+    <td><strong>Cloud Run — web service</strong> (<code>est-web</code>, 1 vCPU, 512 MiB, <code>min-instances 0</code>)</td>
+    <td>shares the allowance above</td>
+    <td>as above</td>
+    <td>Billed only while pages are being served. A team of 20 using the app a few minutes a day is a few thousand vCPU-seconds → <strong>$0</strong>. Trade-off: after ~15 idle minutes the first page load takes 2–3 s (cold start). Keeping it warm too would add ≈ $9.9/month.</td>
+  </tr>
+  <tr>
+    <td><strong>Internet data transfer</strong> (pages and API responses leaving Google)</td>
+    <td>1 GiB within North America</td>
+    <td>≈ $0.08–0.12 per GiB (Premium tier, varies by destination)</td>
+    <td>Pages are small; 1–3 GiB/month for a team → <strong>$0–0.40</strong>. Traffic between the two Cloud Run services and to Google APIs is free.</td>
+  </tr>
+  <tr>
+    <td><strong>Artifact Registry</strong> (your container images)</td>
+    <td>0.5 GiB stored</td>
+    <td>$0.10 per GiB-month</td>
+    <td>Each deploy stores ~0.3 GiB (API) + ~0.2 GiB (web). The cleanup policy set in Step 3 keeps the 3 newest of each and deletes anything older than 30 days, so storage hovers around 1–1.5 GiB → <strong>$0.05–0.10</strong>.</td>
+  </tr>
+  <tr>
+    <td><strong>Secret Manager</strong></td>
+    <td>6 active secret versions, 10,000 reads</td>
+    <td>$0.06 per extra active version-month; $0.03 per 10,000 reads</td>
+    <td>5 secrets × 1 version = 5 → <strong>$0</strong>. Secrets are read only when an instance starts. After rotating a secret, destroy the old version in the console or you pay $0.06/month for each one you keep.</td>
+  </tr>
+  <tr>
+    <td><strong>Cloud Logging / Monitoring</strong></td>
+    <td>50 GiB of logs ingested</td>
+    <td>$0.50 per GiB</td>
+    <td>The API logs a few MB a day → <strong>$0</strong>.</td>
+  </tr>
+  <tr>
+    <td><strong>Google sign-in, Calendar API, OAuth consent screen</strong></td>
+    <td>Calendar API: 1,000,000 queries/day; sign-in unlimited</td>
+    <td>—</td>
+    <td><strong>$0.</strong> One incremental sync per linked calendar every 15 minutes ≈ 100 calls/day per person. Note: an <em>Internal</em> consent screen requires the company to be on Google Workspace (its own cost, which you presumably already pay); otherwise use <em>External</em> with test users, also free.</td>
+  </tr>
+  <tr>
+    <td><strong>Cloud Build</strong></td>
+    <td>2,500 build-minutes</td>
+    <td>$0.006 per build-minute</td>
+    <td>Not used — images are built on your Mac → <strong>$0</strong>.</td>
+  </tr>
+  <tr><td colspan="3"><strong>Google Cloud total</strong></td><td><strong>≈ $13.2–13.6 / month · ≈ $160–165 / year</strong></td></tr>
+</table>
+
+<h3>Line by line — Supabase</h3>
+<table>
+  <tr><th>Plan</th><th>Price</th><th>Limits that matter for EST</th><th>Notes</th></tr>
+  <tr>
+    <td><strong>Free</strong> (what the guide uses)</td>
+    <td><strong>$0</strong></td>
+    <td>500 MB database · shared CPU, 500 MB RAM · 5 GB data transfer/month · max 2 active projects per organisation · <strong>no automatic backups</strong> · <strong>paused after 7 days without activity</strong> (restore with one click, data kept)</td>
+    <td>Plenty of room: a session with its use cases is ~2 KB and a raw calendar event ~5 KB, so 10 engineers × 200 events/month ≈ 12 MB/month — the 500 MB lasts years. The API's 15-minute sync keeps the project active, so pausing only happens in Pilot mode. The missing backups are the real risk: nothing protects you from an accidental delete.</td>
+  </tr>
+  <tr>
+    <td><strong>Pro</strong></td>
+    <td><strong>$25 / month</strong> (includes $10 compute credit = one Micro instance, 1 GB RAM)</td>
+    <td>8 GB disk included (then $0.125/GB) · 250 GB transfer · <strong>daily backups kept 7 days</strong> · never paused · 7-day log retention · email support</td>
+    <td>Switch when the data becomes something you'd be upset to lose. Optional: point-in-time recovery +$100/month (overkill here). One project is enough; a second project (e.g. a staging database) adds $10/month compute.</td>
+  </tr>
+</table>
+
+<h3>Things that are <em>not</em> on the bill</h3>
+<ul>
+  <li><strong>Domain / DNS / certificates</strong> — none needed; the <code>…run.app</code> address and its HTTPS certificate are free.</li>
+  <li><strong>Supabase Auth, Storage, Edge Functions, API keys</strong> — not used; unused products cost nothing.</li>
+  <li><strong>Any AI/LLM API</strong> — the suggestion engine is deterministic code inside the API.</li>
+  <li><strong>Per-user fees</strong> — neither Google Cloud nor Supabase Free/Pro charge per signed-in member at this scale (Supabase counts "monthly active users" only for its own Auth product, which EST does not use).</li>
+</ul>
+
+<h3>Pilot / near-zero mode (optional)</h3>
+<div class="meta"><span class="where term">Terminal</span></div>
+<p>If you only want to try the app for a while, let the API scale to zero. Calendar events then arrive when someone opens the app (the first page load triggers a sync, and the <strong>Sync calendar</strong> button still works), but the unattended 15-minute sync does not run while nobody is using it, and the first request after a quiet period takes 5–10 seconds while the API starts.</p>
+<pre><code>gcloud run services update est-api --region <span class="ph">REGION</span> --min-instances 0</code><button class="copy">Copy</button></pre>
+<p>Switch back to always-on at any time (or simply re-run <code>04-deploy-api.sh</code>, which sets <code>min-instances 1</code>):</p>
+<pre><code>gcloud run services update est-api --region <span class="ph">REGION</span> --min-instances 1</code><button class="copy">Copy</button></pre>
+
+<h3>Protect yourself from surprises</h3>
+<ol class="clicks">
+  <li>Open <a href="https://console.cloud.google.com/billing/budgets" target="_blank" rel="noopener">Billing → Budgets &amp; alerts</a> → <strong>Create budget</strong>: scope = your project, amount = <strong>$25</strong>, alerts at 50 / 90 / 100 %. You get an email if anything drifts (for example if someone raises <code>max-instances</code>).</li>
+  <li>Supabase: <strong>Organization → Billing</strong> shows usage against the 500 MB / 5 GB limits; on Free there is nothing to be charged for, the project simply stops accepting writes when the database is full.</li>
+</ol>
+<div class="verify">Your first full Google Cloud invoice (visible under Billing → Reports after the month ends) is around $13 for the Standard setup; Supabase shows $0 on Free.</div>
 </section>
 
 <!-- ───────────────────────── reference ───────────────────────── -->
 <section id="ref">
 <h2 style="border-top:1px solid var(--line)">Reference: every setting and secret by name</h2>
-<p>You normally never set these by hand — <code>04-deploy-api.sh</code> derives them from <code>~/est-deploy.env</code>. This table is for checking the Cloud Run <em>Variables &amp; Secrets</em> tab or for other hosting. On Path A, every "<code>https://API_HOST</code>" / "<code>https://WEB_HOST</code>" below is simply the one <code>…run.app</code> web address.</p>
+<p>You normally never set these by hand — <code>04-deploy-api.sh</code> derives them from <code>~/est-deploy.env</code>. This table is for checking the Cloud Run <em>Variables &amp; Secrets</em> tab or for other hosting. <code><span class="ph">APP_URL</span></code> below means your app's address, e.g. <code>https://est-web-abc123-ew.a.run.app</code>.</p>
 <h3>API service <code>est-api</code></h3>
 <table>
   <tr><th>Variable</th><th>Kind</th><th>Value</th></tr>
@@ -324,24 +384,24 @@ Expected: <code>Connection to … port 5432 [tcp/postgresql] succeeded!</code></
   <tr><td><code>SPRING_DATASOURCE_PASSWORD</code></td><td>secret <code>est-db-password</code></td><td>Supabase database password</td></tr>
   <tr><td><code>EST_DB_SCHEMA</code></td><td>env</td><td><code>est</code> — the API creates and migrates this schema</td></tr>
   <tr><td><code>EST_DB_POOL_SIZE</code></td><td>env</td><td><code>5</code> (Supabase free tier allows ~15 pooled connections)</td></tr>
-  <tr><td><code>EST_WEB_ORIGINS</code></td><td>env</td><td><code>https://<span class="ph">WEB_HOST</span></code> — browsers allowed to call the API</td></tr>
+  <tr><td><code>EST_WEB_ORIGINS</code></td><td>env</td><td><code><span class="ph">APP_URL</span></code> — browsers allowed to call the API</td></tr>
   <tr><td><code>EST_ALLOWED_DOMAINS</code></td><td>env</td><td>comma-separated email domains; empty = any verified Google account</td></tr>
   <tr><td><code>EST_BOOTSTRAP_ADMIN_EMAILS</code></td><td>env</td><td>become ADMIN + ACTIVE on first sign-in</td></tr>
-  <tr><td><code>EST_JWT_ISSUER</code></td><td>env</td><td><code>https://<span class="ph">API_HOST</span></code></td></tr>
+  <tr><td><code>EST_JWT_ISSUER</code></td><td>env</td><td><code><span class="ph">APP_URL</span></code></td></tr>
   <tr><td><code>EST_JWT_ACCESS_TTL</code> / <code>EST_JWT_REFRESH_TTL</code></td><td>env, optional</td><td>defaults <code>PT15M</code> / <code>P14D</code></td></tr>
   <tr><td><code>EST_JWT_PRIVATE_KEY</code> / <code>EST_JWT_PUBLIC_KEY</code></td><td>secrets <code>est-jwt-private-key</code> / <code>est-jwt-public-key</code></td><td>RSA 2048 PEM pair (signs login tokens)</td></tr>
   <tr><td><code>EST_COOKIE_SECURE</code></td><td>env</td><td><code>true</code></td></tr>
   <tr><td><code>EST_CRYPTO_KEY</code></td><td>secret <code>est-crypto-key</code></td><td>base64 of 32 random bytes (encrypts stored Google calendar access)</td></tr>
   <tr><td><code>GOOGLE_CLIENT_ID</code></td><td>env</td><td>OAuth Web client id (public)</td></tr>
   <tr><td><code>GOOGLE_CLIENT_SECRET</code></td><td>secret <code>est-google-client-secret</code></td><td>OAuth Web client secret</td></tr>
-  <tr><td><code>GOOGLE_REDIRECT_URI</code></td><td>env</td><td><code>https://<span class="ph">API_HOST</span>/api/v1/calendar/identities/link/callback</code> — must match the OAuth client exactly</td></tr>
+  <tr><td><code>GOOGLE_REDIRECT_URI</code></td><td>env</td><td><code><span class="ph">APP_URL</span>/api/v1/calendar/identities/link/callback</code> — must match the OAuth client exactly</td></tr>
   <tr><td><code>EST_SYNC_ENABLED</code> / <code>EST_SYNC_INTERVAL</code></td><td>env</td><td><code>true</code> / <code>PT15M</code></td></tr>
 </table>
 <h3>Web service <code>est-web</code> (build-time, baked into the image by <code>03-build-push.sh</code>)</h3>
 <table>
   <tr><th>Variable</th><th>Value</th></tr>
-  <tr><td><code>NEXT_PUBLIC_API_URL</code></td><td>Path B: <code>https://<span class="ph">API_HOST</span></code> · Path A: empty (browser calls <code>/api</code> on the same host)</td></tr>
-  <tr><td><code>API_INTERNAL_URL</code></td><td>Path A only: the API's own <code>https://est-api-….run.app</code>; the web server proxies <code>/api/*</code> there</td></tr>
+  <tr><td><code>NEXT_PUBLIC_API_URL</code></td><td>empty — the browser calls <code>/api/…</code> on the app's own address</td></tr>
+  <tr><td><code>API_INTERNAL_URL</code></td><td>the API service's own <code>https://est-api-….run.app</code>; the web server forwards <code>/api/*</code> there</td></tr>
   <tr><td><code>NEXT_PUBLIC_GOOGLE_CLIENT_ID</code></td><td>optional — the sign-in page also fetches it from the API</td></tr>
 </table>
 <h3>Never configure</h3>
@@ -354,6 +414,7 @@ Expected: <code>Connection to … port 5432 [tcp/postgresql] succeeded!</code></
 <div class="meta"><span class="where term">Terminal</span></div>
 <p><strong>Deploy a new version</strong> (after pulling the latest code):</p>
 <pre><code>infra/deploy/03-build-push.sh && infra/deploy/04-deploy-api.sh && infra/deploy/05-deploy-web.sh && infra/deploy/07-verify.sh</code><button class="copy">Copy</button></pre>
+<p>Your address never changes between deploys, so the OAuth client needs no update.</p>
 <p><strong>Roll the API back</strong> to the previous version (list revisions, then send all traffic to one):</p>
 <pre><code>gcloud run revisions list --service est-api --region <span class="ph">REGION</span>
 gcloud run services update-traffic est-api --region <span class="ph">REGION</span> --to-revisions <span class="ph">est-api-00012-abc</span>=100</code><button class="copy">Copy</button></pre>
@@ -381,14 +442,15 @@ gcloud run services update-traffic est-api --region <span class="ph">REGION</spa
   <tr><td>Log: <code>password authentication failed</code></td><td>Wrong <code>SUPABASE_DB_PASSWORD</code>. Reset it in Supabase → Database → Reset password, update the settings file, run <code>02-secrets.sh</code> then <code>04-deploy-api.sh</code>.</td></tr>
   <tr><td>Log: <code>prepared statement "S_1" already exists</code></td><td>You used the <em>Transaction pooler</em> (port 6543). Switch to the Session pooler on 5432.</td></tr>
   <tr><td>Sign-in button missing; page says Google sign-in not configured</td><td>The API's <code>GOOGLE_CLIENT_ID</code> is empty — see above.</td></tr>
-  <tr><td>Sign-in popup: <code>origin_mismatch</code> / 400</td><td>The OAuth client's <em>Authorised JavaScript origins</em> must contain exactly <code>https://<span class="ph">WEB_HOST</span></code>. Also you must be on your own domain, not <code>…run.app</code>.</td></tr>
-  <tr><td>Sign-in works but refreshing the page signs you out</td><td>Web and API are not on the same domain — complete Step 10 and use <code>https://app.…</code>.</td></tr>
+  <tr><td>Sign-in popup: <code>origin_mismatch</code> / 400</td><td>The OAuth client's <em>Authorised JavaScript origins</em> must contain exactly your app's address (<code>https://est-web-….run.app</code>, no trailing slash) — Step 9. Changes take a few minutes.</td></tr>
+  <tr><td>Sign-in works but refreshing the page signs you out</td><td>You skipped the second API deploy in Step 9 (the API still has the placeholder address) — run <code>04-deploy-api.sh</code> again; <code>07-verify.sh</code> detects this.</td></tr>
   <tr><td>"Your account is waiting for an admin to approve it"</td><td>Expected for anyone not in <code>BOOTSTRAP_ADMINS</code>. An admin approves them under <strong>Admin</strong>.</td></tr>
   <tr><td>"Accounts from … cannot sign in here"</td><td>Their email domain is not in <code>EST_ALLOWED_DOMAINS</code>.</td></tr>
-  <tr><td>Linking a calendar: <code>redirect_uri_mismatch</code></td><td>The OAuth client's redirect URI must be exactly <code>https://<span class="ph">API_HOST</span>/api/v1/calendar/identities/link/callback</code>.</td></tr>
+  <tr><td>Linking a calendar: <code>redirect_uri_mismatch</code></td><td>The OAuth client's redirect URI must be exactly <code>https://<span class="ph">est-web-….run.app</span>/api/v1/calendar/identities/link/callback</code> — your app's address plus that path.</td></tr>
   <tr><td>Linking a calendar: <code>access_denied</code> / "app not verified"</td><td>External consent screen in <em>Testing</em>: add the person as a test user (Step 5a), or request verification from Google.</td></tr>
   <tr><td>Linked calendar shows <em>needs re-link</em></td><td>Google revoked or expired the access (e.g. password change). The member clicks <strong>Add Google account</strong> again.</td></tr>
-  <tr><td>Certificate never becomes ready</td><td>DNS record wrong or proxied (Cloudflare orange cloud). Fix the record, wait up to an hour.</td></tr>
+  <tr><td>Supabase project shows <em>Paused</em></td><td>Free projects pause after 7 days without activity. The API's 15-minute sync normally keeps it active; if you paused the API (min instances 0) or kept it off for a week, click <strong>Restore project</strong> in the Supabase dashboard — data is kept.</td></tr>
+  <tr><td>Unexpected Google Cloud bill</td><td>Check the <a href="#costs">cost section</a>; the only always-on item is the single API instance. Set a budget alert (Billing → Budgets &amp; alerts).</td></tr>
 </table>
 </section>
 
