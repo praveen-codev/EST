@@ -1,0 +1,26 @@
+# syntax=docker/dockerfile:1.7
+# Next.js web app (standalone output) for Cloud Run. Build context = repository root.
+#   docker build -f infra/Dockerfile.web --build-arg NEXT_PUBLIC_API_URL=https://api.example.com -t est-web .
+# NEXT_PUBLIC_* values are baked in at build time (they ship to the browser), so pass them as build args.
+
+FROM node:26-alpine AS build
+WORKDIR /app
+RUN corepack enable
+COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
+COPY web/ .
+ARG NEXT_PUBLIC_API_URL=http://localhost:8080
+ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID=
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID NEXT_TELEMETRY_DISABLED=1
+RUN pnpm build
+
+FROM node:26-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=3000
+RUN addgroup -S est && adduser -S est -G est
+COPY --from=build --chown=est:est /app/.next/standalone ./
+COPY --from=build --chown=est:est /app/.next/static ./.next/static
+COPY --from=build --chown=est:est /app/public ./public
+USER est
+EXPOSE 3000
+CMD ["node", "server.js"]

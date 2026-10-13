@@ -40,7 +40,7 @@ await step("Inbox: likely / needs a look / duplicates / skipped", async () => {
 await step("Enter feedback on today's 101: prefilled from the invite + teammates", async () => {
   await page.goto(`${base}/`);
   await page.getByRole("button", { name: /Enter feedback/ }).first().waitFor({ timeout: 20000 });
-  await page.getByRole("button", { name: /Enter feedback/ }).first().click();
+  await page.getByRole("listitem").filter({ hasText: "Mercedes-Benz Data Engineering" }).getByRole("button", { name: /Enter feedback/ }).click();
   await page.locator("#field-clientId").waitFor({ timeout: 20000 });
   await pause(1500);
 });

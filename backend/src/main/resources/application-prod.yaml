@@ -1,9 +1,13 @@
-# Production placeholder: everything from the environment, strict defaults.
+# Production: everything from the environment, strict defaults. See infra/runbooks/deploy-gcp-supabase.md.
 spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
+    hikari:
+      maximum-pool-size: ${EST_DB_POOL_SIZE:5}
+      connection-timeout: 10000
+      max-lifetime: 1500000
 server:
   forward-headers-strategy: native
 management:
