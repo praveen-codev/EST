@@ -124,12 +124,14 @@ test("only the team's formats count; admins manage the catalogue, members read i
 test("home shows only today's sessions; the CTA opens a prefilled feedback form with use cases and outcome", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("button", { name: /Enter feedback/ }).first()).toBeVisible({ timeout: 30_000 });
-  // Only today's two Mercedes sessions, nothing else.
-  await expect(page.getByText(/2 sessions today/)).toBeVisible();
-  await expect(page.getByText("Mercedes-Benz Data Engineering — Devin 101 session (Ab Initio squad)")).toBeVisible();
-  await expect(page.getByText("Vantage Claims — Sprint in a day")).toHaveCount(0);
+  // Today's Mercedes sessions are pinned to the real current day (other fixtures are week-relative and
+  // may share the day); yesterday's/tomorrow's events never appear.
+  await expect(page.getByText(/\d+ sessions? today/)).toBeVisible();
+  const mercedes = page.getByRole("listitem").filter({ hasText: "Mercedes-Benz Data Engineering — Devin 101 session (Ab Initio squad)" });
+  await expect(mercedes).toBeVisible();
+  await expect(page.getByText("Acme Platform — Devin 101 session (Jenkins squad)")).toHaveCount(0);
 
-  await page.getByRole("button", { name: /Enter feedback/ }).first().click();
+  await mercedes.getByRole("button", { name: /Enter feedback/ }).click();
   await expect(page).toHaveURL(/\/sessions\//);
   // Prefilled from the invite + teammates' history.
   await expect(page.locator("#field-clientId").getByText("Mercedes-Benz Tech")).toBeVisible();
@@ -157,7 +159,7 @@ test("home shows only today's sessions; the CTA opens a prefilled feedback form 
 
 test("every dropdown accepts an ad-hoc 'Other…' value: saved to the reference table, selected, dropdown closed", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: /Enter feedback/ }).first().click({ timeout: 30_000 });
+  await page.getByRole("listitem").filter({ hasText: "Mercedes-Benz Data Engineering — Devin 101 session" }).getByRole("button", { name: /Enter feedback/ }).click({ timeout: 30_000 });
   await expect(page).toHaveURL(/\/sessions\//);
 
   // Toggle group (outcome): Enter saves and selects.

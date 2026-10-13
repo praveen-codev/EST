@@ -21,9 +21,8 @@ make verify            # web: lint, typecheck, vitest, build · backend: spotles
 make verify-api        # backend only
 EST_RUN_CONTAINER_TESTS=1 backend/gradlew -p backend test --tests '*ContainersIT'   # Flyway on real PostgreSQL (Docker)
 make up-local          # compose: API (H2, seeded, mock Google) + web on :3100
-cd web && pnpm e2e     # Playwright; starts the API (local profile) and the web dev server itself if not running
 make up-qa             # compose: API (qa) + PostgreSQL 17; needs .env (infra/scripts/gen-keys.sh >> .env)
-cd web && pnpm e2e     # Playwright
+cd web && pnpm e2e     # Playwright; starts the API (local profile) and the web dev server itself if not running
 ```
 
 ## Conventions that matter
@@ -52,7 +51,10 @@ cd web && pnpm e2e     # Playwright
 - **AI engine** (`backend …/ai`, Phase 1D) must stay framework-free (ArchUnit rule) and deterministic;
   parity with `web/lib/ai` is proven by golden fixtures in `contracts/ai-fixtures/`.
 - **Formatting**: `./gradlew spotlessApply` (google-java-format 1.27 AOSP). Web: eslint/prettier via `pnpm lint`.
-- **Secrets** only via environment / `.env` (gitignored). `.env.example` documents every variable.
+- **Secrets** only via environment / `.env` (gitignored). `.env.example` documents every variable; the production
+  mapping (Cloud Run env + Secret Manager names, Supabase session pooler) is in `infra/runbooks/deploy-gcp-supabase.md`.
+- **Tests must not assume the weekday**: mock fixtures are week-relative except the two Mercedes events pinned to the
+  real current day; assert containment on Today, not exact lists.
 
 ## Security rules (see infra/runbooks/security.md)
 

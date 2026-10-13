@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Self-contained server bundle for the Docker image (infra/Dockerfile.web → Cloud Run).
+  output: "standalone",
   // The Devin browser preview proxies the dev server from 127.0.0.1; Next blocks cross-origin dev resources otherwise.
   allowedDevOrigins: ["127.0.0.1", "localhost"],
   // The dev indicator sits exactly over the rail's bottom controls (theme, demo).

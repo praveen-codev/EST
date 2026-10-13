@@ -81,8 +81,14 @@ public class JwtKeyConfig {
         return decoder;
     }
 
+    /**
+     * Accepts real newlines or the literal {@code \n} escapes that gen-keys.sh / .env files carry.
+     */
     private static byte[] pem(String pem) {
-        String body = pem.replaceAll("-----(BEGIN|END)[A-Z ]+-----", "").replaceAll("\\s", "");
+        String body =
+                pem.replace("\\n", "\n")
+                        .replaceAll("-----(BEGIN|END)[A-Z ]+-----", "")
+                        .replaceAll("\\s", "");
         return Base64.getDecoder().decode(body);
     }
 

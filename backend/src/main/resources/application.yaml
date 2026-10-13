@@ -7,6 +7,9 @@ spring:
   flyway:
     locations: classpath:db/migration/common,classpath:db/migration/{vendor}
     validate-on-migrate: true
+    # Supabase exposes `public` through its Data API; keep our tables in a private schema there (see runbook).
+    schemas: ${EST_DB_SCHEMA:}
+    create-schemas: true
   jackson:
     default-property-inclusion: non_null
   mvc:
@@ -14,7 +17,7 @@ spring:
       enabled: false
 
 server:
-  port: 8080
+  port: ${PORT:8080}
   shutdown: graceful
   error:
     include-stacktrace: never

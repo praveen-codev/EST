@@ -117,11 +117,31 @@ class SessionFlowApiTest {
     @Order(2)
     void todayShowsOnlyMySessionsToday_andConfirmPrefillsTheFeedbackForm() throws Exception {
         JsonNode today = call(get("/api/v1/today"), alex, 200);
+        // The two Mercedes events are pinned to the real current day; other fixtures are
+        // week-relative
+        // and may also land on today depending on the weekday, so assert containment, not an exact
+        // list.
+        String mercedes101 = "Mercedes-Benz Data Engineering — Devin 101 session (Ab Initio squad)";
         assertThat(titles(today.get("today")))
-                .containsExactly(
-                        "Mercedes-Benz Data Engineering — Devin 101 session (Ab Initio squad)",
+                .contains(
+                        mercedes101,
                         "Mercedes-Benz — Pair programming: fleet KPI Excel to Power BI");
-        String candidateId = today.get("today").get(0).get("id").asString();
+        assertThat(
+                        today.get("today")
+                                .valueStream()
+                                .map(i -> i.get("start").asString().substring(0, 10))
+                                .distinct()
+                                .count())
+                .as("every Today item starts on the same calendar day")
+                .isLessThanOrEqualTo(2); // a late-evening session may cross midnight in UTC
+        String candidateId =
+                today.get("today")
+                        .valueStream()
+                        .filter(i -> i.get("title").asString().equals(mercedes101))
+                        .findFirst()
+                        .orElseThrow()
+                        .get("id")
+                        .asString();
 
         JsonNode detail = call(post("/api/v1/candidates/" + candidateId + "/confirm"), alex, 200);
         sessionId = detail.get("session").get("id").asString();
@@ -149,7 +169,13 @@ class SessionFlowApiTest {
                 .isTrue();
         // Today now shows the session with its completeness ring instead of the candidate.
         JsonNode again = call(get("/api/v1/today"), alex, 200);
-        assertThat(again.get("today").get(0).get("kind").asString()).isEqualTo("session");
+        JsonNode mb =
+                again.get("today")
+                        .valueStream()
+                        .filter(i -> i.get("title").asString().equals(mercedes101))
+                        .findFirst()
+                        .orElseThrow();
+        assertThat(mb.get("kind").asString()).isEqualTo("session");
     }
 
     @Test
