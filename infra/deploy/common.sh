@@ -33,3 +33,12 @@ API_SA="est-api@${PROJECT_ID:-}.iam.gserviceaccount.com"
 IMG="${REGION:-}-docker.pkg.dev/${PROJECT_ID:-}/est"
 SPRING_DATASOURCE_URL="jdbc:postgresql://${SUPABASE_POOLER_HOST:-}:5432/postgres?sslmode=require&currentSchema=est"
 SPRING_DATASOURCE_USERNAME="postgres.${SUPABASE_PROJECT_REF:-}"
+
+# Public addresses. custom: your hostnames. none: the Cloud Run URLs remembered after each deploy.
+DOMAIN_MODE="${DOMAIN_MODE:-none}"
+case "$DOMAIN_MODE" in
+  custom) require DOMAIN WEB_HOST API_HOST; WEB_URL="https://$WEB_HOST"; API_PUBLIC_URL="https://$API_HOST" ;;
+  none)   WEB_URL="$(cat "$STATE_DIR/web-url" 2>/dev/null || true)"; API_PUBLIC_URL="$WEB_URL" ;;
+  *)      fail "DOMAIN_MODE must be 'none' or 'custom' (got '$DOMAIN_MODE')" ;;
+esac
+API_SERVICE_URL="$(cat "$STATE_DIR/api-url" 2>/dev/null || true)"

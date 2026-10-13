@@ -1,15 +1,24 @@
 #!/usr/bin/env bash
 # Step 8: deploy the API to Cloud Run with its settings and secrets, then check it is healthy.
 source "$(dirname "$0")/common.sh"
-require PROJECT_ID REGION WEB_HOST API_HOST ALLOWED_DOMAINS BOOTSTRAP_ADMINS SUPABASE_PROJECT_REF SUPABASE_POOLER_HOST GOOGLE_CLIENT_ID
-TAG="${1:-$(cat "$STATE_DIR/last-tag" 2>/dev/null || true)}"; [ -n "$TAG" ] || fail "No image tag. Run 03-build-push.sh first."
+require PROJECT_ID REGION ALLOWED_DOMAINS BOOTSTRAP_ADMINS SUPABASE_PROJECT_REF SUPABASE_POOLER_HOST GOOGLE_CLIENT_ID
+TAG="${1:-$(cat "$STATE_DIR/last-tag" 2>/dev/null || true)}"
+if [ -z "$TAG" ]; then
+  cd "$REPO_ROOT"; TAG="$(git rev-parse --short HEAD)"; echo "$TAG" > "$STATE_DIR/last-tag"
+  info "Building and pushing the API image ($TAG) first…"
+  docker build --platform linux/amd64 -q -f infra/Dockerfile.api -t "$IMG/est-api:$TAG" . >/dev/null && docker push -q "$IMG/est-api:$TAG" >/dev/null
+fi
+if [ -z "$WEB_URL" ]; then
+  # DOMAIN_MODE=none, first pass: the web address is not known until the web app is deployed. Placeholders now; re-run after 05.
+  WEB_URL="https://pending.invalid"; info "Web address not known yet — using a placeholder; re-run this script after 05-deploy-web.sh."
+fi
 gcloud config set project "$PROJECT_ID" >/dev/null
 # One list, '|' separated (the ^|^ prefix tells gcloud to split on '|' because some values contain commas).
 ENV_VARS="^|^SPRING_PROFILES_ACTIVE=prod"
 ENV_VARS+="|SPRING_DATASOURCE_URL=$SPRING_DATASOURCE_URL|SPRING_DATASOURCE_USERNAME=$SPRING_DATASOURCE_USERNAME|EST_DB_SCHEMA=est|EST_DB_POOL_SIZE=5"
-ENV_VARS+="|EST_WEB_ORIGINS=https://$WEB_HOST|EST_JWT_ISSUER=https://$API_HOST|EST_COOKIE_SECURE=true"
+ENV_VARS+="|EST_WEB_ORIGINS=$WEB_URL|EST_JWT_ISSUER=${API_PUBLIC_URL:-$WEB_URL}|EST_COOKIE_SECURE=true"
 ENV_VARS+="|EST_ALLOWED_DOMAINS=$ALLOWED_DOMAINS|EST_BOOTSTRAP_ADMIN_EMAILS=$BOOTSTRAP_ADMINS"
-ENV_VARS+="|GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID|GOOGLE_REDIRECT_URI=https://$API_HOST/api/v1/calendar/identities/link/callback"
+ENV_VARS+="|GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID|GOOGLE_REDIRECT_URI=${API_PUBLIC_URL:-$WEB_URL}/api/v1/calendar/identities/link/callback"
 ENV_VARS+="|EST_SYNC_ENABLED=true|EST_SYNC_INTERVAL=PT15M"
 info "Deploying est-api:$TAG (1–2 minutes)…"
 gcloud run deploy est-api --image "$IMG/est-api:$TAG" --region "$REGION" --platform managed \
@@ -28,3 +37,7 @@ for i in $(seq 1 20); do
 done
 curl -fs "$URL/api/v1/features" | grep -q '"devMode":false' && ok "Production flags: devMode=false, mockGoogle=false"
 gcloud run services logs read est-api --region "$REGION" --limit 200 2>/dev/null | grep -i "Successfully applied\|is up to date" | tail -1 | sed 's/^/✔ Flyway: /' || true
+if [ "$DOMAIN_MODE" = none ]; then
+  if [ "$WEB_URL" = "https://pending.invalid" ]; then echo; echo "Next: infra/deploy/03-build-push.sh && infra/deploy/05-deploy-web.sh && infra/deploy/04-deploy-api.sh"
+  else ok "API now trusts the web address $WEB_URL (sign-in origin + Google redirect)"; fi
+fi

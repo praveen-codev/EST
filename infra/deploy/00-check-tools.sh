@@ -10,5 +10,5 @@ ACCOUNT="$(gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/
 [ -n "$ACCOUNT" ] || fail "Not logged in to Google Cloud. Run:  gcloud auth login"
 ok "gcloud $(gcloud version --format='value(core)' 2>/dev/null | head -1) — logged in as $ACCOUNT"
 ok "docker $(docker version --format '{{.Server.Version}}') running"
-require PROJECT_ID REGION DOMAIN WEB_HOST API_HOST ALLOWED_DOMAINS BOOTSTRAP_ADMINS
-ok "Settings file $ENV_FILE has the basic values"
+require PROJECT_ID REGION ALLOWED_DOMAINS BOOTSTRAP_ADMINS
+ok "Settings file $ENV_FILE has the basic values (DOMAIN_MODE=$DOMAIN_MODE)"
