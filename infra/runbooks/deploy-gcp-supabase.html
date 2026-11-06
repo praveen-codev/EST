@@ -93,7 +93,7 @@
 <pre><code>cd <span class="ph">/path/to/EST</span>          <span class="cm"># the project folder; e.g. ~/Documents/work/repos/EST</span>
 cp infra/deploy/est-deploy.env.example ~/est-deploy.env
 open -e ~/est-deploy.env      <span class="cm"># opens it in TextEdit</span></code><button class="copy">Copy</button></pre>
-<p>Fill in the <strong>Google Cloud</strong> and <strong>who may sign in</strong> sections now (you choose these yourself). Leave the Supabase and Google OAuth lines for later steps. Rules: no spaces around <code>=</code>, no quotes needed, lines starting with <code>#</code> are comments.</p>
+<p>Fill in the <strong>Google Cloud</strong> and <strong>who may sign in</strong> sections now (you choose these yourself). Leave the Supabase and Google OAuth lines for later steps. Rules: one <code>NAME=value</code> per line, no spaces around <code>=</code>, lines starting with <code>#</code> are comments. Values are taken <strong>exactly as typed</strong> — a password with <code>$</code>, <code>!</code> or <code>\</code> needs no escaping. Only if a value contains a <em>space</em> or a <code>#</code>, wrap it in double quotes: <code>SUPABASE_DB_PASSWORD="p#ss word"</code>.</p>
 <table>
   <tr><th>Setting</th><th>What to put</th><th>Example</th></tr>
   <tr><td><code>PROJECT_ID</code></td><td>A new, globally unique id for your Google Cloud project: lowercase letters, digits, dashes, 6–30 chars</td><td><code>est-prod-acme</code></td></tr>
@@ -434,6 +434,8 @@ gcloud run services update-traffic est-api --region <span class="ph">REGION</spa
   <tr><th>What you see</th><th>Why / what to do</th></tr>
   <tr><td>Script: <code>✖ Settings file not found</code></td><td>Step 1 was skipped — copy the template to <code>~/est-deploy.env</code>.</td></tr>
   <tr><td>Script: <code>✖ … is missing or still a placeholder</code></td><td>Fill that line in the settings file (no <code>change-me</code> left).</td></tr>
+  <tr><td>Script: <code>✖ … line N is not KEY=VALUE</code></td><td>That line of <code>~/est-deploy.env</code> is malformed — one <code>NAME=value</code> per line, comments start with <code>#</code>.</td></tr>
+  <tr><td>Password with <code>$</code> seems wrong / "unbound variable"</td><td>Fixed in the current scripts (values are read literally). If you copied an older <code>common.sh</code>, pull the latest. Never put the password itself inside <code>$(…)</code> or backticks.</td></tr>
   <tr><td><code>Billing is not enabled</code></td><td>Step 3a: link a billing account to the project in the console.</td></tr>
   <tr><td><code>permission denied</code> while pushing images</td><td>Run <code>gcloud auth configure-docker <span class="ph">REGION</span>-docker.pkg.dev</code> (01-gcp-project.sh does this) and make sure Docker Desktop is running.</td></tr>
   <tr><td>API not healthy; log says <code>EST_JWT_PRIVATE_KEY … must be set</code></td><td>Step 6 was not run, or the runtime identity lacks access — re-run <code>02-secrets.sh</code>, then <code>04-deploy-api.sh</code>.</td></tr>
