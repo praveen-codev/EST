@@ -129,6 +129,13 @@ gcloud components install beta --quiet</code><button class="copy">Copy</button><
   <li>Open <a href="https://console.cloud.google.com/billing/linkedaccount" target="_blank" rel="noopener">Billing → Account management</a>, select your new project and <strong>link a billing account</strong>. (Cloud Run has a generous free tier; expect a few dollars a month for one always-on small instance.)</li>
 </ol>
 <div class="verify">At <a href="https://console.cloud.google.com/billing/projects" target="_blank" rel="noopener">Billing → My projects</a> your project shows a billing account, not "Billing is disabled".</div>
+<div class="warn"><strong>If your Google account is part of a Google Workspace organisation</strong> (you sign in with a company address, not @gmail.com), Google applies a default rule called <em>Domain Restricted Sharing</em> that blocks public access to anything in the organisation. EST's web app must be reachable without a Google Cloud login, so this rule has to be relaxed <em>for this project only</em>. Do it now to avoid a 403 later:
+<ol class="clicks">
+  <li>Open <a href="https://console.cloud.google.com/iam-admin/orgpolicies/iam-allowedPolicyMemberDomains" target="_blank" rel="noopener">IAM &amp; Admin → Organization Policies → Domain restricted sharing</a> with your new project selected at the top.</li>
+  <li><strong>Manage policy</strong> → Policy source: <strong>Override parent's policy</strong> → Rules → <strong>Add a rule</strong> → <strong>Allow all</strong> → <strong>Done</strong> → <strong>Set policy</strong>.</li>
+  <li>If the button is greyed out or you get "permission denied", you lack the <em>Organization Policy Administrator</em> role. Whoever administers your Google Workspace can grant it: <a href="https://console.cloud.google.com/iam-admin/iam" target="_blank" rel="noopener">IAM &amp; Admin → IAM</a>, switch the selector at the top from the project to the <strong>organisation</strong>, <strong>Grant access</strong> → your email → role <em>Organization Policy Administrator</em>. (A Workspace super admin automatically has the rights to do this.)</li>
+</ol>
+If you forget, the deploy scripts detect the situation and print these same instructions instead of leaving you with a mysterious 403. Only this project is affected; nothing else in your organisation changes.</div>
 <h3>3b. Turn on the services EST uses</h3>
 <pre><code>infra/deploy/01-gcp-project.sh</code><button class="copy">Copy</button></pre>
 <p>This enables Cloud Run, Artifact Registry (image storage), Secret Manager, Cloud Build and the Calendar API; creates the image repository <code>est</code>; creates the identity the API runs as. Takes 1–2 minutes.</p>
@@ -434,6 +441,7 @@ gcloud run services update-traffic est-api --region <span class="ph">REGION</spa
   <tr><th>What you see</th><th>Why / what to do</th></tr>
   <tr><td>Script: <code>✖ Settings file not found</code></td><td>Step 1 was skipped — copy the template to <code>~/est-deploy.env</code>.</td></tr>
   <tr><td>Script: <code>✖ … is missing or still a placeholder</code></td><td>Fill that line in the settings file (no <code>change-me</code> left).</td></tr>
+  <tr><td>Opening the API or web address shows <strong>403 Forbidden — "Your client does not have permission to get URL"</strong></td><td>Cloud Run is refusing anonymous visitors because the <em>Domain Restricted Sharing</em> organisation policy blocked the public-access grant. Follow the yellow box in Step 3, then re-run <code>04-deploy-api.sh</code> / <code>05-deploy-web.sh</code> (they grant the access and verify it).</td></tr>
   <tr><td>Script: <code>✖ … line N is not KEY=VALUE</code></td><td>That line of <code>~/est-deploy.env</code> is malformed — one <code>NAME=value</code> per line, comments start with <code>#</code>.</td></tr>
   <tr><td>Password with <code>$</code> seems wrong / "unbound variable"</td><td>Fixed in the current scripts (values are read literally). If you copied an older <code>common.sh</code>, pull the latest. Never put the password itself inside <code>$(…)</code> or backticks.</td></tr>
   <tr><td><code>Billing is not enabled</code></td><td>Step 3a: link a billing account to the project in the console.</td></tr>

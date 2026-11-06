@@ -29,7 +29,8 @@ gcloud run deploy est-api --image "$IMG/est-api:$TAG" --region "$REGION" --platf
   --quiet >/dev/null
 URL="$(gcloud run services describe est-api --region "$REGION" --format='value(status.url)')"
 echo "$URL" > "$STATE_DIR/api-url"
-ok "Deployed. Temporary address: $URL"
+ok "Deployed. Service address: $URL"
+ensure_public est-api
 info "Health check…"
 for i in $(seq 1 20); do
   if curl -fs "$URL/actuator/health" | grep -q '"UP"'; then ok "API is UP and connected to Supabase"; break; fi
