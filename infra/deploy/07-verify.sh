@@ -15,6 +15,9 @@ else
   [ -n "$WEB_URL" ] || fail "No web address recorded yet — run 05-deploy-web.sh first."
   ok "Single-host mode: web and API share $WEB_URL"
 fi
+for svc in est-api est-web; do
+  if gcloud run services get-iam-policy "$svc" --region "$REGION" --format=json 2>/dev/null | grep -q '"allUsers"'; then ok "$svc allows public access"; else printf '✖ %s is not public (403 for everyone) — re-run 04/05; see the org-policy note in the guide\n' "$svc"; status=1; fi
+done
 API="${API_PUBLIC_URL:-$WEB_URL}"
 if curl -fs "$API/actuator/health" | grep -q '"UP"'; then ok "$API/actuator/health → UP"; else printf '✖ API not reachable on %s yet\n' "$API"; status=1; fi
 if curl -fs "$API/api/v1/features" | grep -q '"googleClientId":"[^"]\+"'; then ok "API knows the Google client id"; else printf '✖ /api/v1/features has no googleClientId\n'; status=1; fi

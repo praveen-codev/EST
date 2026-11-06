@@ -47,6 +47,33 @@ require() {
 
 need_tool() { command -v "$1" >/dev/null 2>&1 || fail "'$1' is not installed. $2"; }
 
+# Cloud Run only answers anonymous requests when allUsers holds roles/run.invoker. Organisations created
+# recently carry Google's "Domain Restricted Sharing" policy, which silently rejects that grant → every
+# request gets a 403 "Your client does not have permission". Detect it and say exactly what to do.
+ensure_public() { # service
+  if gcloud run services get-iam-policy "$1" --region "$REGION" --format=json 2>/dev/null | grep -q '"allUsers"'; then
+    ok "$1 is publicly reachable (allUsers → roles/run.invoker)"; return 0
+  fi
+  local out
+  out="$(gcloud run services add-iam-policy-binding "$1" --region "$REGION" --member=allUsers --role=roles/run.invoker 2>&1)" && { ok "$1 is now publicly reachable"; return 0; }
+  if echo "$out" | grep -qi "organization policy\|permitted customer"; then
+    cat >&2 <<EOT
+✖ Google Cloud refused to make $1 public: your organisation enforces the "Domain Restricted Sharing"
+  policy (iam.allowedPolicyMemberDomains), so 'allUsers' may not be granted roles/run.invoker.
+  Fix (one-time, 2 minutes, needs the Organization Policy Administrator role — a Workspace super admin can grant it):
+    1. https://console.cloud.google.com/iam-admin/orgpolicies/iam-allowedPolicyMemberDomains?project=$PROJECT_ID
+    2. Manage policy → "Override parent's policy" → Rules → Add a rule → "Allow all" → Set policy
+    3. Re-run this script.
+  Or from Terminal, once you have that role:
+    printf 'name: projects/$PROJECT_ID/policies/iam.allowedPolicyMemberDomains\nspec:\n  rules:\n  - allowAll: true\n' > /tmp/est-orgpolicy.yaml
+    gcloud services enable orgpolicy.googleapis.com && gcloud org-policies set-policy /tmp/est-orgpolicy.yaml
+  This only relaxes the policy for project $PROJECT_ID; the rest of the organisation is unchanged.
+EOT
+    exit 1
+  fi
+  fail "Could not make $1 public: $out"
+}
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 STATE_DIR="$HOME/.est-deploy"; mkdir -p "$STATE_DIR"
 API_SA="est-api@${PROJECT_ID:-}.iam.gserviceaccount.com"
