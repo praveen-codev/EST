@@ -8,8 +8,28 @@ if [ ! -f "$ENV_FILE" ]; then
   echo "  Copy infra/deploy/est-deploy.env.example to ~/est-deploy.env and fill it in (Step 1 of the guide)."
   exit 1
 fi
-set -a; # shellcheck disable=SC1090
-source "$ENV_FILE"; set +a
+# Read KEY=VALUE lines literally — the file is NOT executed, so passwords may contain $ ! ` \ etc.
+# Rules: one KEY=VALUE per line; `# comment` lines and trailing " # comments" are ignored; wrap a value
+# in double quotes if it contains spaces or a #.
+load_env_file() {
+  local line key val n=0
+  while IFS= read -r line || [ -n "$line" ]; do
+    n=$((n + 1)); line="${line%$'\r'}"
+    [[ "$line" =~ ^[[:space:]]*(#|$) ]] && continue
+    if [[ "$line" != *=* ]]; then echo "✖ $ENV_FILE line $n is not KEY=VALUE: $line" >&2; exit 1; fi
+    key="${line%%=*}"; val="${line#*=}"
+    key="${key//[[:space:]]/}"; key="${key#export}"
+    if ! [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then echo "✖ $ENV_FILE line $n has an invalid name: $key" >&2; exit 1; fi
+    if [[ "$val" =~ ^[[:space:]]*\"(.*)\"[[:space:]]*(#.*)?$ ]]; then val="${BASH_REMATCH[1]}"
+    elif [[ "$val" =~ ^[[:space:]]*\'(.*)\'[[:space:]]*(#.*)?$ ]]; then val="${BASH_REMATCH[1]}"
+    else
+      val="${val%%[[:space:]]#*}"                      # drop a trailing " # comment"
+      val="${val#"${val%%[![:space:]]*}"}"; val="${val%"${val##*[![:space:]]}"}"   # trim
+    fi
+    printf -v "$key" '%s' "$val"; export "$key"
+  done < "$ENV_FILE"
+}
+load_env_file
 
 ok()   { printf '✔ %s\n' "$*"; }
 info() { printf '… %s\n' "$*"; }
