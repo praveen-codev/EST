@@ -222,4 +222,33 @@ class CalendarEvidenceDistributorContainersIT {
         prod.sql("update deployment_track set track = 'sandbox'").update();
         assertThatThrownBy(this::replicate).hasMessageContaining("source is the sandbox track");
     }
+
+    @Test
+    void memberOfAnotherSandboxOrganizationIsNeverMovedIntoTheReplicatedOne() throws SQLException {
+        sandbox.sql(
+                        """
+                        insert into organizations (id, name, allowed_domains, created_at, updated_at)
+                        values ('org_other', 'Other', 'other.ai', now(), now())
+                        """)
+                .update();
+        sandbox.sql(
+                        """
+                        insert into members (id, organization_id, google_sub, email, name, role, status,
+                            created_at, updated_at)
+                        values ('mem_other_admin', 'org_other', 'sub-alex', 'alex@other.ai', 'Alex',
+                            'ADMIN', 'ACTIVE', now(), now())
+                        """)
+                .update();
+        member(prod, "mem_other_admin", "sub-other", "other@cognition.ai", "MEMBER", "ACTIVE");
+
+        Map<String, Integer> counts = replicate();
+
+        assertThat(counts).containsEntry("member_conflicts", 2).containsEntry("events", 0);
+        assertThat(one("select organization_id from members where id = 'mem_other_admin'"))
+                .isEqualTo("org_other");
+        assertThat(one("select email from members where id = 'mem_other_admin'"))
+                .isEqualTo("alex@other.ai");
+        assertThat(count("select count(*) from members where organization_id = 'org_cognition'"))
+                .isZero();
+    }
 }

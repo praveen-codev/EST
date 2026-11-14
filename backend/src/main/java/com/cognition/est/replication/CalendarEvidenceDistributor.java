@@ -371,8 +371,9 @@ public final class CalendarEvidenceDistributor {
 
     /**
      * The sandbox member for a production member: matched by Google subject or e-mail, else the
-     * production ID. Null when the two keys point at different sandbox members (or a different
-     * Google account owns the e-mail), which is skipped rather than merged.
+     * production ID. Null when the keys point at different sandbox members, a different Google
+     * account owns the e-mail, or the match belongs to another organization; such members are
+     * skipped rather than merged.
      */
     private static String sandboxMemberId(
             Connection target, String organizationId, Map<String, Object> member)
@@ -382,13 +383,15 @@ public final class CalendarEvidenceDistributor {
         try (PreparedStatement select =
                 target.prepareStatement(
                         """
-                        select id, google_sub from members
+                        select id, organization_id, google_sub from members
                         where (google_sub is not null and google_sub = ?)
                            or (organization_id = ? and lower(email) = lower(?))
+                           or id = ?
                         """)) {
-            bind(select, Arrays.asList(sub, organizationId, member.get("email")));
+            bind(select, Arrays.asList(sub, organizationId, member.get("email"), member.get("id")));
             try (ResultSet rows = select.executeQuery()) {
                 while (rows.next()) {
+                    if (!organizationId.equals(rows.getString("organization_id"))) return null;
                     String existingSub = rows.getString("google_sub");
                     if (id != null && !id.equals(rows.getString("id"))) return null;
                     if (sub != null && existingSub != null && !sub.equals(existingSub)) return null;
