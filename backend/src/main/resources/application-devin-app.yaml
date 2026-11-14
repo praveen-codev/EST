@@ -10,6 +10,9 @@ spring:
       connection-timeout: 10000
       max-lifetime: 1500000
   flyway:
+    url: ${SPRING_FLYWAY_URL:${SPRING_DATASOURCE_URL}}
+    user: ${SPRING_FLYWAY_USER:${SPRING_DATASOURCE_USERNAME}}
+    password: ${SPRING_FLYWAY_PASSWORD:${SPRING_DATASOURCE_PASSWORD}}
     locations: classpath:db/migration/common,classpath:db/migration/postgresql,classpath:db/migration/local
 
 est:

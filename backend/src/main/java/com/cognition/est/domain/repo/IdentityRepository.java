@@ -1,5 +1,7 @@
 package com.cognition.est.domain.repo;
 
+import static com.cognition.est.app.db.JdbcValues.timestamp;
+
 import com.cognition.est.domain.model.Identity;
 import java.time.Instant;
 import java.util.List;
@@ -94,7 +96,7 @@ public class IdentityRepository {
                 .param("enc", token == null ? null : token.ciphertext())
                 .param("iv", token == null ? null : token.iv())
                 .param("status", idn.status())
-                .param("now", now)
+                .param("now", timestamp(now))
                 .update();
     }
 
@@ -106,7 +108,7 @@ public class IdentityRepository {
                 .param("iv", token.iv())
                 .param("sub", providerSub)
                 .param("name", displayName)
-                .param("now", now)
+                .param("now", timestamp(now))
                 .param("id", id)
                 .update();
     }
@@ -115,7 +117,7 @@ public class IdentityRepository {
         jdbc.sql(
                         "update member_identities set sync_token = :t, last_sync_at = :now, last_error = null, status = 'ACTIVE', updated_at = :now where id = :id")
                 .param("t", syncToken)
-                .param("now", now)
+                .param("now", timestamp(now))
                 .param("id", id)
                 .update();
     }
@@ -125,7 +127,7 @@ public class IdentityRepository {
                         "update member_identities set last_error = :e, status = :s, updated_at = :now where id = :id")
                 .param("e", error)
                 .param("s", needsReauth ? "NEEDS_REAUTH" : "ACTIVE")
-                .param("now", now)
+                .param("now", timestamp(now))
                 .param("id", id)
                 .update();
     }

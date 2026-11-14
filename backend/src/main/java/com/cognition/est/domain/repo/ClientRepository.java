@@ -1,5 +1,7 @@
 package com.cognition.est.domain.repo;
 
+import static com.cognition.est.app.db.JdbcValues.timestamp;
+
 import com.cognition.est.domain.model.Client;
 import com.cognition.est.domain.model.Team;
 import java.time.Instant;
@@ -57,7 +59,7 @@ public class ClientRepository {
                 .param("name", c.name())
                 .param("industry", c.industry())
                 .param("hue", c.hue())
-                .param("now", now)
+                .param("now", timestamp(now))
                 .param("by", by)
                 .update();
         for (String d : c.domains()) {
@@ -90,7 +92,7 @@ public class ClientRepository {
                 .param("client", t.clientId())
                 .param("name", t.name())
                 .param("kw", Rows.pipeJoin(t.keywords()))
-                .param("now", now)
+                .param("now", timestamp(now))
                 .update();
     }
 }

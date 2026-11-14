@@ -1,5 +1,7 @@
 package com.cognition.est.auth;
 
+import static com.cognition.est.app.db.JdbcValues.timestamp;
+
 import java.time.Instant;
 import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -40,8 +42,8 @@ public class RefreshTokenRepository {
                 .param("m", memberId)
                 .param("h", hash)
                 .param("ua", userAgentHash)
-                .param("now", now)
-                .param("exp", expiresAt)
+                .param("now", timestamp(now))
+                .param("exp", timestamp(expiresAt))
                 .update();
     }
 
@@ -71,7 +73,7 @@ public class RefreshTokenRepository {
         jdbc.sql(
                         "update refresh_token_families set previous_hash = current_hash, current_hash = :h, rotation_count = rotation_count + 1, last_used_at = :now where id = :id")
                 .param("h", newHash)
-                .param("now", now)
+                .param("now", timestamp(now))
                 .param("id", id)
                 .update();
     }
@@ -79,7 +81,7 @@ public class RefreshTokenRepository {
     public void revoke(String id, boolean reuse, Instant now) {
         jdbc.sql(
                         "update refresh_token_families set revoked_at = coalesce(revoked_at, :now), reuse_detected_at = case when :reuse then :now else reuse_detected_at end where id = :id")
-                .param("now", now)
+                .param("now", timestamp(now))
                 .param("reuse", reuse)
                 .param("id", id)
                 .update();
@@ -88,7 +90,7 @@ public class RefreshTokenRepository {
     public int revokeAllForMember(String memberId, Instant now) {
         return jdbc.sql(
                         "update refresh_token_families set revoked_at = :now where member_id = :m and revoked_at is null")
-                .param("now", now)
+                .param("now", timestamp(now))
                 .param("m", memberId)
                 .update();
     }
@@ -96,8 +98,8 @@ public class RefreshTokenRepository {
     public int purgeExpired(Instant now) {
         return jdbc.sql(
                         "delete from refresh_token_families where expires_at < :now or revoked_at < :cut")
-                .param("now", now)
-                .param("cut", now.minusSeconds(30L * 24 * 3600))
+                .param("now", timestamp(now))
+                .param("cut", timestamp(now.minusSeconds(30L * 24 * 3600)))
                 .update();
     }
 }

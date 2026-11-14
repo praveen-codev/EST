@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "build": "infra/devin-app/build.sh",
+    "start": "infra/devin-app/start.sh"
+  },
+  "dependencies": {
+    "@neon/config": "^1.14.0",
+    "@neon/env": "^2.1.3"
+  }
+}

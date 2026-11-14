@@ -1,5 +1,7 @@
 package com.cognition.est.calendar;
 
+import static com.cognition.est.app.db.JdbcValues.timestamp;
+
 import com.cognition.est.app.config.EstProperties;
 import com.cognition.est.app.crypto.TokenCrypto;
 import com.cognition.est.app.web.NotFoundException;
@@ -64,7 +66,7 @@ public class IdentityService {
                 Base64.getUrlEncoder().withoutPadding().encodeToString(sha256Bytes(verifier));
         TokenCrypto.Encrypted enc = crypto.encrypt(verifier);
         jdbc.sql("delete from oauth_link_states where expires_at < :now")
-                .param("now", now)
+                .param("now", timestamp(now))
                 .update();
         jdbc.sql(
                         "insert into oauth_link_states (state_hash, member_id, pkce_verifier_enc, pkce_verifier_iv, created_at, expires_at) values (:h, :m, :enc, :iv, :now, :exp)")
@@ -72,8 +74,8 @@ public class IdentityService {
                 .param("m", memberId)
                 .param("enc", enc.ciphertext())
                 .param("iv", enc.iv())
-                .param("now", now)
-                .param("exp", now.plus(STATE_TTL))
+                .param("now", timestamp(now))
+                .param("exp", timestamp(now.plus(STATE_TTL)))
                 .update();
         return oauth.authorizationUrl(state, challenge);
     }
@@ -183,7 +185,7 @@ public class IdentityService {
                         });
         jdbc.sql(
                         "update member_identities set refresh_token_enc = null, refresh_token_iv = null, sync_token = null, status = 'DISABLED', updated_at = :now where id = :id")
-                .param("now", now)
+                .param("now", timestamp(now))
                 .param("id", identityId)
                 .update();
         audit.record(

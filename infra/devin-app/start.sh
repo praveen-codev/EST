@@ -5,8 +5,37 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 STATE_DIR="${EST_STATE_DIR:-$HOME/.local/share/est-devin-app}"
 APP_PORT="${PORT:-3000}"
 API_PORT="${EST_API_PORT:-8080}"
+ENV_FILE="${EST_ENV_FILE:-$ROOT/.env.local}"
 
-: "${EST_DATABASE_URL:?Set EST_DATABASE_URL to the Neon PostgreSQL connection string}"
+if [[ -f "$ENV_FILE" ]]; then
+  eval "$(
+    EST_ENV_FILE="$ENV_FILE" python3 - <<'PY'
+import ast
+import os
+import shlex
+from pathlib import Path
+
+wanted = {"DATABASE_URL", "DATABASE_URL_UNPOOLED"}
+for raw in Path(os.environ["EST_ENV_FILE"]).read_text().splitlines():
+    line = raw.strip()
+    if not line or line.startswith("#") or "=" not in line:
+        continue
+    key, value = line.split("=", 1)
+    key = key.strip()
+    if key not in wanted:
+        continue
+    value = value.strip()
+    if value[:1] in {"'", '"'}:
+        value = ast.literal_eval(value)
+    print(f"export NEON_FILE_{key}={shlex.quote(value)}")
+PY
+  )"
+fi
+
+EST_DATABASE_URL="${EST_DATABASE_URL:-${DATABASE_URL:-${NEON_FILE_DATABASE_URL:-}}}"
+EST_DATABASE_URL_UNPOOLED="${EST_DATABASE_URL_UNPOOLED:-${DATABASE_URL_UNPOOLED:-${NEON_FILE_DATABASE_URL_UNPOOLED:-$EST_DATABASE_URL}}}"
+
+: "${EST_DATABASE_URL:?Set DATABASE_URL or EST_DATABASE_URL to the pooled Neon PostgreSQL connection string}"
 
 mkdir -p "$STATE_DIR"
 chmod 700 "$STATE_DIR"
@@ -19,25 +48,40 @@ if [[ ! -f "$STATE_DIR/jwt-private.pem" ]]; then
 fi
 
 eval "$(
-  EST_DATABASE_URL="$EST_DATABASE_URL" python3 - <<'PY'
+  EST_DATABASE_URL="$EST_DATABASE_URL" \
+  EST_DATABASE_URL_UNPOOLED="$EST_DATABASE_URL_UNPOOLED" \
+  python3 - <<'PY'
 import os
 import shlex
 from urllib.parse import parse_qs, unquote, urlparse
 
-url = urlparse(os.environ["EST_DATABASE_URL"])
-if url.scheme not in {"postgres", "postgresql"}:
-    raise SystemExit("EST_DATABASE_URL must use postgres:// or postgresql://")
+def parse_database_url(name, infer_string_types=False):
+    url = urlparse(os.environ[name])
+    if url.scheme not in {"postgres", "postgresql"}:
+        raise SystemExit(f"{name} must use postgres:// or postgresql://")
 
-query = parse_qs(url.query)
-sslmode = query.get("sslmode", ["require"])[0]
-database = url.path.lstrip("/") or "neondb"
-port = url.port or 5432
-jdbc = f"jdbc:postgresql://{url.hostname}:{port}/{database}?sslmode={sslmode}"
+    query = parse_qs(url.query)
+    sslmode = query.get("sslmode", ["require"])[0]
+    database = url.path.lstrip("/") or "neondb"
+    port = url.port or 5432
+    options = f"sslmode={sslmode}"
+    if infer_string_types:
+        options += "&stringtype=unspecified"
+    return {
+        "url": f"jdbc:postgresql://{url.hostname}:{port}/{database}?{options}",
+        "username": unquote(url.username or ""),
+        "password": unquote(url.password or ""),
+    }
 
+app = parse_database_url("EST_DATABASE_URL", infer_string_types=True)
+flyway = parse_database_url("EST_DATABASE_URL_UNPOOLED")
 values = {
-    "SPRING_DATASOURCE_URL": jdbc,
-    "SPRING_DATASOURCE_USERNAME": unquote(url.username or ""),
-    "SPRING_DATASOURCE_PASSWORD": unquote(url.password or ""),
+    "SPRING_DATASOURCE_URL": app["url"],
+    "SPRING_DATASOURCE_USERNAME": app["username"],
+    "SPRING_DATASOURCE_PASSWORD": app["password"],
+    "SPRING_FLYWAY_URL": flyway["url"],
+    "SPRING_FLYWAY_USER": flyway["username"],
+    "SPRING_FLYWAY_PASSWORD": flyway["password"],
 }
 for key, value in values.items():
     print(f"export {key}={shlex.quote(value)}")

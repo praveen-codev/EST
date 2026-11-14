@@ -1,5 +1,7 @@
 package com.cognition.est.domain.repo;
 
+import static com.cognition.est.app.db.JdbcValues.timestamp;
+
 import com.cognition.est.domain.model.Candidate;
 import com.cognition.est.domain.model.Classification;
 import java.math.BigDecimal;
@@ -93,7 +95,7 @@ public class CandidateRepository {
                         .param("session", c.sessionId())
                         .param("text", c.redactedText())
                         .param("red", json.write(c.redactions()))
-                        .param("updated", c.updatedAt())
+                        .param("updated", timestamp(c.updatedAt()))
                         .param("id", c.id())
                         .update();
         if (n == 0) {
@@ -114,8 +116,8 @@ public class CandidateRepository {
                     .param("session", c.sessionId())
                     .param("text", c.redactedText())
                     .param("red", json.write(c.redactions()))
-                    .param("created", c.createdAt())
-                    .param("updated", c.updatedAt())
+                    .param("created", timestamp(c.createdAt()))
+                    .param("updated", timestamp(c.updatedAt()))
                     .update();
         }
     }
@@ -125,7 +127,7 @@ public class CandidateRepository {
                         "update candidates set status = :s, session_id = :session, updated_at = :now where id = :id")
                 .param("s", status)
                 .param("session", sessionId)
-                .param("now", now)
+                .param("now", timestamp(now))
                 .param("id", id)
                 .update();
     }

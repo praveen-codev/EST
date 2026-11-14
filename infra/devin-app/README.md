@@ -16,11 +16,15 @@ infra/devin-app/build.sh
 ## Start
 
 ```bash
-EST_DATABASE_URL='postgresql://…' \
 EST_WEB_ORIGINS='https://your-app-url' \
 PORT=3000 \
 infra/devin-app/start.sh
 ```
+
+The launcher reads Neon's generated `.env.local` by default. `DATABASE_URL` is used for normal
+application traffic through the pooled endpoint, while `DATABASE_URL_UNPOOLED` is used by Flyway.
+Set `EST_ENV_FILE` to load another env file, or provide `EST_DATABASE_URL` and
+`EST_DATABASE_URL_UNPOOLED` directly.
 
 The launcher generates persistent JWT and encryption keys under
 `~/.local/share/est-devin-app`. Set `EST_STATE_DIR` to move that state.
