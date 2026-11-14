@@ -52,7 +52,7 @@ est:
   allowed-domains: ${EST_ALLOWED_DOMAINS:}
   bootstrap-admin-emails: ${EST_BOOTSTRAP_ADMIN_EMAILS:}
   jwt:
-    issuer: ${EST_JWT_ISSUER:est-api}
+    issuer: ${EST_JWT_ISSUER:est-api-${est.track}}
     access-token-ttl: ${EST_JWT_ACCESS_TTL:PT15M}
     refresh-token-ttl: ${EST_JWT_REFRESH_TTL:P14D}
     private-key-pem: ${EST_JWT_PRIVATE_KEY:}

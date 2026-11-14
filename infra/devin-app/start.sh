@@ -2,9 +2,19 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-STATE_DIR="${EST_STATE_DIR:-$HOME/.local/share/est-devin-app}"
+export SPRING_PROFILES_ACTIVE="${SPRING_PROFILES_ACTIVE:-devin-app}"
+STATE_DIR="${EST_STATE_DIR:-$HOME/.local/share/est-${SPRING_PROFILES_ACTIVE//,/-}}"
 APP_PORT="${PORT:-3000}"
-API_PORT="${EST_API_PORT:-8080}"
+BUILT_API_URL_FILE="$ROOT/web/.next/standalone/.est-api-internal-url"
+BUILT_API_PORT=8080
+if [[ -f "$BUILT_API_URL_FILE" ]]; then
+  BUILT_API_PORT="$(python3 -c 'import sys; from urllib.parse import urlparse; print(urlparse(open(sys.argv[1]).read().strip()).port or 80)' "$BUILT_API_URL_FILE")"
+fi
+API_PORT="${EST_API_PORT:-$BUILT_API_PORT}"
+if [[ "$API_PORT" != "$BUILT_API_PORT" ]]; then
+  echo "EST_API_PORT=$API_PORT differs from the web build's API port $BUILT_API_PORT; rebuild with API_INTERNAL_URL=http://127.0.0.1:$API_PORT." >&2
+  exit 1
+fi
 ENV_FILE="${EST_ENV_FILE:-$ROOT/.env.local}"
 
 if [[ -f "$ENV_FILE" ]]; then
@@ -88,13 +98,14 @@ for key, value in values.items():
 PY
 )"
 
-export SPRING_PROFILES_ACTIVE="${SPRING_PROFILES_ACTIVE:-devin-app}"
 export EST_JWT_PRIVATE_KEY
 export EST_JWT_PUBLIC_KEY
 export EST_CRYPTO_KEY
-EST_JWT_PRIVATE_KEY="$(cat "$STATE_DIR/jwt-private.pem")"
-EST_JWT_PUBLIC_KEY="$(cat "$STATE_DIR/jwt-public.pem")"
-EST_CRYPTO_KEY="$(cat "$STATE_DIR/crypto-key")"
+if [[ -z "${EST_JWT_PRIVATE_KEY:-}" || -z "${EST_JWT_PUBLIC_KEY:-}" ]]; then
+  EST_JWT_PRIVATE_KEY="$(cat "$STATE_DIR/jwt-private.pem")"
+  EST_JWT_PUBLIC_KEY="$(cat "$STATE_DIR/jwt-public.pem")"
+fi
+EST_CRYPTO_KEY="${EST_CRYPTO_KEY:-$(cat "$STATE_DIR/crypto-key")}"
 
 API_JAR="$(find "$ROOT/backend/build/libs" -maxdepth 1 -name 'est-api-*.jar' -print -quit)"
 if [[ -z "$API_JAR" ]]; then
