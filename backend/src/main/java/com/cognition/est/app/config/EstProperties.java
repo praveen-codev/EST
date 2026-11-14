@@ -14,6 +14,10 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "est")
 public record EstProperties(
+        /** Runtime data track. User-facing deployments are prod or sandbox. */
+        @DefaultValue("prod") @NotBlank String track,
+        /** Whether this runtime may link calendars or run direct provider synchronization. */
+        @DefaultValue("true") boolean calendarSyncEnabled,
         /** Allowed browser origins (CORS). */
         @DefaultValue("http://localhost:3100") List<String> webOrigins,
         /** Email domains allowed to sign in; empty = any verified Google account (dev only). */

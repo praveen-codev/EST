@@ -16,6 +16,8 @@ spring:
     locations: classpath:db/migration/common,classpath:db/migration/postgresql,classpath:db/migration/local
 
 est:
+  track: sandbox
+  calendar-sync-enabled: true
   jwt:
     cookie-secure: true
   allowed-domains: cognition.ai

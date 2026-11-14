@@ -46,6 +46,8 @@ springdoc:
     operations-sorter: alpha
 
 est:
+  track: ${EST_TRACK:prod}
+  calendar-sync-enabled: ${EST_CALENDAR_SYNC_ENABLED:true}
   web-origins: ${EST_WEB_ORIGINS:http://localhost:3100}
   allowed-domains: ${EST_ALLOWED_DOMAINS:}
   bootstrap-admin-emails: ${EST_BOOTSTRAP_ADMIN_EMAILS:}

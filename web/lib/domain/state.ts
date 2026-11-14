@@ -34,6 +34,8 @@ export interface DataState {
 }
 
 export interface Features {
+  track: "prod" | "sandbox";
+  calendarSyncEnabled: boolean;
   devMode: boolean;
   mockGoogle: boolean;
   scenario: string | null;
@@ -114,6 +116,6 @@ export function fromSnapshot(snap: Snapshot, settings: Settings): DataState {
 export const EMPTY_STATE: DataState = {
   currentMemberId: "",
   settings: { showReasoning: false, scenario: "messy" },
-  features: { devMode: false, mockGoogle: false, scenario: null, remainingPages: 0 },
+  features: { track: "prod", calendarSyncEnabled: true, devMode: false, mockGoogle: false, scenario: null, remainingPages: 0 },
   members: [], clients: [], teams: [], people: [], catalog: [], events: [], candidates: [], suggestions: [], sessions: [], syncRuns: [], identities: [],
 };

@@ -24,6 +24,7 @@ export function LinkedCalendars() {
   const syncNow = useStore((s) => s.syncNow);
   const syncing = useStore((s) => s.syncing);
   const mock = useStore((s) => s.features.mockGoogle);
+  const calendarSyncEnabled = useStore((s) => s.features.calendarSyncEnabled);
   const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
@@ -74,10 +75,16 @@ export function LinkedCalendars() {
             Each Google account you link is read for enablement sessions. Candidates land in your inbox; nothing is confirmed automatically, and nothing is ever written back.
           </p>
         </div>
-        <Button onClick={startLink} disabled={busy === "link"} className="gap-2 bg-ai text-ai-foreground hover:bg-ai/90">
+        <Button onClick={startLink} disabled={!calendarSyncEnabled || busy === "link"} className="gap-2 bg-ai text-ai-foreground hover:bg-ai/90">
           <CalendarPlus className="size-4" /> Add Google account
         </Button>
       </div>
+
+      {!calendarSyncEnabled && (
+        <p className="mt-4 rounded-lg border border-warning/40 bg-warning/5 p-3 text-sm text-warning">
+          Sandbox calendars are managed by production replication. Link, sync, and unlink actions are disabled here.
+        </p>
+      )}
 
       <ul className="mt-6 space-y-3">
         {active.map((idn) => (
@@ -98,8 +105,8 @@ export function LinkedCalendars() {
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => void syncNow()} disabled={syncing} className="gap-1.5"><RefreshCw className={syncing ? "size-3.5 animate-spin" : "size-3.5"} /> Sync</Button>
-              <Button variant="ghost" size="sm" onClick={() => void unlink(idn)} disabled={busy === idn.id} className="gap-1.5 text-muted-foreground hover:text-destructive" aria-label={`Unlink ${idn.email}`}>
+              <Button variant="outline" size="sm" onClick={() => void syncNow()} disabled={!calendarSyncEnabled || syncing} className="gap-1.5"><RefreshCw className={syncing ? "size-3.5 animate-spin" : "size-3.5"} /> Sync</Button>
+              <Button variant="ghost" size="sm" onClick={() => void unlink(idn)} disabled={!calendarSyncEnabled || busy === idn.id} className="gap-1.5 text-muted-foreground hover:text-destructive" aria-label={`Unlink ${idn.email}`}>
                 <Link2Off className="size-3.5" /> Unlink
               </Button>
             </div>

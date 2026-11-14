@@ -72,8 +72,8 @@ paths:
     get:
       tags: [Me]
       security: []
-      summary: Public runtime flags for the sign-in page (dev mode, mock Google, public OAuth client id)
-      responses: { "200": { content: { application/json: { schema: { type: object, properties: { devMode: { type: boolean }, mockGoogle: { type: boolean }, googleClientId: { type: string } } } } }, description: OK } }
+      summary: Public runtime flags for the sign-in page and environment identity
+      responses: { "200": { content: { application/json: { schema: { type: object, properties: { track: { type: string, enum: [prod, sandbox] }, calendarSyncEnabled: { type: boolean }, devMode: { type: boolean }, mockGoogle: { type: boolean }, googleClientId: { type: string } } } } }, description: OK } }
   /snapshot:
     get:
       tags: [Me]
@@ -581,7 +581,7 @@ components:
       type: object
       properties:
         me: { $ref: "#/components/schemas/Member" }
-        features: { type: object, properties: { devMode: { type: boolean }, mockGoogle: { type: boolean }, scenario: { type: string, nullable: true }, remainingPages: { type: integer } } }
+        features: { type: object, properties: { track: { type: string, enum: [prod, sandbox] }, calendarSyncEnabled: { type: boolean }, devMode: { type: boolean }, mockGoogle: { type: boolean }, scenario: { type: string, nullable: true }, remainingPages: { type: integer } } }
         members: { type: array, items: { $ref: "#/components/schemas/Member" } }
         clients: { type: array, items: { $ref: "#/components/schemas/Client" } }
         teams: { type: array, items: { $ref: "#/components/schemas/Team" } }

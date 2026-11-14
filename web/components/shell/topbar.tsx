@@ -2,8 +2,10 @@
 
 import { usePathname } from "next/navigation";
 import { Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
+import { useStore } from "@/lib/domain/store";
 import { PersonaSwitcher } from "./persona-switcher";
 import { SyncPill } from "./sync-pill";
 import { ThemeToggle } from "./theme-toggle";
@@ -18,6 +20,7 @@ const TITLES: Array<[string, string, string]> = [
 
 export function Topbar({ onOpenPalette }: { onOpenPalette: () => void }) {
   const pathname = usePathname();
+  const track = useStore((s) => s.features.track);
   const [, title, subtitle] = TITLES.find(([p]) => pathname.startsWith(p)) ?? ["", "Today", "Your sessions for today, ready for feedback."];
   return (
     <header className="glass sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border/60 px-5">
@@ -26,6 +29,12 @@ export function Topbar({ onOpenPalette }: { onOpenPalette: () => void }) {
         {subtitle && <p className="hidden truncate text-[11px] text-muted-foreground md:block">{subtitle}</p>}
       </div>
       <div className="flex shrink-0 items-center gap-2">
+        <Badge
+          variant="outline"
+          className={track === "sandbox" ? "border-warning/40 text-warning" : "border-success/40 text-success"}
+        >
+          {track === "sandbox" ? "Sandbox" : "Production"}
+        </Badge>
         <SyncPill />
         <Button variant="outline" size="sm" className="hidden gap-2 text-muted-foreground md:inline-flex" onClick={onOpenPalette}>
           <Search data-icon="inline-start" />

@@ -20,9 +20,13 @@ public class FeaturesController {
     }
 
     @GetMapping
-    @Operation(summary = "Dev mode, mock Google and the public OAuth client id")
+    @Operation(summary = "Environment identity, calendar mode and public sign-in flags")
     public Map<String, Object> features() {
         return Map.of(
+                "track",
+                props.track(),
+                "calendarSyncEnabled",
+                props.calendarSyncEnabled(),
                 "devMode",
                 props.dev().endpointsEnabled(),
                 "mockGoogle",

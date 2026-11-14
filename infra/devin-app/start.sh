@@ -88,7 +88,7 @@ for key, value in values.items():
 PY
 )"
 
-export SPRING_PROFILES_ACTIVE=devin-app
+export SPRING_PROFILES_ACTIVE="${SPRING_PROFILES_ACTIVE:-devin-app}"
 export EST_JWT_PRIVATE_KEY
 export EST_JWT_PUBLIC_KEY
 export EST_CRYPTO_KEY

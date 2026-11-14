@@ -4,6 +4,7 @@ import Script from "next/script";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/api/auth";
 import { API_URL } from "@/lib/api/client";
@@ -26,7 +27,7 @@ export function SignIn() {
   const signInWithGoogle = useAuth((s) => s.signInWithGoogle);
   const devLogin = useAuth((s) => s.devLogin);
   const buttonRef = useRef<HTMLDivElement>(null);
-  const [features, setFeatures] = useState<{ devMode: boolean; googleClientId: string } | null>(null);
+  const [features, setFeatures] = useState<{ track: "prod" | "sandbox"; calendarSyncEnabled: boolean; devMode: boolean; googleClientId: string } | null>(null);
   const clientId = features?.googleClientId || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
   useEffect(() => {
@@ -37,7 +38,7 @@ export function SignIn() {
 
   // Public runtime flags: whether persona sign-in exists (local profile) and the Google OAuth client id.
   useEffect(() => {
-    fetch(`${API_URL}/api/v1/features`).then((r) => r.json()).then(setFeatures).catch(() => setFeatures({ devMode: false, googleClientId: "" }));
+    fetch(`${API_URL}/api/v1/features`).then((r) => r.json()).then(setFeatures).catch(() => setFeatures({ track: "prod", calendarSyncEnabled: true, devMode: false, googleClientId: "" }));
   }, []);
 
   const renderGoogle = useCallback(() => {
@@ -59,8 +60,20 @@ export function SignIn() {
         <div className="ai-gradient mb-6 flex size-11 items-center justify-center rounded-2xl text-white shadow-md shadow-ai/25">
           <Sparkles className="size-5" />
         </div>
-        <h1 className="text-xl font-semibold">Enablement Session Tracker</h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-xl font-semibold">Enablement Session Tracker</h1>
+          {features && (
+            <Badge variant="outline" className={features.track === "sandbox" ? "border-warning/40 text-warning" : "border-success/40 text-success"}>
+              {features.track === "sandbox" ? "Sandbox" : "Production"}
+            </Badge>
+          )}
+        </div>
         <p className="mt-1 text-sm text-muted-foreground">Sign in with your work Google account. Your calendar is read, never written.</p>
+        {features?.track === "sandbox" && (
+          <p className="mt-3 rounded-lg border border-warning/40 bg-warning/5 p-3 text-xs text-warning">
+            Experimental track. Feedback, hashtags, and reports stay isolated from production.
+          </p>
+        )}
         <div className="mt-6 flex flex-col gap-3">
           {clientId ? <div ref={buttonRef} className="flex justify-center" /> : features && <p className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">Google sign-in is not configured on this environment (GOOGLE_CLIENT_ID).</p>}
           {status === "rejected" && error && <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-xs text-destructive">{error}</p>}

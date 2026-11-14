@@ -1,4 +1,8 @@
 # Production: everything from the environment, strict defaults. See infra/runbooks/deploy-gcp-supabase.html.
+est:
+  track: prod
+  calendar-sync-enabled: true
+
 spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL}

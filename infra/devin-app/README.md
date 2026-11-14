@@ -26,6 +26,16 @@ application traffic through the pooled endpoint, while `DATABASE_URL_UNPOOLED` i
 Set `EST_ENV_FILE` to load another env file, or provide `EST_DATABASE_URL` and
 `EST_DATABASE_URL_UNPOOLED` directly.
 
+The default Spring profile is `devin-app`. A real-account sandbox uses:
+
+```bash
+EST_ENV_FILE="$PWD/.env.sandbox.local" \
+SPRING_PROFILES_ACTIVE=sandbox \
+EST_TRACK=sandbox \
+EST_CALENDAR_SYNC_ENABLED=false \
+infra/devin-app/start.sh
+```
+
 The launcher generates persistent JWT and encryption keys under
 `~/.local/share/est-devin-app`. Set `EST_STATE_DIR` to move that state.
 

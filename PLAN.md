@@ -2,26 +2,43 @@
 
 ## Status
 
-This document is an implementation plan, not a description of behavior already shipped.
+This document is both the implementation plan and the resource registry for the three Neon tracks.
 
-The current Devin App continues to use one Neon PostgreSQL project as its source of truth. The
-application does not yet archive data to a second project and does not yet use an application
+The projects now exist:
+
+| Track | Neon project | Project ID | Default branch | Purpose |
+|---|---|---|---|---|
+| Production | `Codev-EST-prod` | `fragrant-cloud-37068465` | `production` | Real accounts, calendar credentials, authoritative feedback |
+| Sandbox | `Codev-EST-sandbox` | `flat-breeze-15814484` | `sandbox` | Real calendar evidence with isolated experimental edits |
+| Archive | `Codev-EST-archive` | `dry-cloud-96538248` | `archive` | Verified cold evidence and historical payloads |
+
+Production is the renamed original `Codev-EST` project. The sandbox project has the current EST
+Flyway schema, and the archive project has the archive-only Flyway schema. A manual, idempotent
+production-to-sandbox evidence distributor is implemented and verified; scheduling it and adding a
+durable replication ledger remain planned work. The application does not yet use an application
 cache.
 
 ## Executive decision
 
 EST should evolve in this order:
 
-1. Measure storage, transfer, query volume, and latency before adding infrastructure.
-2. Reduce unnecessary database reads and payload sizes.
-3. Add a bounded in-process Caffeine cache for safe, read-heavy data.
-4. Build compact historical learning aggregates in the primary database.
-5. Move only bulky, old calendar evidence to a separate archive store.
-6. Add managed Redis or Valkey only if EST runs multiple API instances or needs a shared cache.
+1. Keep production authoritative for identity, credentials, and real feedback.
+2. Replicate canonical calendar evidence from production into sandbox.
+3. Keep every manual sandbox write isolated from production.
+4. Measure storage, transfer, query volume, and latency before adding caching.
+5. Add a bounded in-process Caffeine cache for safe, read-heavy data.
+6. Build compact historical learning aggregates in production.
+7. Move only bulky, old calendar evidence to the archive project.
+8. Add managed Redis or Valkey only if EST runs multiple API instances or needs a shared cache.
 
 Authoritative session records remain in the primary Neon project. The archive is not part of the
 normal request path, and the application must never depend on a cross-database join to render Today,
 Inbox, Timeline, or a session form.
+
+Sandbox is not a branch that is periodically reset from production. A reset would erase the
+experiments the sandbox exists to preserve. It is a separate project that receives idempotent
+calendar-evidence replication while keeping its own candidates, suggestions, sessions, catalog
+changes, hashtags, feedback, and reports.
 
 ## Quota assumptions
 
@@ -36,7 +53,7 @@ The architectural decision must start from the correct quota dimensions:
 
 The values previously reviewed for this pilot were 1 GB of storage and 5 GB of public transfer per
 project per month. These are plan assumptions, not constants. Confirm the current limits in the Neon
-console before starting Phase 4 and again before relying on a second project.
+console before starting Phase 6 and again before relying on a second project.
 
 Creating projects to multiply free allowances is suitable for an internal pilot, but it is not a
 permanent production scaling strategy.
@@ -59,39 +76,157 @@ Other important constraints:
 - Calendar synchronization and archival run outside the web/API process.
 - Neon PostgreSQL remains the source of truth.
 
-## Target architecture
+## Three-track target architecture
 
 ```mermaid
 flowchart LR
-    U[Organization users] --> W[Next.js Devin App]
-    W --> A[Spring Boot API]
+    U[Organization users]
+    G[Google Calendar]
 
-    G[Google Calendar] --> S[External calendar sync]
-    S --> H[(Neon hot project)]
+    U --> PW[Production App]
+    U --> SW[Sandbox App]
 
-    A --> C{Bounded Caffeine cache}
-    C -->|cache miss| H
+    PW --> PA[Production Spring API]
+    SW --> SA[Sandbox Spring API]
 
-    H --> L[Learning aggregate refresh]
-    L --> F[(Compact learning aggregates)]
+    G --> SY[External calendar sync and distributor]
+    SY --> P[(Codev-EST-prod)]
+    SY --> X[Canonical evidence envelope]
+    X --> S[(Codev-EST-sandbox)]
 
-    H --> J[External archive job]
-    J --> R[(Separate archive project)]
+    PA --> PC{Production Caffeine cache}
+    PC --> P
+    SA --> SC{Sandbox Caffeine cache}
+    SC --> S
 
-    A -->|rare explicit history request| R
+    U -->|real feedback and edits| P
+    U -->|experimental feedback, hashtags, reports| S
+
+    P --> L[Learning aggregate refresh]
+    L --> F[(Compact production learning aggregates)]
+
+    P --> J[External archive job]
+    J --> R[(Codev-EST-archive)]
+
+    PA -->|rare explicit history request| R
 
     classDef app fill:#dbeafe,stroke:#2563eb,color:#172554;
-    classDef hot fill:#dcfce7,stroke:#16a34a,color:#052e16;
+    classDef prod fill:#dcfce7,stroke:#16a34a,color:#052e16;
+    classDef sandbox fill:#e0f2fe,stroke:#0284c7,color:#082f49;
     classDef archive fill:#fef3c7,stroke:#d97706,color:#451a03;
     classDef automation fill:#f3e8ff,stroke:#9333ea,color:#3b0764;
     classDef cache fill:#ffe4e6,stroke:#e11d48,color:#4c0519;
 
-    class U,W,A app;
-    class H,F hot;
+    class U,PW,SW,PA,SA app;
+    class P,F prod;
+    class S sandbox;
     class R archive;
-    class G,S,J,L automation;
-    class C cache;
+    class G,SY,X,J,L automation;
+    class PC,SC cache;
 ```
+
+## Production and sandbox isolation
+
+### Shared starting evidence
+
+Production and sandbox receive the same canonical upcoming calendar evidence:
+
+- Stable provider event identity.
+- Title, description, start, end, location, and conferencing details.
+- Organizer and attendee evidence.
+- Provider status, ETag, and content hash. The initial distributor omits the raw provider payload.
+- The organization member who owns the calendar.
+- The sync run and replication metadata needed for idempotency.
+
+The distributor fetches from Google once through the production identity. It then writes the
+canonical event to production and independently replicates the same envelope to sandbox.
+
+### Production-only state
+
+- Google calendar refresh tokens and sync cursors.
+- OAuth link state and calendar-linking operations.
+- Authoritative candidates, decisions, suggestions, sessions, feedback, and reports.
+- Production catalog and hashtag changes.
+- Production audit records.
+
+### Sandbox-only state
+
+- Experimental candidate decisions and suggestion decisions.
+- Experimental sessions and repeated feedback attempts.
+- Experimental catalog items, hashtags, client mappings, and report definitions.
+- Sandbox audit records.
+- Sandbox cache contents.
+
+Sandbox must not store Google calendar refresh tokens. Team members use real Google sign-in for
+identity, but calendar linking and direct Google sync are disabled there. Calendar evidence arrives
+only from the distributor.
+
+### Never replicate back to production
+
+No sandbox-originated write may flow into production automatically. Promotion, if ever required,
+must be an explicit reviewed export/import operation with a human-readable diff.
+
+## Calendar evidence distribution
+
+The external calendar job owns a canonical, versioned envelope:
+
+```text
+CalendarEvidenceEnvelope
+  schemaVersion
+  organizationKey
+  ownerGoogleSubject
+  ownerEmail
+  provider
+  providerEventId
+  event fields
+  attendees
+  sourceETag
+  contentHash
+  sourceSyncedAt
+```
+
+The envelope uses Google subject and normalized email as cross-environment identity keys. The
+initial distributor preserves matching production IDs in sandbox for simple foreign-key alignment,
+but the envelope contract must not depend on those IDs remaining identical forever.
+
+For each envelope:
+
+1. Resolve the production member and identity.
+2. Upsert production evidence and run the normal production candidate analysis.
+3. Resolve or provision the corresponding sandbox member by Google subject or email.
+4. Upsert a tokenless sandbox identity record.
+5. Upsert sandbox evidence.
+6. Create sandbox candidates and suggestions only when that event has no sandbox-owned state.
+7. Record separate production and sandbox outcomes in a replication ledger.
+8. Retry only the failed target using the same envelope and idempotency key.
+
+The distributor must never copy production `sessions`, candidate decisions, suggestion decisions,
+catalog edits, refresh tokens, or token families into sandbox.
+
+## Environment identity and visible safety
+
+Every running app must declare:
+
+```text
+EST_TRACK=prod|sandbox
+EST_CALENDAR_SYNC_ENABLED=true|false
+```
+
+The frontend must show a persistent environment label. Sandbox uses a visually distinct banner and
+language that says experimental changes never affect production. Production must not use a playful
+or ambiguous label.
+
+Recommended behavior:
+
+| Capability | Production | Sandbox | Archive |
+|---|---:|---:|---:|
+| Real Google sign-in | Yes | Yes | No app |
+| Calendar linking | Yes | No | No |
+| Direct Google sync | Yes, through external job or manual recovery | No | No |
+| Replicated calendar evidence | Source | Target | Historical target |
+| Manual feedback | Authoritative | Experimental | No |
+| Catalog and hashtag edits | Authoritative | Experimental | No |
+| Session/report generation | Authoritative | Experimental | Historical retrieval only |
 
 ## Hot database boundary
 
@@ -401,7 +536,61 @@ Even then:
 
 ## Phased delivery
 
-### Phase 0: measure and set thresholds
+### Phase 0: establish hard track boundaries
+
+Goal: make it visually and operationally difficult to confuse production and sandbox.
+
+Work:
+
+- Add `EST_TRACK` and `EST_CALENDAR_SYNC_ENABLED` configuration.
+- Add `prod` and `sandbox` application profiles.
+- Display a persistent track label in the web UI.
+- Disable calendar linking, unlinking, and direct sync in sandbox.
+- Keep real Google sign-in available in both user-facing tracks.
+- Document the three project IDs, branches, owners, and secret names.
+- Apply the normal EST Flyway schema to sandbox.
+- Add archive-only Flyway migrations before writing archive data.
+
+Exit gate:
+
+- A sandbox user cannot call calendar linking or direct sync endpoints.
+- Production and sandbox are unmistakable in the UI.
+- The archive project exposes no EST web/API process.
+- Credentials are separate and absent from Git.
+
+Rollback:
+
+- Point the App back to the production environment file and disable the sandbox deployment.
+
+### Phase 1: build calendar evidence distribution
+
+Goal: give both tracks the same upcoming calendar evidence without sharing manual state.
+
+Work:
+
+- Define and version `CalendarEvidenceEnvelope`.
+- Fetch Google once using production-owned credentials.
+- Resolve users across environments by Google subject and normalized email.
+- Store tokenless shadow identities in sandbox.
+- Upsert evidence independently in production and sandbox.
+- Create sandbox candidates and suggestions only when no sandbox-owned state exists.
+- Add an idempotent replication ledger with per-target status and retry.
+- Add a dry-run mode that reports changes without writing them.
+- Prove that sandbox sessions, feedback, catalogs, and hashtags never flow to production.
+
+Exit gate:
+
+- The same provider event and content hash appear in both tracks.
+- Retrying a delivery creates no duplicates.
+- A sandbox edit survives later evidence refreshes.
+- A failed sandbox delivery does not roll back a successful production sync.
+- No Google refresh token exists in sandbox.
+
+Rollback:
+
+- Disable the sandbox target in the distributor. Production sync continues normally.
+
+### Phase 2: measure and set thresholds
 
 Goal: prove which resource is constrained before changing the architecture.
 
@@ -420,13 +609,13 @@ Exit gate:
 - Archive-eligible bytes and expected monthly growth are known.
 - A written threshold determines whether archival is justified.
 
-Recommended trigger for Phase 4:
+Recommended trigger for Phase 6:
 
 - Primary storage or public transfer reaches 60 percent of its allowance, or
 - Archive-eligible evidence exceeds 30 percent of primary storage, or
 - Forecasted growth reaches either condition within two months.
 
-### Phase 1: reduce database work
+### Phase 3: reduce database work
 
 Goal: get the easiest savings without adding state.
 
@@ -449,7 +638,7 @@ Rollback:
 
 - Revert query changes; no data migration is involved.
 
-### Phase 2: add Caffeine behind a feature flag
+### Phase 4: add Caffeine behind a feature flag
 
 Goal: reduce repeated reads without creating new infrastructure.
 
@@ -473,7 +662,7 @@ Rollback:
 
 - Set `EST_CACHE_ENABLED=false` and restart.
 
-### Phase 3: add compact learning aggregates
+### Phase 5: add compact learning aggregates
 
 Goal: preserve historical learning value without keeping bulky evidence in hot request paths.
 
@@ -495,13 +684,13 @@ Rollback:
 
 - Read from current source queries while retaining aggregate tables for diagnosis.
 
-### Phase 4: provision the archive project and dry-run copying
+### Phase 6: add the archive schema and dry-run copying
 
 Goal: validate isolation without deleting or compacting hot data.
 
 Work:
 
-- Create a separate Neon archive project.
+- Use the provisioned `Codev-EST-archive` project.
 - Apply archive-only Flyway migrations.
 - Create least-privilege archive writer and archive reader roles.
 - Add separate secrets for the external archive job and optional read-only application access.
@@ -520,7 +709,7 @@ Rollback:
 
 - Disable the archive job. No hot data has been compacted.
 
-### Phase 5: enable verified compaction
+### Phase 7: enable verified compaction
 
 Goal: reduce hot storage while preserving normal EST behavior.
 
@@ -546,7 +735,7 @@ Rollback:
 - Restore payloads from verified archive envelopes by stable event ID.
 - Continue operating from the hot database.
 
-### Phase 6: evaluate shared caching and colder storage
+### Phase 8: evaluate shared caching and colder storage
 
 Goal: add complexity only when measured usage justifies it.
 
@@ -558,19 +747,23 @@ quota reasons.
 
 Use separate credentials and least-privilege roles:
 
-| Principal | Hot project | Archive project |
-|---|---|---|
-| EST application | Normal scoped application access | No access initially; read-only if a history feature is added |
-| Calendar sync job | Scoped event and sync writes | No access |
-| Archive job | Read eligible evidence, update archive state, compact verified fields | Upsert archive envelopes |
-| Aggregate rebuild job | Read scoped sessions/evidence, write aggregate tables | No access required |
-| Operator | Audited administrative access | Audited administrative access |
+| Principal | Production | Sandbox | Archive |
+|---|---|---|---|
+| Production EST application | Normal scoped application access | No access | No access initially; read-only if a history feature is added |
+| Sandbox EST application | No access | Normal scoped application access, no calendar credentials | No access |
+| Calendar distributor | Read calendar credentials and write evidence | Write tokenless identities and evidence | No access |
+| Archive job | Read eligible evidence, update archive state, compact verified fields | No access | Upsert archive envelopes |
+| Aggregate rebuild job | Read scoped sessions/evidence, write aggregate tables | Optional sandbox-local rebuild only | No access required |
+| Operator | Audited administrative access | Audited administrative access | Audited administrative access |
 
 Additional requirements:
 
-- Store both connection strings in secret storage, never Git.
+- Store every project connection string in secret storage, never Git.
+- Use different application, distributor, and archive credentials for each project.
 - Never log either connection string.
 - Keep organization scoping in every archive query and archive key.
+- Treat sandbox as containing real personal and client data even though its manual records are
+  experimental.
 - Redact calendar payloads before transfer.
 - Version the archive schema and payload envelope.
 - Record who or what initiated each archive run.
@@ -664,6 +857,7 @@ The architecture is complete when:
 
 ## Recommended next move
 
-Implement Phase 0 only. Collect a baseline before adding Caffeine or provisioning an archive project.
-The baseline will show whether storage, network transfer, compute, or query design is the actual
-constraint and will prevent optimizing the wrong resource.
+Finish Phase 0, then implement Phase 1 with mock calendar envelopes before enabling real Google
+distribution. After isolation is proven, collect the Phase 2 baseline before adding Caffeine or
+writing archive data. This sequence protects production while still giving the team a realistic
+sandbox quickly.

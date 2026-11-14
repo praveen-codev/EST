@@ -83,7 +83,12 @@ public class SnapshotController {
     }
 
     public record Features(
-            boolean devMode, boolean mockGoogle, String scenario, int remainingPages) {}
+            String track,
+            boolean calendarSyncEnabled,
+            boolean devMode,
+            boolean mockGoogle,
+            String scenario,
+            int remainingPages) {}
 
     public record Snapshot(
             Member me,
@@ -122,6 +127,8 @@ public class SnapshotController {
         }
         Features features =
                 new Features(
+                        props.track(),
+                        props.calendarSyncEnabled(),
                         props.dev().endpointsEnabled(),
                         props.google().mock(),
                         m == null ? null : m.scenario(),
