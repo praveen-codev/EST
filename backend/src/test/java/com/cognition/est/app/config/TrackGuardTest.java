@@ -3,14 +3,18 @@ package com.cognition.est.app.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -50,5 +54,24 @@ class TrackGuardTest {
         assertThatThrownBy(() -> TrackGuard.claim(jdbc, "prod", Instant.now()))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("belongs to the sandbox track");
+    }
+
+    private static JdbcClient racedBy(String winner) {
+        JdbcClient raced = mock(JdbcClient.class, RETURNS_DEEP_STUBS);
+        when(raced.sql(startsWith("select track")).query(String.class).optional())
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(winner));
+        when(raced.sql(startsWith("insert")).param(any(), any()).param(any(), any()).update())
+                .thenThrow(new DuplicateKeyException("deployment_track_pkey"));
+        return raced;
+    }
+
+    @Test
+    void concurrentFirstStartOfTheSameTrackDoesNotAbort() {
+        assertThatCode(() -> TrackGuard.claim(racedBy("sandbox"), "sandbox", Instant.now()))
+                .doesNotThrowAnyException();
+        assertThatThrownBy(() -> TrackGuard.claim(racedBy("prod"), "sandbox", Instant.now()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("belongs to the prod track");
     }
 }

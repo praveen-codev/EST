@@ -8,6 +8,7 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
@@ -48,20 +49,27 @@ public class TrackGuard implements ApplicationRunner {
                 .optional();
     }
 
+    /**
+     * Claims the database for {@code track}; a concurrent first start of the same track wins too.
+     */
     public static void claim(JdbcClient jdbc, String track, Instant now) {
-        String owner = claimed(jdbc).orElse(null);
-        if (owner == null) {
-            jdbc.sql(
-                            "insert into deployment_track (id, track, claimed_at) values (1, :track, :now)")
-                    .param("track", track)
-                    .param("now", timestamp(now))
-                    .update();
-        } else if (!owner.equals(track)) {
+        if (claimed(jdbc).isEmpty()) {
+            try {
+                jdbc.sql(
+                                "insert into deployment_track (id, track, claimed_at) values (1, :track, :now)")
+                        .param("track", track)
+                        .param("now", timestamp(now))
+                        .update();
+            } catch (DuplicateKeyException raced) {
+                // Another instance claimed it between the read and the insert; check its track.
+            }
+        }
+        String owner = claimed(jdbc).orElseThrow();
+        if (!owner.equals(track))
             throw new IllegalStateException(
                     "This database belongs to the "
                             + owner
                             + " track; refusing to use it as "
                             + track);
-        }
     }
 }
