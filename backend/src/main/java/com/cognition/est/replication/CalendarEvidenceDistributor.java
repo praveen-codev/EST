@@ -88,7 +88,8 @@ public final class CalendarEvidenceDistributor {
                         """,
                         List.of(organizationId),
                         List.of("id"),
-                        true));
+                        true,
+                        Set.of("role", "status")));
         counts.put(
                 "identities",
                 copy(
@@ -220,7 +221,8 @@ public final class CalendarEvidenceDistributor {
                         """,
                         List.of(organizationId, cutoff.atOffset(ZoneOffset.UTC)),
                         List.of("id"),
-                        false));
+                        true,
+                        Set.of("status", "session_id", "created_at")));
         counts.put(
                 "suggestions",
                 copy(
@@ -237,11 +239,60 @@ public final class CalendarEvidenceDistributor {
                         join candidates c on c.id = s.candidate_id
                         join calendar_events e on e.id = c.event_id
                         where s.organization_id = ? and e.end_at >= ?
+                          and s.status <> 'superseded'
                         """,
                         List.of(organizationId, cutoff.atOffset(ZoneOffset.UTC)),
                         List.of("id"),
                         false));
+        counts.put("superseded", supersede(source, target, organizationId, cutoff));
+        counts.put("attached", attachToConfirmedSessions(target, organizationId));
         return counts;
+    }
+
+    private static int supersede(
+            Connection source, Connection target, String organizationId, Instant cutoff)
+            throws SQLException {
+        try (PreparedStatement select =
+                        source.prepareStatement(
+                                """
+                                select s.id from suggestions s
+                                join candidates c on c.id = s.candidate_id
+                                join calendar_events e on e.id = c.event_id
+                                where s.organization_id = ? and e.end_at >= ?
+                                  and s.status = 'superseded'
+                                """);
+                PreparedStatement update =
+                        target.prepareStatement(
+                                """
+                                update suggestions set status = 'superseded'
+                                where id = ? and organization_id = ? and status = 'proposed'
+                                """)) {
+            bind(select, List.of(organizationId, cutoff.atOffset(ZoneOffset.UTC)));
+            int count = 0;
+            try (ResultSet rows = select.executeQuery()) {
+                while (rows.next()) {
+                    bind(update, List.of(rows.getString("id"), organizationId));
+                    count += update.executeUpdate();
+                }
+            }
+            return count;
+        }
+    }
+
+    private static int attachToConfirmedSessions(Connection target, String organizationId)
+            throws SQLException {
+        try (PreparedStatement update =
+                target.prepareStatement(
+                        """
+                        update suggestions s set session_id = c.session_id
+                        from candidates c
+                        where c.id = s.candidate_id and s.organization_id = ?
+                          and s.session_id is null and s.status = 'proposed'
+                          and c.session_id is not null
+                        """)) {
+            bind(update, List.of(organizationId));
+            return update.executeUpdate();
+        }
     }
 
     private static void verifyMemberIds(Connection source, Connection target, String organizationId)
@@ -288,6 +339,27 @@ public final class CalendarEvidenceDistributor {
             List<String> conflictColumns,
             boolean updateOnConflict)
             throws SQLException {
+        return copy(
+                source,
+                target,
+                table,
+                selectSql,
+                parameters,
+                conflictColumns,
+                updateOnConflict,
+                Set.of());
+    }
+
+    private static int copy(
+            Connection source,
+            Connection target,
+            String table,
+            String selectSql,
+            List<Object> parameters,
+            List<String> conflictColumns,
+            boolean updateOnConflict,
+            Set<String> targetOwnedColumns)
+            throws SQLException {
         try (PreparedStatement select = source.prepareStatement(selectSql)) {
             bind(select, parameters);
             try (ResultSet rows = select.executeQuery()) {
@@ -304,6 +376,10 @@ public final class CalendarEvidenceDistributor {
                                 ? "do update set "
                                         + columns.stream()
                                                 .filter(column -> !conflictColumns.contains(column))
+                                                .filter(
+                                                        column ->
+                                                                !targetOwnedColumns.contains(
+                                                                        column))
                                                 .map(column -> column + " = excluded." + column)
                                                 .collect(Collectors.joining(", "))
                                 : "do nothing";
