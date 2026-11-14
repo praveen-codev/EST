@@ -281,6 +281,18 @@ public final class CalendarEvidenceDistributor {
 
     private static int attachToConfirmedSessions(Connection target, String organizationId)
             throws SQLException {
+        try (PreparedStatement manual =
+                target.prepareStatement(
+                        """
+                        update suggestions s set status = 'superseded'
+                        from candidates c join sessions ss on ss.id = c.session_id
+                        where c.id = s.candidate_id and s.organization_id = ?
+                          and s.session_id is null and s.status = 'proposed'
+                          and ss.provenance ->> s.field = 'manual'
+                        """)) {
+            bind(manual, List.of(organizationId));
+            manual.executeUpdate();
+        }
         try (PreparedStatement update =
                 target.prepareStatement(
                         """
