@@ -1,22 +1,15 @@
 package com.cognition.est.calendar;
 
-import com.cognition.est.ai.SuggestionEngine;
 import com.cognition.est.domain.model.CalendarEvent;
-import com.cognition.est.domain.model.Candidate;
 import com.cognition.est.domain.model.Identity;
 import com.cognition.est.domain.model.Ids;
 import com.cognition.est.domain.model.Member;
-import com.cognition.est.domain.model.Suggestion;
 import com.cognition.est.domain.model.SyncRun;
 import com.cognition.est.domain.repo.CandidateRepository;
 import com.cognition.est.domain.repo.EventRepository;
 import com.cognition.est.domain.repo.IdentityRepository;
-import com.cognition.est.domain.repo.JsonCodec;
 import com.cognition.est.domain.repo.MemberRepository;
-import com.cognition.est.domain.repo.PersonRepository;
-import com.cognition.est.domain.repo.SuggestionRepository;
 import com.cognition.est.domain.repo.SyncRunRepository;
-import com.cognition.est.domain.service.EngineContextFactory;
 import com.cognition.est.domain.service.SessionOps;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -44,12 +37,8 @@ public class SyncService {
     private final MemberRepository members;
     private final EventRepository events;
     private final CandidateRepository candidates;
-    private final SuggestionRepository suggestions;
-    private final PersonRepository people;
     private final SyncRunRepository runs;
-    private final EngineContextFactory contexts;
     private final SessionOps ops;
-    private final JsonCodec json;
 
     public SyncService(
             List<CalendarProvider> providerList,
@@ -57,12 +46,8 @@ public class SyncService {
             MemberRepository members,
             EventRepository events,
             CandidateRepository candidates,
-            SuggestionRepository suggestions,
-            PersonRepository people,
             SyncRunRepository runs,
-            EngineContextFactory contexts,
-            SessionOps ops,
-            JsonCodec json) {
+            SessionOps ops) {
         this.providers =
                 providerList.stream()
                         .collect(
@@ -72,12 +57,8 @@ public class SyncService {
         this.members = members;
         this.events = events;
         this.candidates = candidates;
-        this.suggestions = suggestions;
-        this.people = people;
         this.runs = runs;
-        this.contexts = contexts;
         this.ops = ops;
-        this.json = json;
     }
 
     public boolean hasProvider(String name) {
@@ -190,39 +171,11 @@ public class SyncService {
             }
             c.added++;
             events.upsert(orgId, next, p.raw(), runId, now);
-            String candidateId =
-                    EventFingerprint.candidateIdFor(owner.id(), next.providerEventId());
-            SuggestionEngine.Result result =
-                    SuggestionEngine.analyze(
-                            next, candidateId, contexts.forMember(orgId, owner.id()), json);
-            List<CalendarEvent> ownerEvents = events.findByOwner(owner.id());
-            CalendarEvent dup =
-                    next.cancelled() ? null : EventFingerprint.findDuplicate(next, ownerEvents);
-            String dupCandidate =
-                    dup == null
-                            ? null
-                            : candidates
-                                    .findByEvent(dup.id())
-                                    .filter(x -> !"dismissed".equals(x.status()))
-                                    .map(Candidate::id)
-                                    .orElse(null);
-            people.insertMissing(orgId, result.newPeople(), now);
-            candidates.upsert(
+            ops.createCandidate(
                     orgId,
-                    new Candidate(
-                            candidateId,
-                            next.id(),
-                            owner.id(),
-                            result.classification(),
-                            dupCandidate,
-                            "open",
-                            null,
-                            result.redactedText(),
-                            result.redactions(),
-                            now,
-                            now));
-            for (Suggestion s : result.suggestions())
-                if (!suggestions.exists(s.id())) suggestions.insert(orgId, s, now);
+                    next,
+                    EventFingerprint.candidateIdFor(owner.id(), next.providerEventId()),
+                    now);
             c.candidates++;
         }
         return c;

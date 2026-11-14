@@ -5,6 +5,7 @@ import com.cognition.est.ai.SuggestionEngine;
 import com.cognition.est.app.web.ConflictException;
 import com.cognition.est.app.web.NotFoundException;
 import com.cognition.est.audit.AuditRepository;
+import com.cognition.est.calendar.EventFingerprint;
 import com.cognition.est.domain.model.CalendarEvent;
 import com.cognition.est.domain.model.Candidate;
 import com.cognition.est.domain.model.Client;
@@ -424,6 +425,41 @@ public class SessionOps {
                         result.redactions(),
                         cand.createdAt(),
                         now));
+    }
+
+    /** Analyzes newly ingested evidence into an open candidate with fresh proposals. */
+    public void createCandidate(String orgId, CalendarEvent next, String candidateId, Instant now) {
+        SuggestionEngine.Result result =
+                SuggestionEngine.analyze(
+                        next, candidateId, contexts.forMember(orgId, next.ownerMemberId()), json);
+        List<CalendarEvent> ownerEvents = events.findByOwner(next.ownerMemberId());
+        CalendarEvent dup =
+                next.cancelled() ? null : EventFingerprint.findDuplicate(next, ownerEvents);
+        String dupCandidate =
+                dup == null
+                        ? null
+                        : candidates
+                                .findByEvent(dup.id())
+                                .filter(x -> !"dismissed".equals(x.status()))
+                                .map(Candidate::id)
+                                .orElse(null);
+        people.insertMissing(orgId, result.newPeople(), now);
+        candidates.upsert(
+                orgId,
+                new Candidate(
+                        candidateId,
+                        next.id(),
+                        next.ownerMemberId(),
+                        result.classification(),
+                        dupCandidate,
+                        "open",
+                        null,
+                        result.redactedText(),
+                        result.redactions(),
+                        now,
+                        now));
+        for (Suggestion s : result.suggestions())
+            if (!suggestions.exists(s.id())) suggestions.insert(orgId, s, now);
     }
 
     boolean sessionAlreadyHas(Session session, Suggestion s) {
