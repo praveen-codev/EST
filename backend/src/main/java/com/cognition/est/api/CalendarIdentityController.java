@@ -78,7 +78,7 @@ public class CalendarIdentityController {
         if (error != null) return redirect(web + "?error=" + enc(error));
         try {
             IdentityService.LinkResult r = service.completeLink(code, state, Instant.now());
-            // First import right away so the user sees events without waiting for the scheduler.
+            // First import right away so the user sees events without waiting for an offline job.
             identities
                     .findById(r.identityId())
                     .ifPresent(

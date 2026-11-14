@@ -40,9 +40,8 @@
   alongside the old one for one access-token TTL (15 min) before retiring the old private key.
   Rotating `EST_CRYPTO_KEY` requires re-encrypting `member_identities.refresh_token_enc`
   (one-off task; until then users re-link their calendars).
-- **Multiple API nodes**: the rate-limit buckets and the sync scheduler guard are per process. Put a
-  shared store (Redis/Bucket4j-distributed) behind the limiter and a DB lock (ShedLock) behind
-  `SyncScheduler` before scaling horizontally.
+- **Multiple API nodes**: the rate-limit buckets are per process. Put a shared store
+  (Redis/Bucket4j-distributed) behind the limiter before scaling horizontally.
 - **Logs**: `qa`/`prod` emit ECS-structured JSON; the application never logs token values, ID
   tokens or `refresh_token_enc`.
 - **Google scopes**: `calendar.readonly` and `calendar.events.readonly` are sensitive; keep the OAuth

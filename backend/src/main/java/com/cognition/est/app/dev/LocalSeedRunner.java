@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.context.annotation.Profile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
  * fresh. Idempotent: skipped when members already exist.
  */
 @Component
-@Profile("local")
+@ConditionalOnProperty(prefix = "est.dev", name = "seed-enabled", havingValue = "true")
 public class LocalSeedRunner implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(LocalSeedRunner.class);

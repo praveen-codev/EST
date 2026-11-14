@@ -1,0 +1,37 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${EST_DB_POOL_SIZE:4}
+      minimum-idle: 0
+      connection-timeout: 10000
+      max-lifetime: 1500000
+  flyway:
+    locations: classpath:db/migration/common,classpath:db/migration/postgresql,classpath:db/migration/local
+
+est:
+  jwt:
+    cookie-secure: true
+  allowed-domains: cognition.ai
+  bootstrap-admin-emails: dana@cognition.ai
+  google:
+    mock: true
+  dev:
+    endpoints-enabled: true
+    seed-enabled: true
+
+logging:
+  structured:
+    format:
+      console: ecs
+  level:
+    com.cognition.est: info
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

@@ -23,6 +23,7 @@ est:
     refresh-token-key: ${EST_CRYPTO_KEY:bG9jYWwtZGV2LW9ubHkta2V5LTMyLWJ5dGVzLW9rISE=}
   dev:
     endpoints-enabled: true
+    seed-enabled: true
 
 logging:
   level:

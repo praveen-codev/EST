@@ -212,7 +212,7 @@ Expected: <code>Connection to … port 5432 [tcp/postgresql] succeeded!</code></
 <section class="step" id="s7">
 <h2>Deploy the API (first pass)</h2>
 <div class="meta"><span class="where term">Terminal</span><span class="where wait">Wait</span><span class="time">5–8 min</span></div>
-<p>The web app needs the API's address baked in, so the API goes first. This script builds the API container on your Mac, uploads it, creates the Cloud Run service <strong>est-api</strong> with all settings and secret references, keeps exactly one instance always on (the calendar sync runs inside it every 15 minutes), waits for it to start and checks its health. On first start the API creates the database schema <code>est</code> in Supabase and applies its 3 migrations.</p>
+<p>The web app needs the API's address baked in, so the API goes first. This script builds the API container on your Mac, uploads it, creates the Cloud Run service <strong>est-api</strong> with all settings and secret references, waits for it to start and checks its health. On first start the API creates the database schema <code>est</code> in Supabase and applies its 3 migrations.</p>
 <pre><code>infra/deploy/04-deploy-api.sh</code><button class="copy">Copy</button></pre>
 <div class="verify">"✔ API is UP and connected to Supabase", "✔ Production flags: devMode=false…", "✔ Flyway: Successfully applied 3 migrations", and a note that the web address is <em>not known yet</em> — expected; the script tells you to come back after Step 9. In Supabase → <strong>Table Editor</strong>, switch the schema dropdown (top left) from <em>public</em> to <em>est</em>: you see tables like <code>members</code>, <code>sessions</code>, <code>catalog_items</code>.</div>
 <div class="danger">If it says the API is not healthy, run the log command it prints. The most common causes are in <a href="#trouble">Troubleshooting</a> (wrong pooler host, wrong password, missing Google client id).</div>
@@ -279,7 +279,7 @@ Expected: <code>Connection to … port 5432 [tcp/postgresql] succeeded!</code></
   <tr><th>Setup</th><th>Per month</th><th>Per year</th><th>What you give up</th></tr>
   <tr><td><strong>Standard</strong> (this guide as written): API always on, Supabase Free</td><td><strong>≈ $13–14</strong></td><td><strong>≈ $160–170</strong></td><td>No database backups (Supabase Free)</td></tr>
   <tr><td><strong>Recommended once real data matters</strong>: same + Supabase Pro</td><td>≈ $38–39</td><td>≈ $460–470</td><td>—</td></tr>
-  <tr><td><strong>Pilot / near-zero</strong>: API allowed to sleep (<code>min-instances 0</code>), Supabase Free</td><td>≈ $0–1</td><td>≈ $0–12</td><td>Calendars only sync while someone is using the app (the 15-minute background sync sleeps with the API); first request after idle takes ~5–10 s; Supabase may pause after a quiet week</td></tr>
+  <tr><td><strong>Pilot / near-zero</strong>: API allowed to sleep (<code>min-instances 0</code>), Supabase Free</td><td>≈ $0–1</td><td>≈ $0–12</td><td>First request after idle takes ~5–10 s; Supabase may pause after a quiet week</td></tr>
 </table>
 <p>New Google Cloud billing accounts also get <strong>$300 of credits valid for 90 days</strong>, which covers the first quarter of the Standard setup entirely.</p>
 
@@ -290,7 +290,7 @@ Expected: <code>Connection to … port 5432 [tcp/postgresql] succeeded!</code></
     <td><strong>Cloud Run — API service</strong> (<code>est-api</code>, 1 vCPU, 1 GiB, <code>min-instances 1</code>)</td>
     <td>180,000 vCPU-seconds + 360,000 GiB-seconds of <em>active</em> time, 2 million requests</td>
     <td>Active: $0.000024 per vCPU-s, $0.0000025 per GiB-s · <strong>Idle (kept-warm minimum instance): $0.0000025 per vCPU-s and per GiB-s</strong> · $0.40 per million requests</td>
-    <td>This is the one real cost. Keeping 1 instance warm all month = 2.63 M seconds × ($0.0000025 CPU + $0.0000025 memory) ≈ <strong>$13.1</strong>. Active time (requests + the 15-minute calendar sync, well under 50 hours/month) and requests (a few thousand) stay inside the free allowance → $0. The <code>--cpu-boost</code> flag only speeds up start-up and does not change the price.</td>
+    <td>This is the one real cost. Keeping 1 instance warm all month = 2.63 M seconds × ($0.0000025 CPU + $0.0000025 memory) ≈ <strong>$13.1</strong>. Active request time and a few thousand requests stay inside the free allowance → $0. The <code>--cpu-boost</code> flag only speeds up start-up and does not change the price.</td>
   </tr>
   <tr>
     <td><strong>Cloud Run — web service</strong> (<code>est-web</code>, 1 vCPU, 512 MiB, <code>min-instances 0</code>)</td>
@@ -326,7 +326,7 @@ Expected: <code>Connection to … port 5432 [tcp/postgresql] succeeded!</code></
     <td><strong>Google sign-in, Calendar API, OAuth consent screen</strong></td>
     <td>Calendar API: 1,000,000 queries/day; sign-in unlimited</td>
     <td>—</td>
-    <td><strong>$0.</strong> One incremental sync per linked calendar every 15 minutes ≈ 100 calls/day per person. Note: an <em>Internal</em> consent screen requires the company to be on Google Workspace (its own cost, which you presumably already pay); otherwise use <em>External</em> with test users, also free.</td>
+    <td><strong>$0.</strong> Usage depends on the cadence selected for the separate offline sync job and remains far below the Calendar API quota at this scale. Note: an <em>Internal</em> consent screen requires the company to be on Google Workspace (its own cost, which you presumably already pay); otherwise use <em>External</em> with test users, also free.</td>
   </tr>
   <tr>
     <td><strong>Cloud Build</strong></td>
@@ -344,7 +344,7 @@ Expected: <code>Connection to … port 5432 [tcp/postgresql] succeeded!</code></
     <td><strong>Free</strong> (what the guide uses)</td>
     <td><strong>$0</strong></td>
     <td>500 MB database · shared CPU, 500 MB RAM · 5 GB data transfer/month · max 2 active projects per organisation · <strong>no automatic backups</strong> · <strong>paused after 7 days without activity</strong> (restore with one click, data kept)</td>
-    <td>Plenty of room: a session with its use cases is ~2 KB and a raw calendar event ~5 KB, so 10 engineers × 200 events/month ≈ 12 MB/month — the 500 MB lasts years. The API's 15-minute sync keeps the project active, so pausing only happens in Pilot mode. The missing backups are the real risk: nothing protects you from an accidental delete.</td>
+    <td>Plenty of room: a session with its use cases is ~2 KB and a raw calendar event ~5 KB, so 10 engineers × 200 events/month ≈ 12 MB/month — the 500 MB lasts years. Free projects with low activity can still pause. The missing backups are the real risk: nothing protects you from an accidental delete.</td>
   </tr>
   <tr>
     <td><strong>Pro</strong></td>
@@ -364,7 +364,7 @@ Expected: <code>Connection to … port 5432 [tcp/postgresql] succeeded!</code></
 
 <h3>Pilot / near-zero mode (optional)</h3>
 <div class="meta"><span class="where term">Terminal</span></div>
-<p>If you only want to try the app for a while, let the API scale to zero. Calendar events then arrive when someone opens the app (the first page load triggers a sync, and the <strong>Sync calendar</strong> button still works), but the unattended 15-minute sync does not run while nobody is using it, and the first request after a quiet period takes 5–10 seconds while the API starts.</p>
+<p>If you only want to try the app for a while, let the API scale to zero. The first request after a quiet period takes 5–10 seconds while the API starts; manual calendar sync still works after it wakes.</p>
 <pre><code>gcloud run services update est-api --region <span class="ph">REGION</span> --min-instances 0</code><button class="copy">Copy</button></pre>
 <p>Switch back to always-on at any time (or simply re-run <code>04-deploy-api.sh</code>, which sets <code>min-instances 1</code>):</p>
 <pre><code>gcloud run services update est-api --region <span class="ph">REGION</span> --min-instances 1</code><button class="copy">Copy</button></pre>
@@ -402,7 +402,6 @@ Expected: <code>Connection to … port 5432 [tcp/postgresql] succeeded!</code></
   <tr><td><code>GOOGLE_CLIENT_ID</code></td><td>env</td><td>OAuth Web client id (public)</td></tr>
   <tr><td><code>GOOGLE_CLIENT_SECRET</code></td><td>secret <code>est-google-client-secret</code></td><td>OAuth Web client secret</td></tr>
   <tr><td><code>GOOGLE_REDIRECT_URI</code></td><td>env</td><td><code><span class="ph">APP_URL</span>/api/v1/calendar/identities/link/callback</code> — must match the OAuth client exactly</td></tr>
-  <tr><td><code>EST_SYNC_ENABLED</code> / <code>EST_SYNC_INTERVAL</code></td><td>env</td><td><code>true</code> / <code>PT15M</code></td></tr>
 </table>
 <h3>Web service <code>est-web</code> (build-time, baked into the image by <code>03-build-push.sh</code>)</h3>
 <table>
@@ -459,7 +458,7 @@ gcloud run services update-traffic est-api --region <span class="ph">REGION</spa
   <tr><td>Linking a calendar: <code>redirect_uri_mismatch</code></td><td>The OAuth client's redirect URI must be exactly <code>https://<span class="ph">est-web-….run.app</span>/api/v1/calendar/identities/link/callback</code> — your app's address plus that path.</td></tr>
   <tr><td>Linking a calendar: <code>access_denied</code> / "app not verified"</td><td>External consent screen in <em>Testing</em>: add the person as a test user (Step 5a), or request verification from Google.</td></tr>
   <tr><td>Linked calendar shows <em>needs re-link</em></td><td>Google revoked or expired the access (e.g. password change). The member clicks <strong>Add Google account</strong> again.</td></tr>
-  <tr><td>Supabase project shows <em>Paused</em></td><td>Free projects pause after 7 days without activity. The API's 15-minute sync normally keeps it active; if you paused the API (min instances 0) or kept it off for a week, click <strong>Restore project</strong> in the Supabase dashboard — data is kept.</td></tr>
+  <tr><td>Supabase project shows <em>Paused</em></td><td>Free projects with low activity can pause after 7 days. Click <strong>Restore project</strong> in the Supabase dashboard; data is retained during the restore window.</td></tr>
   <tr><td>Unexpected Google Cloud bill</td><td>Check the <a href="#costs">cost section</a>; the only always-on item is the single API instance. Set a budget alert (Billing → Budgets &amp; alerts).</td></tr>
 </table>
 </section>

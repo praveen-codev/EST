@@ -41,6 +41,9 @@ cd web && pnpm e2e     # Playwright; starts the API (local profile) and the web 
 - **Three layers never mix** (plan §14): `calendar_events` are evidence written only by sync;
   `suggestions` are AI proposals that require a decision; `sessions` are member-owned with per-field
   `provenance`. Sync and AI may never overwrite a `manual` field.
+- **Offline sync is external.** The API must not contain a recurring calendar scheduler. A Devin
+  Automation or platform-independent job invokes the idempotent sync logic on a user-defined cadence
+  such as every 12 hours, daily, or every three days; the app keeps manual sync and initial import.
 - **No sessions on the server.** Access JWTs (RS256, 15 min) are validated statelessly; refresh
   tokens live in an httpOnly cookie and only their hashes are stored (`refresh_token_families`).
   Never log or return tokens, Google credentials or `refresh_token_enc`.
