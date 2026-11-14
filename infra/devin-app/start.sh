@@ -15,7 +15,12 @@ if [[ "$API_PORT" != "$BUILT_API_PORT" ]]; then
   echo "EST_API_PORT=$API_PORT differs from the web build's API port $BUILT_API_PORT; rebuild with API_INTERNAL_URL=http://127.0.0.1:$API_PORT." >&2
   exit 1
 fi
-ENV_FILE="${EST_ENV_FILE:-$ROOT/.env.local}"
+PRODUCTION_ENV_FILE="${EST_PRODUCTION_ENV_FILE:-$ROOT/.env.local}"
+case ",$SPRING_PROFILES_ACTIVE," in
+  *,prod,*) IS_PROD=1; DEFAULT_ENV_FILE="$PRODUCTION_ENV_FILE" ;;
+  *) IS_PROD=0; DEFAULT_ENV_FILE="$ROOT/.env.sandbox.local" ;;
+esac
+ENV_FILE="${EST_ENV_FILE:-$DEFAULT_ENV_FILE}"
 
 if [[ -f "$ENV_FILE" ]]; then
   eval "$(
@@ -45,7 +50,44 @@ fi
 EST_DATABASE_URL="${EST_DATABASE_URL:-${DATABASE_URL:-${NEON_FILE_DATABASE_URL:-}}}"
 EST_DATABASE_URL_UNPOOLED="${EST_DATABASE_URL_UNPOOLED:-${DATABASE_URL_UNPOOLED:-${NEON_FILE_DATABASE_URL_UNPOOLED:-$EST_DATABASE_URL}}}"
 
-: "${EST_DATABASE_URL:?Set DATABASE_URL or EST_DATABASE_URL to the pooled Neon PostgreSQL connection string}"
+: "${EST_DATABASE_URL:?Set DATABASE_URL or EST_DATABASE_URL to the pooled Neon PostgreSQL connection string (looked in $ENV_FILE)}"
+
+if [[ "$IS_PROD" == 0 && -f "$PRODUCTION_ENV_FILE" ]]; then
+  # Non-prod profiles (mock Google, dev endpoints) must never open the production database.
+  if ! EST_PRODUCTION_ENV_FILE="$PRODUCTION_ENV_FILE" python3 - "$EST_DATABASE_URL" "$EST_DATABASE_URL_UNPOOLED" <<'PY'
+import ast
+import os
+import sys
+from pathlib import Path
+from urllib.parse import urlparse
+
+
+def host(url):
+    name = (urlparse(url).hostname or "").lower()
+    first, _, rest = name.partition(".")
+    return first.removesuffix("-pooler") + ("." + rest if rest else "")
+
+
+prod = set()
+for raw in Path(os.environ["EST_PRODUCTION_ENV_FILE"]).read_text().splitlines():
+    line = raw.strip()
+    if not line or line.startswith("#") or "=" not in line:
+        continue
+    key, value = line.split("=", 1)
+    if key.strip() not in {"DATABASE_URL", "DATABASE_URL_UNPOOLED"}:
+        continue
+    value = value.strip()
+    if value[:1] in {"'", '"'}:
+        value = ast.literal_eval(value)
+    if value:
+        prod.add(host(value))
+sys.exit(1 if prod & {host(u) for u in sys.argv[1:] if u} else 0)
+PY
+  then
+    echo "Refusing to start profile '$SPRING_PROFILES_ACTIVE' against the production database from $PRODUCTION_ENV_FILE; use .env.sandbox.local or SPRING_PROFILES_ACTIVE=prod." >&2
+    exit 1
+  fi
+fi
 
 mkdir -p "$STATE_DIR"
 chmod 700 "$STATE_DIR"
