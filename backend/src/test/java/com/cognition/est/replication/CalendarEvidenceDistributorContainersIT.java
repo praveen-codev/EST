@@ -251,4 +251,53 @@ class CalendarEvidenceDistributorContainersIT {
         assertThat(count("select count(*) from members where organization_id = 'org_cognition'"))
                 .isZero();
     }
+
+    @Test
+    void skippedMembersKeepTheirExistingSandboxAttendees() throws SQLException {
+        member(sandbox, "mem_sbx_kim", "sub-kim-sandbox", "kim@cognition.ai", "MEMBER", "ACTIVE");
+        member(prod, "mem_prod_kim", "sub-kim-prod", "kim@cognition.ai", "MEMBER", "ACTIVE");
+        sandbox.sql(
+                        """
+                        insert into member_identities (id, organization_id, member_id, provider,
+                            provider_sub, email, scopes, status, created_at, updated_at)
+                        values ('idn_sbx_kim', ?, 'mem_sbx_kim', 'google', 'sub-kim-sandbox',
+                            'kim@cognition.ai', 'calendar', 'ACTIVE', now(), now())
+                        """)
+                .param(ORG)
+                .update();
+        sandbox.sql(
+                        """
+                        insert into calendar_events (id, organization_id, identity_id, owner_member_id,
+                            provider_event_id, title, start_at, end_at, etag, content_hash, status,
+                            created_at, updated_at)
+                        values ('evt_sbx_kim', ?, 'idn_sbx_kim', 'mem_sbx_kim', 'g-kim', 'Kim sync', now(),
+                            now() + interval '1 hour', 'etag-k', 'hash-k', 'confirmed', now(), now())
+                        """)
+                .param(ORG)
+                .update();
+        sandbox.sql(
+                        """
+                        insert into calendar_event_attendees (event_id, email)
+                        values ('evt_sbx_kim', 'customer@example.com')
+                        """)
+                .update();
+        prod.sql(
+                        """
+                        insert into calendar_event_attendees (event_id, email)
+                        values ('evt_prod_101', 'customer@example.com')
+                        """)
+                .update();
+
+        Map<String, Integer> counts = replicate();
+
+        assertThat(counts).containsEntry("member_conflicts", 1).containsEntry("attendees", 1);
+        assertThat(
+                        count(
+                                "select count(*) from calendar_event_attendees where event_id = 'evt_sbx_kim'"))
+                .isEqualTo(1);
+        assertThat(
+                        count(
+                                "select count(*) from calendar_event_attendees where event_id = 'evt_prod_101'"))
+                .isEqualTo(1);
+    }
 }

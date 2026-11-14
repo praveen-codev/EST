@@ -274,15 +274,12 @@ public final class CalendarEvidenceDistributor {
                         }));
         try (PreparedStatement deleteAttendees =
                 target.prepareStatement(
-                        """
-                        delete from calendar_event_attendees
-                        where event_id in (
-                            select id from calendar_events
-                            where organization_id = ? and end_at >= ?
-                        )
-                        """)) {
-            bind(deleteAttendees, List.of(organizationId, since));
-            deleteAttendees.executeUpdate();
+                        "delete from calendar_event_attendees where event_id = ?")) {
+            for (String event : new LinkedHashSet<>(eventIds.values())) {
+                deleteAttendees.setString(1, event);
+                deleteAttendees.addBatch();
+            }
+            deleteAttendees.executeBatch();
         }
         counts.put(
                 "attendees",
