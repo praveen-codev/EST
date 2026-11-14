@@ -1,4 +1,4 @@
-# Production: everything from the environment, strict defaults. See infra/runbooks/deploy-gcp-supabase.html.
+# Production: everything from the environment, strict defaults. See infra/neon/README.md.
 est:
   track: prod
   calendar-sync-enabled: true

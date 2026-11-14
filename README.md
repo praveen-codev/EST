@@ -67,7 +67,9 @@ Unattended calendar sync is deliberately outside the web/API process. Run the sa
 Devin Automation or platform-independent job on a user-defined cadence, such as every 12 hours, daily, or every
 three days; manual sync and the first import after linking a calendar remain available in the app.
 
-Security design and threat model: `infra/runbooks/security.md`. First production deploy (Cloud Run + Supabase): `infra/runbooks/deploy-gcp-supabase.html`.
+Security design and threat model: `infra/runbooks/security.md`. Neon track registry, migrations,
+and evidence replication: `infra/neon/README.md`. Devin App build and startup:
+`infra/devin-app/README.md`.
 
 ### What is still simulated in the `local` profile
 

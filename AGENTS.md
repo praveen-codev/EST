@@ -58,8 +58,8 @@ cd web && pnpm e2e     # Playwright; starts the API (local profile) and the web 
 - **AI engine** (`backend …/ai`, Phase 1D) must stay framework-free (ArchUnit rule) and deterministic;
   parity with `web/lib/ai` is proven by golden fixtures in `contracts/ai-fixtures/`.
 - **Formatting**: `./gradlew spotlessApply` (google-java-format 1.27 AOSP). Web: eslint/prettier via `pnpm lint`.
-- **Secrets** only via environment / `.env` (gitignored). `.env.example` documents every variable; the production
-  mapping (Cloud Run env + Secret Manager names, Supabase session pooler) is in `infra/runbooks/deploy-gcp-supabase.html`.
+- **Secrets** only via environment / `.env` (gitignored). `.env.example` documents every variable;
+  Neon track boundaries and local env files are documented in `infra/neon/README.md`.
 - **Tests must not assume the weekday**: mock fixtures are week-relative except the two Mercedes events pinned to the
   real current day; assert containment on Today, not exact lists.
 

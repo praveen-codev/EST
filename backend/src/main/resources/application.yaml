@@ -7,7 +7,7 @@ spring:
   flyway:
     locations: classpath:db/migration/common,classpath:db/migration/{vendor}
     validate-on-migrate: true
-    # Supabase exposes `public` through its Data API; keep our tables in a private schema there (see runbook).
+    # Optional schema override for deployments that isolate application tables.
     schemas: ${EST_DB_SCHEMA:}
     create-schemas: true
   jackson:
