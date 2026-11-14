@@ -1,6 +1,9 @@
 package com.cognition.est.replication;
 
 import com.cognition.est.app.config.TrackGuard;
+import com.cognition.est.app.db.PostgresUrl;
+import com.cognition.est.app.db.SchemaVersion;
+import com.cognition.est.app.job.JobExit;
 import com.cognition.est.audit.AuditRepository;
 import com.cognition.est.calendar.EventFingerprint;
 import com.cognition.est.domain.model.CalendarEvent;
@@ -16,15 +19,12 @@ import com.cognition.est.domain.repo.SessionRepository;
 import com.cognition.est.domain.repo.SuggestionRepository;
 import com.cognition.est.domain.service.EngineContextFactory;
 import com.cognition.est.domain.service.SessionOps;
-import java.net.URI;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -41,6 +41,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 
@@ -50,23 +51,58 @@ public final class CalendarEvidenceDistributor {
 
     private CalendarEvidenceDistributor() {}
 
-    public static void main(String[] args) throws Exception {
-        Database source = Database.parse(required("EST_SOURCE_DATABASE_URL"));
-        Database target = Database.parse(required("EST_SANDBOX_DATABASE_URL"));
-        String organizationId = System.getenv().getOrDefault("EST_REPLICATION_ORG", DEFAULT_ORG);
+    /** Advisory lock key ("ESTREPL") serialising replications into one sandbox database. */
+    static final long LOCK_KEY = 0x4553545245504CL;
+
+    public static void main(String[] args) {
+        if (LoggerFactory.getLogger("org.flywaydb") instanceof ch.qos.logback.classic.Logger flyway)
+            flyway.setLevel(ch.qos.logback.classic.Level.WARN);
+        System.exit(run(System.getenv()));
+    }
+
+    /**
+     * Runs one replication from environment values and returns a {@link JobExit} code. Output is
+     * counts only; failures report the exception type, never row data or connection details.
+     */
+    static int run(Map<String, String> env) {
+        try {
+            return replicateFromEnv(env);
+        } catch (JobExit.Refused e) {
+            System.err.println("Calendar evidence replication refused: " + e.getMessage());
+            return JobExit.REFUSED;
+        } catch (Exception e) {
+            System.err.println(
+                    "Calendar evidence replication failed: " + e.getClass().getSimpleName());
+            return JobExit.ERROR;
+        }
+    }
+
+    private static int replicateFromEnv(Map<String, String> env) throws SQLException {
+        PostgresUrl source = PostgresUrl.parse(required(env, "EST_SOURCE_DATABASE_URL"));
+        PostgresUrl target = PostgresUrl.parse(required(env, "EST_SANDBOX_DATABASE_URL"));
+        if (source.jdbcUrl().equals(target.jdbcUrl()))
+            throw new JobExit.Refused("source and sandbox URLs point at the same database");
+        String organizationId = env.getOrDefault("EST_REPLICATION_ORG", DEFAULT_ORG);
         int lookbackDays =
-                Integer.parseInt(
-                        System.getenv().getOrDefault("EST_REPLICATION_LOOKBACK_DAYS", "30"));
-        boolean dryRun =
-                Boolean.parseBoolean(
-                        System.getenv().getOrDefault("EST_REPLICATION_DRY_RUN", "true"));
+                Integer.parseInt(env.getOrDefault("EST_REPLICATION_LOOKBACK_DAYS", "30"));
+        boolean dryRun = Boolean.parseBoolean(env.getOrDefault("EST_REPLICATION_DRY_RUN", "true"));
         Instant cutoff = Instant.now().minus(lookbackDays, ChronoUnit.DAYS);
 
-        try (Connection read = source.connect();
+        try (Connection read = source.readOnly().connect();
                 Connection write = target.connect()) {
-            read.setReadOnly(true);
+            SchemaVersion.requireCurrent(new SingleConnectionDataSource(read, true), "source");
+            SchemaVersion.requireCurrent(new SingleConnectionDataSource(write, true), "sandbox");
+            beginReadOnlySnapshot(read);
             write.setAutoCommit(false);
+            if (!tryLock(write)) {
+                write.rollback();
+                read.rollback();
+                System.out.println(
+                        "Calendar evidence replication busy: another run holds the lock");
+                return JobExit.BUSY;
+            }
             Map<String, Integer> counts = replicate(read, write, organizationId, cutoff);
+            read.rollback();
             if (dryRun) {
                 write.rollback();
             } else {
@@ -80,6 +116,35 @@ public final class CalendarEvidenceDistributor {
                     counts.entrySet().stream()
                             .map(entry -> entry.getKey() + "=" + entry.getValue())
                             .collect(Collectors.joining(", ")));
+            return JobExit.OK;
+        }
+    }
+
+    /**
+     * Pins the source connection to one read-only, repeatable-read transaction and verifies the
+     * server agrees. Defence in depth only: the source role must still lack write privileges.
+     */
+    static void beginReadOnlySnapshot(Connection read) throws SQLException {
+        read.setAutoCommit(false);
+        read.setReadOnly(true);
+        read.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
+        try (Statement statement = read.createStatement()) {
+            statement.execute("set session characteristics as transaction read only");
+            try (ResultSet rs = statement.executeQuery("show transaction_read_only")) {
+                if (!rs.next() || !"on".equalsIgnoreCase(rs.getString(1)))
+                    throw new JobExit.Refused("source connection is not read-only");
+            }
+        }
+    }
+
+    /** Transaction-scoped advisory lock on the sandbox; released on commit or rollback. */
+    static boolean tryLock(Connection write) throws SQLException {
+        try (PreparedStatement statement =
+                write.prepareStatement("select pg_try_advisory_xact_lock(?)")) {
+            statement.setLong(1, LOCK_KEY);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() && rs.getBoolean(1);
+            }
         }
     }
 
@@ -404,10 +469,10 @@ public final class CalendarEvidenceDistributor {
             throws SQLException {
         String from = track(source);
         if (from != null && !TrackGuard.PROD.equals(from))
-            throw new IllegalStateException("Replication source is the " + from + " track");
+            throw new JobExit.Refused("Replication source is the " + from + " track");
         String to = track(target);
         if (to != null && !SANDBOX.equals(to))
-            throw new IllegalStateException("Replication target is the " + to + " track");
+            throw new JobExit.Refused("Replication target is the " + to + " track");
         if (to == null && hasTrackTable(target)) TrackGuard.claim(sandbox, SANDBOX, now);
     }
 
@@ -506,43 +571,11 @@ public final class CalendarEvidenceDistributor {
         }
     }
 
-    private static String required(String name) {
-        String value = System.getenv(name);
+    private static String required(Map<String, String> env, String name) {
+        String value = env.get(name);
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(name + " is required");
         }
         return value;
-    }
-
-    private record Database(String jdbcUrl, String username, String password) {
-        private static Database parse(String value) {
-            URI uri = URI.create(value);
-            if (!Set.of("postgres", "postgresql").contains(uri.getScheme())) {
-                throw new IllegalArgumentException("Database URL must use postgres or postgresql");
-            }
-            String[] userInfo = uri.getRawUserInfo().split(":", 2);
-            String user = URLDecoder.decode(userInfo[0], StandardCharsets.UTF_8);
-            String password =
-                    userInfo.length == 2
-                            ? URLDecoder.decode(userInfo[1], StandardCharsets.UTF_8)
-                            : "";
-            String database =
-                    uri.getPath() == null || uri.getPath().isBlank()
-                            ? "neondb"
-                            : uri.getPath().substring(1);
-            String jdbc =
-                    "jdbc:postgresql://"
-                            + uri.getHost()
-                            + ":"
-                            + (uri.getPort() == -1 ? 5432 : uri.getPort())
-                            + "/"
-                            + database
-                            + "?sslmode=require&stringtype=unspecified";
-            return new Database(jdbc, user, password);
-        }
-
-        private Connection connect() throws SQLException {
-            return DriverManager.getConnection(jdbcUrl, username, password);
-        }
     }
 }

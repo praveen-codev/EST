@@ -117,6 +117,82 @@ EST_REPLICATION_DRY_RUN=false infra/neon/replicate-calendar-evidence.sh
 The default evidence window includes events ending in the previous 30 days or later. Override it
 with `EST_REPLICATION_LOOKBACK_DAYS`.
 
+## Scheduled jobs
+
+Unattended work runs outside the API, from an external scheduler (a Devin Automation every 12
+hours). Both jobs start from the API boot jar through `infra/neon/run-job.sh`, read configuration
+only from the environment, need Java 25 on `PATH` or in `JAVA_HOME` (SDKMAN is only a fallback),
+never run Flyway, serve no traffic, and print one counts-only line.
+
+### Protected secrets
+
+| Name | Used by | Value |
+|---|---|---|
+| `EST_PROD_DATABASE_URL` | calendar sync | Direct `postgres://` URL for the production sync role |
+| `EST_CRYPTO_KEY` | calendar sync | The production refresh-token key; must equal the API's key |
+| `GOOGLE_CLIENT_ID` | calendar sync | Production OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | calendar sync | Production OAuth client secret |
+| `EST_SOURCE_DATABASE_URL` | replication | Direct `postgres://` URL for the read-only production role |
+| `EST_SANDBOX_DATABASE_URL` | replication | Direct `postgres://` URL for the sandbox writer role |
+
+Non-secret settings: `EST_REPLICATION_DRY_RUN` (defaults to `true`; the schedule sets `false`),
+`EST_SYNC_ORG`, `EST_REPLICATION_ORG`, `EST_REPLICATION_LOOKBACK_DAYS`, `EST_JOB_JAR`. URLs default
+to `sslmode=require`.
+
+### Database roles
+
+The jobs add defence in depth. They don't replace least-privilege roles, which an operator must
+create:
+
+- **Production sync role.** `CONNECT`, schema `USAGE`, and `SELECT`, `INSERT`, `UPDATE`, `DELETE` on
+  the application tables. Read-only access to `flyway_schema_history` and `deployment_track`. No
+  `CREATE` or ownership: migrations stay with the API release role.
+- **Production read-only role** for the replication source. `CONNECT`, schema `USAGE`, and `SELECT`
+  on the application tables, `flyway_schema_history`, and `deployment_track`. No write or DDL
+  privilege. Also set `ALTER ROLE ... SET default_transaction_read_only = on`.
+- **Sandbox writer role.** `CONNECT`, schema `USAGE`, and `SELECT`, `INSERT`, `UPDATE`, `DELETE` on
+  the sandbox application tables, plus `INSERT` on `deployment_track` for the first claim. No DDL.
+
+### Safety checks
+
+- **Calendar sync** (`infra/neon/sync-calendars.sh`, main class `CalendarSyncJob`).
+  - The run is refused unless the profile is `prod` with calendar sync enabled and mock Google off.
+  - The database must already be claimed as `prod`. The job never claims a track.
+  - The database must carry exactly this build's versioned migrations.
+  - Each active identity syncs in its own transaction. That transaction holds the identity's
+    `member_identities` row lock (`FOR UPDATE SKIP LOCKED`), the same lock the API's manual sync
+    takes. While one sync holds it, the other skips that identity and reports it as `busy`.
+  - A failure affects only its own identity and is recorded in `calendar_sync_runs`.
+- **Replication** (`infra/neon/replicate-calendar-evidence.sh`).
+  - Source and target must be different databases.
+  - The source must be `prod` and the target `sandbox` (an unclaimed sandbox is claimed).
+  - Both must carry exactly this build's versioned migrations.
+  - The source connection runs with `readOnlyMode=always` and holds one `REPEATABLE READ READ ONLY`
+    transaction, checked through `transaction_read_only`.
+  - A transaction-scoped advisory lock on the sandbox lets only one replication write at a time.
+  - Dry run rolls the sandbox transaction back.
+
+### Exit codes
+
+`0` ok · `1` error (configuration or connectivity; only the exception type is printed) · `2` refused
+by a safety check · `3` sync finished but some identities failed · `4` another replication holds the
+lock.
+
+### Automation command sequence
+
+```bash
+cd backend && ./gradlew bootJar --no-daemon -q && cd ..
+export EST_JOB_JAR="$(ls backend/build/libs/est-api-*.jar | grep -v -- -plain)"
+infra/neon/sync-calendars.sh; sync=$?
+[ "$sync" -eq 0 ] || [ "$sync" -eq 3 ] || exit "$sync"
+EST_REPLICATION_DRY_RUN=false infra/neon/replicate-calendar-evidence.sh; repl=$?
+[ "$repl" -eq 0 ] || [ "$repl" -eq 4 ] || exit "$repl"
+exit "$sync"
+```
+
+A busy replication (`4`) is retried by the next run. A partial sync (`3`) still replicates the
+evidence that did sync, then fails the run so someone looks at `calendar_sync_runs`.
+
 ## Migrations
 
 - Production and sandbox use the normal EST Flyway migrations.
@@ -135,5 +211,6 @@ with `EST_REPLICATION_LOOKBACK_DAYS`.
   current evidence window, tokenless identities, reference rows, and untouched candidate baselines.
 - The distributor has been run twice against the provisioned projects. The second run inserted no
   duplicate candidates, suggestions, or reference rows.
-- Scheduling the distributor alongside the external Google sync and adding its replication ledger
-  remain implementation phases in `PLAN.md`.
+- The headless calendar sync job and the scheduler-ready replication entrypoint exist (see
+  "Scheduled jobs"). Creating the Automation, the database roles, and the protected secrets, plus the
+  replication ledger, remain implementation phases in `PLAN.md`.

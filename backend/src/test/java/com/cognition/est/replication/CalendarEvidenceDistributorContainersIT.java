@@ -3,6 +3,7 @@ package com.cognition.est.replication;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.cognition.est.app.job.JobExit;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -299,5 +300,75 @@ class CalendarEvidenceDistributorContainersIT {
                         count(
                                 "select count(*) from calendar_event_attendees where event_id = 'evt_prod_101'"))
                 .isEqualTo(1);
+    }
+
+    private Map<String, String> env(boolean dryRun) {
+        String base =
+                "postgresql://"
+                        + postgres.getUsername()
+                        + ":"
+                        + postgres.getPassword()
+                        + "@"
+                        + postgres.getHost()
+                        + ":"
+                        + postgres.getMappedPort(5432)
+                        + "/";
+        return Map.of(
+                "EST_SOURCE_DATABASE_URL", base + "prod" + databases + "?sslmode=disable",
+                "EST_SANDBOX_DATABASE_URL", base + "sandbox" + databases + "?sslmode=disable",
+                "EST_REPLICATION_DRY_RUN", String.valueOf(dryRun));
+    }
+
+    @Test
+    void runFromEnvironmentRollsBackDryRunAndCommitsOtherwise() {
+        int before = count("select count(*) from calendar_events");
+        assertThat(CalendarEvidenceDistributor.run(env(true))).isEqualTo(JobExit.OK);
+        assertThat(count("select count(*) from calendar_events")).isEqualTo(before);
+        assertThat(CalendarEvidenceDistributor.run(env(false))).isEqualTo(JobExit.OK);
+        assertThat(count("select count(*) from calendar_events")).isGreaterThan(before);
+    }
+
+    @Test
+    void concurrentReplicationIntoTheSameSandboxIsBusyAndChangesNothing() throws SQLException {
+        int before = count("select count(*) from calendar_events");
+        try (Connection other =
+                DriverManager.getConnection(
+                        url("sandbox" + databases),
+                        postgres.getUsername(),
+                        postgres.getPassword())) {
+            other.setAutoCommit(false);
+            assertThat(CalendarEvidenceDistributor.tryLock(other)).isTrue();
+            assertThat(CalendarEvidenceDistributor.run(env(false))).isEqualTo(JobExit.BUSY);
+            other.rollback();
+        }
+        assertThat(count("select count(*) from calendar_events")).isEqualTo(before);
+    }
+
+    @Test
+    void schemaVersionMismatchOrSameDatabaseIsRefused() {
+        sandbox.sql(
+                        "delete from flyway_schema_history where installed_rank ="
+                                + " (select max(installed_rank) from flyway_schema_history)")
+                .update();
+        assertThat(CalendarEvidenceDistributor.run(env(false))).isEqualTo(JobExit.REFUSED);
+
+        Map<String, String> same = new java.util.HashMap<>(env(false));
+        same.put("EST_SANDBOX_DATABASE_URL", same.get("EST_SOURCE_DATABASE_URL"));
+        assertThat(CalendarEvidenceDistributor.run(same)).isEqualTo(JobExit.REFUSED);
+    }
+
+    @Test
+    void sourceSnapshotIsReadOnlyOnTheServer() throws SQLException {
+        try (Connection source =
+                DriverManager.getConnection(
+                        url("prod" + databases) + "&readOnly=true&readOnlyMode=always",
+                        postgres.getUsername(),
+                        postgres.getPassword())) {
+            CalendarEvidenceDistributor.beginReadOnlySnapshot(source);
+            assertThatThrownBy(
+                            () -> source.createStatement().execute("delete from calendar_events"))
+                    .hasMessageContaining("read-only");
+            source.rollback();
+        }
     }
 }

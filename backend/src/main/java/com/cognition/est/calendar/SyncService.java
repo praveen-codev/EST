@@ -16,11 +16,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Calendar sync (port of runSync in web/lib/domain/ops.ts). For each linked identity: fetch the
@@ -39,6 +41,7 @@ public class SyncService {
     private final CandidateRepository candidates;
     private final SyncRunRepository runs;
     private final SessionOps ops;
+    private final TransactionTemplate tx;
 
     public SyncService(
             List<CalendarProvider> providerList,
@@ -47,7 +50,8 @@ public class SyncService {
             EventRepository events,
             CandidateRepository candidates,
             SyncRunRepository runs,
-            SessionOps ops) {
+            SessionOps ops,
+            PlatformTransactionManager transactions) {
         this.providers =
                 providerList.stream()
                         .collect(
@@ -59,6 +63,7 @@ public class SyncService {
         this.candidates = candidates;
         this.runs = runs;
         this.ops = ops;
+        this.tx = new TransactionTemplate(transactions);
     }
 
     public boolean hasProvider(String name) {
@@ -77,14 +82,31 @@ public class SyncService {
             List<SyncRun> out = new ArrayList<>();
             for (Identity idn : identities.findByMember(memberId)) {
                 if (!"ACTIVE".equals(idn.status())) continue;
-                out.add(syncIdentity(orgId, idn, kind, now));
+                syncIdentity(orgId, idn, kind, now).ifPresent(out::add);
             }
             return out;
         }
     }
 
-    @Transactional
-    public SyncRun syncIdentity(String orgId, Identity idn, String kind, Instant now) {
+    /**
+     * Sync one identity in its own transaction while holding its {@code member_identities} row
+     * lock, so the API and the headless {@link CalendarSyncJob} never sync the same calendar at the
+     * same time, even from different processes. Empty when another sync holds the lock or the
+     * identity is no longer active.
+     */
+    public Optional<SyncRun> syncIdentity(String orgId, Identity idn, String kind, Instant now) {
+        return Objects.requireNonNull(
+                tx.execute(
+                        status -> {
+                            if (!identities.lockForSync(idn.id())) return Optional.empty();
+                            return identities
+                                    .findById(idn.id())
+                                    .filter(current -> "ACTIVE".equals(current.status()))
+                                    .map(current -> syncLocked(orgId, current, kind, now));
+                        }));
+    }
+
+    private SyncRun syncLocked(String orgId, Identity idn, String kind, Instant now) {
         CalendarProvider provider = providers.get(idn.provider());
         String runId = Ids.fresh("run");
         String runKind = idn.syncToken() == null ? "initial" : kind;

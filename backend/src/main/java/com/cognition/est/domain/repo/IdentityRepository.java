@@ -56,6 +56,18 @@ public class IdentityRepository {
         return jdbc.sql(SELECT + " where id = :id").param("id", id).query(MAPPER).optional();
     }
 
+    /**
+     * Row-locks the identity for the current transaction; false when another transaction (in any
+     * process) already holds it.
+     */
+    public boolean lockForSync(String id) {
+        return jdbc.sql("select id from member_identities where id = :id for update skip locked")
+                .param("id", id)
+                .query(String.class)
+                .optional()
+                .isPresent();
+    }
+
     public Optional<Identity> findByMemberAndEmail(String memberId, String provider, String email) {
         return jdbc.sql(SELECT + " where member_id = :m and provider = :p and lower(email) = :e")
                 .param("m", memberId)

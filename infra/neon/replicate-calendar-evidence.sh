@@ -1,19 +1,24 @@
 #!/usr/bin/env bash
+# Production -> sandbox calendar evidence replication (see infra/neon/README.md).
+# Uses EST_SOURCE_DATABASE_URL and EST_SANDBOX_DATABASE_URL when both are set (Automation secrets);
+# otherwise reads DATABASE_URL(_UNPOOLED) from .env.local and .env.sandbox.local.
+# Dry run unless EST_REPLICATION_DRY_RUN=false. Exit codes: 0 ok, 1 error, 2 refused, 4 busy.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-SOURCE_ENV="${EST_SOURCE_ENV_FILE:-$ROOT/.env.local}"
-SANDBOX_ENV="${EST_SANDBOX_ENV_FILE:-$ROOT/.env.sandbox.local}"
+if [[ -z "${EST_SOURCE_DATABASE_URL:-}" || -z "${EST_SANDBOX_DATABASE_URL:-}" ]]; then
+  SOURCE_ENV="${EST_SOURCE_ENV_FILE:-$ROOT/.env.local}"
+  SANDBOX_ENV="${EST_SANDBOX_ENV_FILE:-$ROOT/.env.sandbox.local}"
 
-for file in "$SOURCE_ENV" "$SANDBOX_ENV"; do
-  if [[ ! -f "$file" ]]; then
-    echo "Environment file not found: $file" >&2
-    exit 1
-  fi
-done
+  for file in "$SOURCE_ENV" "$SANDBOX_ENV"; do
+    if [[ ! -f "$file" ]]; then
+      echo "Environment file not found: $file" >&2
+      exit 1
+    fi
+  done
 
-eval "$(
-  EST_SOURCE_ENV_FILE="$SOURCE_ENV" EST_SANDBOX_ENV_FILE="$SANDBOX_ENV" python3 - <<'PY'
+  eval "$(
+    EST_SOURCE_ENV_FILE="$SOURCE_ENV" EST_SANDBOX_ENV_FILE="$SANDBOX_ENV" python3 - <<'PY'
 import ast
 import os
 import shlex
@@ -42,10 +47,7 @@ for key, value in {
         raise SystemExit(f"{key} could not be resolved")
     print(f"export {key}={shlex.quote(value)}")
 PY
-)"
+  )"
+fi
 
-set +u
-source "$HOME/.sdkman/bin/sdkman-init.sh"
-sdk use java 25.0.4-tem >/dev/null
-set -u
-"$ROOT/backend/gradlew" -p "$ROOT/backend" replicateCalendarEvidence --no-daemon --console=plain
+exec "$ROOT/infra/neon/run-job.sh" com.cognition.est.replication.CalendarEvidenceDistributor
