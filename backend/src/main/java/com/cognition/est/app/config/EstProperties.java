@@ -54,7 +54,10 @@ public record EstProperties(
             @DefaultValue("") String clientSecret,
             @DefaultValue("http://localhost:8080/api/v1/calendar/identities/link/callback")
                     String redirectUri,
-            /** When true (local profile) Google endpoints are replaced by in-process fakes. */
+            /**
+             * When true (local and devin-app profiles) Google endpoints are replaced by in-process
+             * fakes.
+             */
             @DefaultValue("false") boolean mock) {}
 
     public record Crypto(
@@ -63,8 +66,8 @@ public record EstProperties(
 
     public record Dev(
             /**
-             * Enables /api/v1/dev/* (login-as, reset, scenario). Never true outside the local
-             * profile.
+             * Enables /api/v1/dev/* (login-as, reset, scenario). Only the local and devin-app
+             * profiles turn it on; {@link TrackGuard} refuses it on the prod track.
              */
             @DefaultValue("false") boolean endpointsEnabled) {}
 }
