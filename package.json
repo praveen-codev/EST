@@ -1,12 +1,9 @@
 {
-  "name": "est-neon-config",
+  "name": "est",
   "private": true,
   "packageManager": "npm@10.9.9",
   "scripts": {
     "build": "infra/devin-app/build.sh",
     "start": "infra/devin-app/start.sh"
-  },
-  "devDependencies": {
-    "@neon/config": "^1.14.0"
   }
 }
