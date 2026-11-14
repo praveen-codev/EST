@@ -50,12 +50,19 @@ EST_DATABASE_URL_UNPOOLED="${EST_DATABASE_URL_UNPOOLED:-${DATABASE_URL_UNPOOLED:
 mkdir -p "$STATE_DIR"
 chmod 700 "$STATE_DIR"
 
+LEGACY_STATE_DIR="$HOME/.local/share/est-devin-app"
+if [[ ! -f "$STATE_DIR/crypto-key" && -z "${EST_STATE_DIR:-}" && -f "$LEGACY_STATE_DIR/crypto-key" ]]; then
+  # Credentials stored before state was split per profile were encrypted with the shared key.
+  cp "$LEGACY_STATE_DIR/crypto-key" "$STATE_DIR/crypto-key"
+fi
 if [[ ! -f "$STATE_DIR/jwt-private.pem" ]]; then
   openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$STATE_DIR/jwt-private.pem" 2>/dev/null
   openssl pkey -in "$STATE_DIR/jwt-private.pem" -pubout -out "$STATE_DIR/jwt-public.pem" 2>/dev/null
-  openssl rand -base64 32 > "$STATE_DIR/crypto-key"
-  chmod 600 "$STATE_DIR"/*
 fi
+if [[ ! -f "$STATE_DIR/crypto-key" ]]; then
+  openssl rand -base64 32 > "$STATE_DIR/crypto-key"
+fi
+chmod 600 "$STATE_DIR"/*
 
 eval "$(
   EST_DATABASE_URL="$EST_DATABASE_URL" \
