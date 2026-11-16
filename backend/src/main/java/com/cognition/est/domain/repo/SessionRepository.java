@@ -1,5 +1,7 @@
 package com.cognition.est.domain.repo;
 
+import static com.cognition.est.app.db.JdbcValues.timestamp;
+
 import com.cognition.est.domain.model.Session;
 import com.cognition.est.domain.model.SessionContact;
 import com.cognition.est.domain.model.UseCase;
@@ -230,10 +232,10 @@ public class SessionRepository {
                 .param("client", s.clientId())
                 .param("team", s.teamId())
                 .param("fac", s.facilitatorId())
-                .param("ss", s.scheduledStart())
-                .param("se", s.scheduledEnd())
-                .param("as", s.actualStart())
-                .param("ae", s.actualEnd())
+                .param("ss", timestamp(s.scheduledStart()))
+                .param("se", timestamp(s.scheduledEnd()))
+                .param("as", timestamp(s.actualStart()))
+                .param("ae", timestamp(s.actualEnd()))
                 .param("est", s.participantsEstimated())
                 .param("type", s.sessionType())
                 .param("outcome", s.outcomeId())
@@ -242,9 +244,9 @@ public class SessionRepository {
                 .param("prov", json.write(s.provenance()))
                 .param("version", s.version())
                 .param("cb", s.createdBy())
-                .param("ca", s.createdAt())
+                .param("ca", timestamp(s.createdAt()))
                 .param("ub", s.updatedBy())
-                .param("ua", s.updatedAt())
+                .param("ua", timestamp(s.updatedAt()))
                 .update();
         writeChildren(s);
     }
@@ -267,10 +269,10 @@ public class SessionRepository {
                         .param("client", s.clientId())
                         .param("team", s.teamId())
                         .param("fac", s.facilitatorId())
-                        .param("ss", s.scheduledStart())
-                        .param("se", s.scheduledEnd())
-                        .param("as", s.actualStart())
-                        .param("ae", s.actualEnd())
+                        .param("ss", timestamp(s.scheduledStart()))
+                        .param("se", timestamp(s.scheduledEnd()))
+                        .param("as", timestamp(s.actualStart()))
+                        .param("ae", timestamp(s.actualEnd()))
                         .param("est", s.participantsEstimated())
                         .param("type", s.sessionType())
                         .param("outcome", s.outcomeId())
@@ -279,7 +281,7 @@ public class SessionRepository {
                         .param("prov", json.write(s.provenance()))
                         .param("version", s.version())
                         .param("ub", s.updatedBy())
-                        .param("ua", s.updatedAt())
+                        .param("ua", timestamp(s.updatedAt()))
                         .param("org", orgId)
                         .param("id", s.id())
                         .param("expected", expectedVersion)

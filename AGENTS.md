@@ -41,6 +41,9 @@ cd web && pnpm e2e     # Playwright; starts the API (local profile) and the web 
 - **Three layers never mix** (plan §14): `calendar_events` are evidence written only by sync;
   `suggestions` are AI proposals that require a decision; `sessions` are member-owned with per-field
   `provenance`. Sync and AI may never overwrite a `manual` field.
+- **Offline sync is external.** The API must not contain a recurring calendar scheduler. A Devin
+  Automation or platform-independent job invokes the idempotent sync logic on a user-defined cadence
+  such as every 12 hours, daily, or every three days; the app keeps manual sync and initial import.
 - **No sessions on the server.** Access JWTs (RS256, 15 min) are validated statelessly; refresh
   tokens live in an httpOnly cookie and only their hashes are stored (`refresh_token_families`).
   Never log or return tokens, Google credentials or `refresh_token_enc`.
@@ -55,8 +58,8 @@ cd web && pnpm e2e     # Playwright; starts the API (local profile) and the web 
 - **AI engine** (`backend …/ai`, Phase 1D) must stay framework-free (ArchUnit rule) and deterministic;
   parity with `web/lib/ai` is proven by golden fixtures in `contracts/ai-fixtures/`.
 - **Formatting**: `./gradlew spotlessApply` (google-java-format 1.27 AOSP). Web: eslint/prettier via `pnpm lint`.
-- **Secrets** only via environment / `.env` (gitignored). `.env.example` documents every variable; the production
-  mapping (Cloud Run env + Secret Manager names, Supabase session pooler) is in `infra/runbooks/deploy-gcp-supabase.html`.
+- **Secrets** only via environment / `.env` (gitignored). `.env.example` documents every variable;
+  Neon track boundaries and local env files are documented in `infra/neon/README.md`.
 - **Tests must not assume the weekday**: mock fixtures are week-relative except the two Mercedes events pinned to the
   real current day; assert containment on Today, not exact lists.
 

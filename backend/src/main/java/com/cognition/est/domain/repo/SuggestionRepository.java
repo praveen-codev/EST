@@ -1,5 +1,7 @@
 package com.cognition.est.domain.repo;
 
+import static com.cognition.est.app.db.JdbcValues.timestamp;
+
 import com.cognition.est.domain.model.Suggestion;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -98,8 +100,8 @@ public class SuggestionRepository {
                 .param("status", s.status())
                 .param("pv", s.promptVersion())
                 .param("by", s.decidedBy())
-                .param("at", s.decidedAt())
-                .param("now", now)
+                .param("at", timestamp(s.decidedAt()))
+                .param("now", timestamp(now))
                 .update();
     }
 
@@ -118,7 +120,7 @@ public class SuggestionRepository {
                         "update suggestions set status = :s, decided_by = :by, decided_at = :at where id = :id")
                 .param("s", status)
                 .param("by", decidedBy)
-                .param("at", decidedAt)
+                .param("at", timestamp(decidedAt))
                 .param("id", id)
                 .update();
     }

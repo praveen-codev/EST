@@ -70,7 +70,16 @@ public class GoogleCalendarProvider implements CalendarProvider {
                                                 "No refresh token stored for this calendar; re-link it.",
                                                 true,
                                                 null));
-        String refreshToken = crypto.decrypt(new TokenCrypto.Encrypted(enc.ciphertext(), enc.iv()));
+        String refreshToken;
+        try {
+            refreshToken = crypto.decrypt(new TokenCrypto.Encrypted(enc.ciphertext(), enc.iv()));
+        } catch (IllegalStateException e) {
+            throw new CalendarAccessException(
+                    "Stored calendar credential could not be decrypted; check EST_CRYPTO_KEY or"
+                            + " re-link this calendar.",
+                    false,
+                    e);
+        }
         Calendar calendar;
         try {
             UserCredentials creds =

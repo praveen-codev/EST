@@ -14,6 +14,10 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "est")
 public record EstProperties(
+        /** Runtime data track. User-facing deployments are prod or sandbox. */
+        @DefaultValue("prod") @NotBlank String track,
+        /** Whether this runtime may link calendars or run direct provider synchronization. */
+        @DefaultValue("true") boolean calendarSyncEnabled,
         /** Allowed browser origins (CORS). */
         @DefaultValue("http://localhost:3100") List<String> webOrigins,
         /** Email domains allowed to sign in; empty = any verified Google account (dev only). */
@@ -50,7 +54,10 @@ public record EstProperties(
             @DefaultValue("") String clientSecret,
             @DefaultValue("http://localhost:8080/api/v1/calendar/identities/link/callback")
                     String redirectUri,
-            /** When true (local profile) Google endpoints are replaced by in-process fakes. */
+            /**
+             * When true (local and devin-app profiles) Google endpoints are replaced by in-process
+             * fakes.
+             */
             @DefaultValue("false") boolean mock) {}
 
     public record Crypto(
@@ -59,8 +66,8 @@ public record EstProperties(
 
     public record Dev(
             /**
-             * Enables /api/v1/dev/* (login-as, reset, scenario). Never true outside the local
-             * profile.
+             * Enables /api/v1/dev/* (login-as, reset, scenario). Only the local and devin-app
+             * profiles turn it on; {@link TrackGuard} refuses it on the prod track.
              */
             @DefaultValue("false") boolean endpointsEnabled) {}
 }

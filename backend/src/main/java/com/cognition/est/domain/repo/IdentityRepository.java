@@ -1,5 +1,7 @@
 package com.cognition.est.domain.repo;
 
+import static com.cognition.est.app.db.JdbcValues.timestamp;
+
 import com.cognition.est.domain.model.Identity;
 import java.time.Instant;
 import java.util.List;
@@ -54,6 +56,18 @@ public class IdentityRepository {
         return jdbc.sql(SELECT + " where id = :id").param("id", id).query(MAPPER).optional();
     }
 
+    /**
+     * Row-locks the identity for the current transaction; false when another transaction (in any
+     * process) already holds it.
+     */
+    public boolean lockForSync(String id) {
+        return jdbc.sql("select id from member_identities where id = :id for update skip locked")
+                .param("id", id)
+                .query(String.class)
+                .optional()
+                .isPresent();
+    }
+
     public Optional<Identity> findByMemberAndEmail(String memberId, String provider, String email) {
         return jdbc.sql(SELECT + " where member_id = :m and provider = :p and lower(email) = :e")
                 .param("m", memberId)
@@ -94,7 +108,7 @@ public class IdentityRepository {
                 .param("enc", token == null ? null : token.ciphertext())
                 .param("iv", token == null ? null : token.iv())
                 .param("status", idn.status())
-                .param("now", now)
+                .param("now", timestamp(now))
                 .update();
     }
 
@@ -106,7 +120,7 @@ public class IdentityRepository {
                 .param("iv", token.iv())
                 .param("sub", providerSub)
                 .param("name", displayName)
-                .param("now", now)
+                .param("now", timestamp(now))
                 .param("id", id)
                 .update();
     }
@@ -115,7 +129,7 @@ public class IdentityRepository {
         jdbc.sql(
                         "update member_identities set sync_token = :t, last_sync_at = :now, last_error = null, status = 'ACTIVE', updated_at = :now where id = :id")
                 .param("t", syncToken)
-                .param("now", now)
+                .param("now", timestamp(now))
                 .param("id", id)
                 .update();
     }
@@ -125,7 +139,7 @@ public class IdentityRepository {
                         "update member_identities set last_error = :e, status = :s, updated_at = :now where id = :id")
                 .param("e", error)
                 .param("s", needsReauth ? "NEEDS_REAUTH" : "ACTIVE")
-                .param("now", now)
+                .param("now", timestamp(now))
                 .param("id", id)
                 .update();
     }

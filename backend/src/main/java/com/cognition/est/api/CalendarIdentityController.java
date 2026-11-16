@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/v1/calendar/identities")
@@ -61,6 +62,7 @@ public class CalendarIdentityController {
             summary =
                     "Begin linking another Google account (authorization code + PKCE, offline access)")
     public Map<String, String> start() {
+        requireDirectSync();
         return Map.of(
                 "authorizationUrl",
                 service.startLink(Principal.current().memberId(), Instant.now()));
@@ -75,10 +77,14 @@ public class CalendarIdentityController {
             @RequestParam(required = false) String state,
             @RequestParam(required = false) String error) {
         String web = props.webOrigins().getFirst() + "/settings/calendars";
+        if (!props.calendarSyncEnabled()) {
+            return redirect(
+                    web + "?error=" + enc("Calendar linking is managed by production in sandbox."));
+        }
         if (error != null) return redirect(web + "?error=" + enc(error));
         try {
             IdentityService.LinkResult r = service.completeLink(code, state, Instant.now());
-            // First import right away so the user sees events without waiting for the scheduler.
+            // First import right away so the user sees events without waiting for an offline job.
             identities
                     .findById(r.identityId())
                     .ifPresent(
@@ -96,7 +102,16 @@ public class CalendarIdentityController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Unlink: revoke at Google, wipe the token, keep imported evidence")
     public void unlink(@PathVariable String id) {
+        requireDirectSync();
         service.unlink(Principal.current().memberId(), id, Instant.now());
+    }
+
+    private void requireDirectSync() {
+        if (!props.calendarSyncEnabled()) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Calendar linking and direct sync are disabled in sandbox.");
+        }
     }
 
     private static ResponseEntity<Void> redirect(String url) {

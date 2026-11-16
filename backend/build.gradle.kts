@@ -10,6 +10,10 @@ group = "com.cognition"
 version = "0.1.0-SNAPSHOT"
 description = "Enablement Session Tracker API"
 
+springBoot {
+    mainClass = "com.cognition.est.EstApiApplication"
+}
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(libs.versions.java.get())
@@ -71,6 +75,20 @@ tasks.withType<Test>().configureEach {
 
 tasks.bootJar {
     layered { enabled = true }
+}
+
+tasks.register<JavaExec>("migrateArchive") {
+    group = "database"
+    description = "Apply the archive-only Flyway migrations."
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass = "com.cognition.est.archive.ArchiveMigrator"
+}
+
+tasks.register<JavaExec>("replicateCalendarEvidence") {
+    group = "database"
+    description = "Replicate production calendar evidence into the sandbox track."
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass = "com.cognition.est.replication.CalendarEvidenceDistributor"
 }
 
 spotless {

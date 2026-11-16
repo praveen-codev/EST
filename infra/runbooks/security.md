@@ -15,6 +15,16 @@
 4. **Org scoping everywhere.** Every repository query is bound to the caller's `org` claim; a
    foreign id is a 404, never a 403 that would confirm existence.
 
+## Track separation
+
+- `Codev-EST-prod` is the only project that stores Google calendar refresh tokens and sync cursors.
+- `Codev-EST-sandbox` accepts real Google sign-in but disables calendar linking and direct sync.
+  Replication copies tokenless identity metadata, selected calendar evidence, and untouched
+  proposal baselines; it never copies EST refresh tokens, Google tokens, sessions, or feedback.
+- `Codev-EST-archive` has no web/API runtime and accepts only versioned archive-job writes.
+- Sandbox contains real client and attendee data even though its feedback is experimental, so it
+  receives the same organization scoping, access controls, and retention review as production.
+
 ## Controls (where they live)
 
 | Threat (STRIDE) | Control | Code |
@@ -40,9 +50,8 @@
   alongside the old one for one access-token TTL (15 min) before retiring the old private key.
   Rotating `EST_CRYPTO_KEY` requires re-encrypting `member_identities.refresh_token_enc`
   (one-off task; until then users re-link their calendars).
-- **Multiple API nodes**: the rate-limit buckets and the sync scheduler guard are per process. Put a
-  shared store (Redis/Bucket4j-distributed) behind the limiter and a DB lock (ShedLock) behind
-  `SyncScheduler` before scaling horizontally.
+- **Multiple API nodes**: the rate-limit buckets are per process. Put a shared store
+  (Redis/Bucket4j-distributed) behind the limiter before scaling horizontally.
 - **Logs**: `qa`/`prod` emit ECS-structured JSON; the application never logs token values, ID
   tokens or `refresh_token_enc`.
 - **Google scopes**: `calendar.readonly` and `calendar.events.readonly` are sensitive; keep the OAuth

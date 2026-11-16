@@ -1,5 +1,7 @@
 package com.cognition.est.domain.repo;
 
+import static com.cognition.est.app.db.JdbcValues.timestamp;
+
 import com.cognition.est.domain.model.CatalogItem;
 import java.time.Instant;
 import java.util.List;
@@ -85,7 +87,7 @@ public class CatalogRepository {
                 .param("min", c.typicalMinutes())
                 .param("archived", c.archived())
                 .param("sort", c.sortOrder())
-                .param("now", now)
+                .param("now", timestamp(now))
                 .param("by", c.updatedBy())
                 .update();
     }
@@ -104,7 +106,7 @@ public class CatalogRepository {
                         .param("min", c.typicalMinutes())
                         .param("archived", c.archived())
                         .param("sort", c.sortOrder())
-                        .param("now", now)
+                        .param("now", timestamp(now))
                         .param("by", c.updatedBy())
                         .param("org", orgId)
                         .param("id", c.id())

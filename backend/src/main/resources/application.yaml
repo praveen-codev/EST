@@ -7,7 +7,7 @@ spring:
   flyway:
     locations: classpath:db/migration/common,classpath:db/migration/{vendor}
     validate-on-migrate: true
-    # Supabase exposes `public` through its Data API; keep our tables in a private schema there (see runbook).
+    # Optional schema override for deployments that isolate application tables.
     schemas: ${EST_DB_SCHEMA:}
     create-schemas: true
   jackson:
@@ -46,11 +46,13 @@ springdoc:
     operations-sorter: alpha
 
 est:
+  track: ${EST_TRACK:prod}
+  calendar-sync-enabled: ${EST_CALENDAR_SYNC_ENABLED:true}
   web-origins: ${EST_WEB_ORIGINS:http://localhost:3100}
   allowed-domains: ${EST_ALLOWED_DOMAINS:}
   bootstrap-admin-emails: ${EST_BOOTSTRAP_ADMIN_EMAILS:}
   jwt:
-    issuer: ${EST_JWT_ISSUER:est-api}
+    issuer: ${EST_JWT_ISSUER:est-api-${est.track}}
     access-token-ttl: ${EST_JWT_ACCESS_TTL:PT15M}
     refresh-token-ttl: ${EST_JWT_REFRESH_TTL:P14D}
     private-key-pem: ${EST_JWT_PRIVATE_KEY:}
@@ -65,11 +67,6 @@ est:
     refresh-token-key: ${EST_CRYPTO_KEY:}
   dev:
     endpoints-enabled: false
-  sync:
-    enabled: ${EST_SYNC_ENABLED:true}
-    interval: ${EST_SYNC_INTERVAL:PT15M}
-    initial-delay: PT2M
-
 logging:
   level:
     root: info

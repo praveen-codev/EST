@@ -1,5 +1,7 @@
 package com.cognition.est.domain.repo;
 
+import static com.cognition.est.app.db.JdbcValues.timestamp;
+
 import com.cognition.est.domain.model.Person;
 import java.time.Instant;
 import java.util.List;
@@ -49,7 +51,7 @@ public class PersonRepository {
                 .param("name", p.name())
                 .param("email", p.email() == null ? null : p.email().toLowerCase())
                 .param("role", p.roleId())
-                .param("now", now)
+                .param("now", timestamp(now))
                 .update();
     }
 
@@ -62,7 +64,7 @@ public class PersonRepository {
             jdbc.sql(
                             "update people set client_id = :c, updated_at = :now where id = :id and client_id is null")
                     .param("c", clientId)
-                    .param("now", now)
+                    .param("now", timestamp(now))
                     .param("id", id)
                     .update();
         }

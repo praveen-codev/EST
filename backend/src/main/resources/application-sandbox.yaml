@@ -1,0 +1,36 @@
+# Sandbox: real sign-in and isolated manual edits; calendar evidence is replicated from production.
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${EST_DB_POOL_SIZE:4}
+      minimum-idle: 0
+      connection-timeout: 10000
+      max-lifetime: 1500000
+  flyway:
+    url: ${SPRING_FLYWAY_URL:${SPRING_DATASOURCE_URL}}
+    user: ${SPRING_FLYWAY_USER:${SPRING_DATASOURCE_USERNAME}}
+    password: ${SPRING_FLYWAY_PASSWORD:${SPRING_DATASOURCE_PASSWORD}}
+    locations: classpath:db/migration/common,classpath:db/migration/postgresql,classpath:db/migration/local
+
+est:
+  track: sandbox
+  calendar-sync-enabled: false
+  google:
+    mock: false
+  dev:
+    endpoints-enabled: false
+
+logging:
+  structured:
+    format:
+      console: ecs
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

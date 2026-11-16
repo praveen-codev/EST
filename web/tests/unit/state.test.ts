@@ -10,7 +10,7 @@ const me = { id: "mem_alex", name: "Alex Rivera", email: "alex@cognition.ai", ti
 function snapshot(): Snapshot {
   return {
     me,
-    features: { devMode: true, mockGoogle: true, scenario: "messy", remainingPages: 2 },
+    features: { track: "sandbox", calendarSyncEnabled: true, devMode: true, mockGoogle: true, scenario: "messy", remainingPages: 2 },
     members: [me],
     clients: [{ id: "cli_acme", name: "Acme Financial", domains: ["acmefinancial.com"], industry: null, hue: 220 }],
     teams: [],

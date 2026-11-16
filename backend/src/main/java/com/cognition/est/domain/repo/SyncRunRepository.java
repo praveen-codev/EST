@@ -1,5 +1,7 @@
 package com.cognition.est.domain.repo;
 
+import static com.cognition.est.app.db.JdbcValues.timestamp;
+
 import com.cognition.est.domain.model.SyncRun;
 import java.util.List;
 import org.springframework.jdbc.core.RowMapper;
@@ -53,8 +55,8 @@ public class SyncRunRepository {
                 .param("org", orgId)
                 .param("identity", r.identityId())
                 .param("kind", r.kind())
-                .param("started", r.startedAt())
-                .param("finished", r.finishedAt())
+                .param("started", timestamp(r.startedAt()))
+                .param("finished", timestamp(r.finishedAt()))
                 .param("status", r.status())
                 .param("seen", r.eventsSeen())
                 .param("new", r.eventsNew())
@@ -68,7 +70,7 @@ public class SyncRunRepository {
     public void finish(SyncRun r) {
         jdbc.sql(
                         "update calendar_sync_runs set finished_at = :finished, status = :status, events_seen = :seen, events_new = :new, events_updated = :updated, events_unchanged = :unchanged, candidates_created = :created, error = :error where id = :id")
-                .param("finished", r.finishedAt())
+                .param("finished", timestamp(r.finishedAt()))
                 .param("status", r.status())
                 .param("seen", r.eventsSeen())
                 .param("new", r.eventsNew())

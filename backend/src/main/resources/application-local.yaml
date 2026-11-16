@@ -13,6 +13,8 @@ spring:
     locations: classpath:db/migration/common,classpath:db/migration/{vendor},classpath:db/migration/local
 
 est:
+  track: sandbox
+  calendar-sync-enabled: true
   jwt:
     cookie-secure: false
   allowed-domains: cognition.ai
@@ -23,6 +25,7 @@ est:
     refresh-token-key: ${EST_CRYPTO_KEY:bG9jYWwtZGV2LW9ubHkta2V5LTMyLWJ5dGVzLW9rISE=}
   dev:
     endpoints-enabled: true
+    seed-enabled: true
 
 logging:
   level:

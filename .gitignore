@@ -26,3 +26,6 @@ backend/.kotlin/
 
 # Docker volumes created locally
 infra/.data/
+.neon
+.agents/
+skills-lock.json

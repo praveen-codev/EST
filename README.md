@@ -55,7 +55,7 @@ web/            Next.js 16 · the UI talks only to the API (lib/api/client.ts: i
                 one /snapshot read + pure selectors for today/inbox/timeline) · sign-in via Google Identity Services
 backend/        Spring Boot 4.1 on Java 25 · stateless RS256 access tokens + rotating refresh-token families (hashes only)
                 · JdbcClient repositories over Flyway · deterministic AI engine (golden-tested) · Google Calendar v3 with
-                incremental sync, PKCE linking of several Google accounts, AES-256-GCM token storage · scheduler
+                incremental sync, PKCE linking of several Google accounts, AES-256-GCM token storage
 infra/          Dockerfile.api (gradle:9.8.1-jdk25 → temurin-25-jre, layered), compose local (H2) / qa (PostgreSQL 17)
 contracts/      openapi.yaml · ai-fixtures/alex-messy.json (frozen TypeScript engine output the Java port must match)
 ```
@@ -63,7 +63,13 @@ contracts/      openapi.yaml · ai-fixtures/alex-messy.json (frozen TypeScript e
 Three layers never mix: **calendar events** (evidence, written only by sync) → **suggestions** (AI proposals that
 need a decision) → **sessions** (member-owned, per-field provenance; a manual field is never overwritten).
 
-Security design and threat model: `infra/runbooks/security.md`. First production deploy (Cloud Run + Supabase): `infra/runbooks/deploy-gcp-supabase.html`.
+Unattended calendar sync is deliberately outside the web/API process. Run the same idempotent sync logic from a
+Devin Automation or platform-independent job on a user-defined cadence, such as every 12 hours, daily, or every
+three days; manual sync and the first import after linking a calendar remain available in the app.
+
+Security design and threat model: `infra/runbooks/security.md`. Neon track registry, migrations,
+and evidence replication: `infra/neon/README.md`. Devin App build and startup:
+`infra/devin-app/README.md`.
 
 ### What is still simulated in the `local` profile
 

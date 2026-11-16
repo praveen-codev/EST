@@ -51,14 +51,16 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
               <CheckCheck /> Confirm all likely sessions ({groups.likely.length})
             </CommandItem>
           )}
-          <CommandItem
-            onSelect={() => {
-              onOpenChange(false);
-              void state.syncNow();
-            }}
-          >
-            <RefreshCw /> Sync calendar now
-          </CommandItem>
+          {state.features.calendarSyncEnabled && (
+            <CommandItem
+              onSelect={() => {
+                onOpenChange(false);
+                void state.syncNow();
+              }}
+            >
+              <RefreshCw /> Sync calendar now
+            </CommandItem>
+          )}
           <CommandItem
             onSelect={() => {
               state.resetDemo();

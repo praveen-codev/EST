@@ -1,5 +1,7 @@
 package com.cognition.est.app.dev;
 
+import static com.cognition.est.app.db.JdbcValues.timestamp;
+
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -13,7 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.context.annotation.Profile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
  * fresh. Idempotent: skipped when members already exist.
  */
 @Component
-@Profile("local")
+@ConditionalOnProperty(prefix = "est.dev", name = "seed-enabled", havingValue = "true")
 public class LocalSeedRunner implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(LocalSeedRunner.class);
@@ -51,7 +53,9 @@ public class LocalSeedRunner implements ApplicationRunner {
         seedClients(now);
         seedPeople(now);
         seedHistory(now);
-        jdbc.sql("insert into local_seed_marker (applied_at) values (:t)").param("t", now).update();
+        jdbc.sql("insert into local_seed_marker (applied_at) values (:t)")
+                .param("t", timestamp(now))
+                .update();
         log.info(
                 "local seed: applied (5 members, 7 clients, {} people, {} historical sessions)",
                 PEOPLE.size(),
@@ -116,7 +120,7 @@ public class LocalSeedRunner implements ApplicationRunner {
                     .param("title", m.title())
                     .param("role", m.role())
                     .param("hue", m.hue())
-                    .param("now", now)
+                    .param("now", timestamp(now))
                     .update();
             // One mock "Google" identity per persona so calendar sync works without credentials.
             jdbc.sql(
@@ -130,7 +134,7 @@ public class LocalSeedRunner implements ApplicationRunner {
                     .param("sub", "mock-" + m.id())
                     .param("email", m.email())
                     .param("name", m.name())
-                    .param("now", now)
+                    .param("now", timestamp(now))
                     .update();
         }
     }
@@ -255,7 +259,7 @@ public class LocalSeedRunner implements ApplicationRunner {
                     .param("name", c.name())
                     .param("industry", c.industry())
                     .param("hue", c.hue())
-                    .param("now", now)
+                    .param("now", timestamp(now))
                     .update();
             for (String d : c.domains()) {
                 jdbc.sql("insert into client_domains (client_id, domain) values (:c, :d)")
@@ -274,7 +278,7 @@ public class LocalSeedRunner implements ApplicationRunner {
                         .param("client", c.id())
                         .param("name", t.name())
                         .param("kw", String.join("|", t.keywords()))
-                        .param("now", now)
+                        .param("now", timestamp(now))
                         .update();
             }
         }
@@ -423,7 +427,7 @@ public class LocalSeedRunner implements ApplicationRunner {
                     .param("name", p.name())
                     .param("email", p.email())
                     .param("role", p.role())
-                    .param("now", now)
+                    .param("now", timestamp(now))
                     .update();
         }
     }
@@ -874,14 +878,14 @@ public class LocalSeedRunner implements ApplicationRunner {
                     .param("client", h.client())
                     .param("team", h.team())
                     .param("by", h.by())
-                    .param("start", start.toInstant())
-                    .param("end", end.toInstant())
+                    .param("start", timestamp(start.toInstant()))
+                    .param("end", timestamp(end.toInstant()))
                     .param("est", h.estimated())
                     .param("type", h.type())
                     .param("outcome", h.outcome())
                     .param("summary", h.summary())
                     .param("prov", provenance)
-                    .param("created", created)
+                    .param("created", timestamp(created))
                     .update();
             h.contacts()
                     .forEach(

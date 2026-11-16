@@ -1,5 +1,7 @@
 package com.cognition.est.auth;
 
+import static com.cognition.est.app.db.JdbcValues.timestamp;
+
 import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +30,7 @@ public class TokenHousekeeping {
         int tokens = families.purgeExpired(now);
         int states =
                 jdbc.sql("delete from oauth_link_states where expires_at < :now")
-                        .param("now", now)
+                        .param("now", timestamp(now))
                         .update();
         if (tokens + states > 0)
             log.info(

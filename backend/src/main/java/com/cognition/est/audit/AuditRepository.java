@@ -1,5 +1,7 @@
 package com.cognition.est.audit;
 
+import static com.cognition.est.app.db.JdbcValues.timestamp;
+
 import com.cognition.est.domain.model.Ids;
 import com.cognition.est.domain.repo.JsonCodec;
 import java.time.Instant;
@@ -34,7 +36,7 @@ public class AuditRepository {
                 .param("type", targetType)
                 .param("target", targetId)
                 .param("details", json.write(details == null ? Map.of() : details))
-                .param("now", Instant.now())
+                .param("now", timestamp(Instant.now()))
                 .update();
     }
 }

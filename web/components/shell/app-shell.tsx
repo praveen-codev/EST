@@ -95,8 +95,9 @@ function useInitialSync(hydrated: boolean) {
   const member = useStore((s) => s.members.find((m) => m.id === s.currentMemberId));
   const remaining = useStore((s) => s.features.remainingPages);
   const mock = useStore((s) => s.features.mockGoogle);
+  const calendarSyncEnabled = useStore((s) => s.features.calendarSyncEnabled);
   useEffect(() => {
-    if (!hydrated || hasRun || syncing || !member || !hasIdentity) return;
+    if (!calendarSyncEnabled || !hydrated || hasRun || syncing || !member || !hasIdentity) return;
     if (mock && remaining === 0) return;
     const id = toast.loading(`Connecting Google Calendar for ${member.name.split(" ")[0]}…`, { description: "Initial lookback: 30 days back, 60 days ahead" });
     void syncNow().then((outcome) => {
@@ -107,5 +108,5 @@ function useInitialSync(hydrated: boolean) {
         description: `${outcome.newCandidateIds.length} candidates queued for review. Nothing was confirmed automatically.`,
       });
     });
-  }, [hydrated, hasRun, syncing, member, hasIdentity, mock, remaining, syncNow]);
+  }, [calendarSyncEnabled, hydrated, hasRun, syncing, member, hasIdentity, mock, remaining, syncNow]);
 }

@@ -1,5 +1,7 @@
 package com.cognition.est.domain.repo;
 
+import static com.cognition.est.app.db.JdbcValues.timestamp;
+
 import com.cognition.est.domain.model.Attendee;
 import com.cognition.est.domain.model.CalendarEvent;
 import java.time.Instant;
@@ -146,8 +148,8 @@ public class EventRepository {
                         .param("desc", e.description())
                         .param("loc", e.location())
                         .param("conf", e.conferencing())
-                        .param("start", e.start())
-                        .param("end", e.end())
+                        .param("start", timestamp(e.start()))
+                        .param("end", timestamp(e.end()))
                         .param("tz", e.timeZone())
                         .param("org_email", e.organizerEmail())
                         .param("etag", e.etag())
@@ -155,7 +157,7 @@ public class EventRepository {
                         .param("status", e.status())
                         .param("raw", raw)
                         .param("run", runId)
-                        .param("now", now)
+                        .param("now", timestamp(now))
                         .param("id", e.id())
                         .update();
         if (updated == 0) {
@@ -175,8 +177,8 @@ public class EventRepository {
                     .param("desc", e.description())
                     .param("loc", e.location())
                     .param("conf", e.conferencing())
-                    .param("start", e.start())
-                    .param("end", e.end())
+                    .param("start", timestamp(e.start()))
+                    .param("end", timestamp(e.end()))
                     .param("tz", e.timeZone())
                     .param("org_email", e.organizerEmail())
                     .param("etag", e.etag())
@@ -184,7 +186,7 @@ public class EventRepository {
                     .param("status", e.status())
                     .param("raw", raw)
                     .param("run", runId)
-                    .param("now", now)
+                    .param("now", timestamp(now))
                     .update();
         }
         jdbc.sql("delete from calendar_event_attendees where event_id = :id")

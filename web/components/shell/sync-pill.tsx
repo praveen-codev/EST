@@ -16,6 +16,7 @@ export function SyncPill() {
   const lastRun = useStore((s) => s.syncRuns[0] ?? null);
   const mock = useStore((s) => s.features.mockGoogle);
   const remaining = useStore((s) => s.features.remainingPages);
+  const calendarSyncEnabled = useStore((s) => s.features.calendarSyncEnabled);
   const hasIdentity = useStore((s) => s.identities.some((i) => i.status === "ACTIVE"));
   const upToDate = mock ? remaining === 0 : false;
 
@@ -41,7 +42,7 @@ export function SyncPill() {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="outline" size="sm" onClick={run} disabled={syncing || !hasIdentity} className={cn("gap-2 tabular-nums", syncing && "text-ai")} aria-live="polite">
+        <Button variant="outline" size="sm" onClick={run} disabled={!calendarSyncEnabled || syncing || !hasIdentity} className={cn("gap-2 tabular-nums", syncing && "text-ai")} aria-live="polite">
           {syncing ? <RefreshCw className="size-3.5 animate-spin" /> : upToDate ? <CalendarCheck2 className="size-3.5 text-success" /> : <RefreshCw className="size-3.5" />}
           <span className="hidden sm:inline">
             {syncing ? "Syncing calendar…" : lastRun ? `Synced ${fmtAgo(lastRun.finishedAt)}` : "Sync calendar"}
@@ -49,7 +50,7 @@ export function SyncPill() {
           {!syncing && !upToDate && lastRun && <span className="rounded-full bg-ai/10 px-1.5 text-[10px] font-semibold text-ai">new</span>}
         </Button>
       </TooltipTrigger>
-      <TooltipContent>{!hasIdentity ? "Link a Google Calendar first (Settings)" : upToDate ? "Re-sync: safe to repeat, never duplicates" : mock ? "Pull the next incremental batch from Google Calendar (mock)" : "Incremental sync of every linked calendar"}</TooltipContent>
+      <TooltipContent>{!calendarSyncEnabled ? "Sandbox calendar evidence is replicated from production" : !hasIdentity ? "Link a Google Calendar first (Settings)" : upToDate ? "Re-sync: safe to repeat, never duplicates" : mock ? "Pull the next incremental batch from Google Calendar (mock)" : "Incremental sync of every linked calendar"}</TooltipContent>
     </Tooltip>
   );
 }

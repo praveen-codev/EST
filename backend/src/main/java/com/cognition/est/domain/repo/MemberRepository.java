@@ -1,5 +1,7 @@
 package com.cognition.est.domain.repo;
 
+import static com.cognition.est.app.db.JdbcValues.timestamp;
+
 import com.cognition.est.domain.model.Member;
 import java.time.Instant;
 import java.util.List;
@@ -73,7 +75,7 @@ public class MemberRepository {
                 .param("status", m.status())
                 .param("hue", m.hue())
                 .param("tz", m.timeZone())
-                .param("now", now)
+                .param("now", timestamp(now))
                 .update();
     }
 
@@ -82,7 +84,7 @@ public class MemberRepository {
                         "update members set role = :role, status = :status, updated_at = :now where id = :id")
                 .param("role", role)
                 .param("status", status)
-                .param("now", now)
+                .param("now", timestamp(now))
                 .param("id", id)
                 .update();
     }
@@ -92,7 +94,7 @@ public class MemberRepository {
                         "update members set google_sub = coalesce(:sub, google_sub), name = :name, last_sign_in_at = :now, updated_at = :now where id = :id")
                 .param("sub", googleSub)
                 .param("name", name)
-                .param("now", now)
+                .param("now", timestamp(now))
                 .param("id", id)
                 .update();
     }
