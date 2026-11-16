@@ -173,6 +173,12 @@ public class CalendarSyncJob {
             try {
                 run = sync.syncIdentity(orgId, identity, "incremental", now);
             } catch (RuntimeException e) {
+                // The identity's transaction rolled back its run record, so report the cause here.
+                System.err.println(
+                        "Calendar sync failed for identity "
+                                + identity.id()
+                                + ": "
+                                + e.getClass().getSimpleName());
                 counts.merge("failed", 1, Integer::sum);
                 continue;
             }

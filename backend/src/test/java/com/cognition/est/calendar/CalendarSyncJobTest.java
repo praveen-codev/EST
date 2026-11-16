@@ -157,6 +157,34 @@ class CalendarSyncJobTest {
     }
 
     @Test
+    void undecryptableCredentialIsRecordedAsAFailedRunWithItsCause() {
+        claim("prod");
+        identity("idn_a", "a@cognition.ai");
+        db.sql(
+                        "update member_identities set provider = 'google', refresh_token_enc = ?,"
+                                + " refresh_token_iv = ? where id = 'idn_a'")
+                .params(
+                        Base64.getEncoder().encodeToString(new byte[32]),
+                        Base64.getEncoder().encodeToString(new byte[12]))
+                .update();
+        assertThat(runJob("--est.google.client-id=id", "--est.google.client-secret=secret"))
+                .isEqualTo(JobExit.PARTIAL);
+        assertThat(stdout()).contains("identities=1, ok=0, failed=1");
+        assertThat(
+                        db.sql(
+                                        "select error from calendar_sync_runs where identity_id = 'idn_a'"
+                                                + " and status = 'failed'")
+                                .query(String.class)
+                                .single())
+                .contains("could not be decrypted");
+        assertThat(
+                        db.sql("select last_error from member_identities where id = 'idn_a'")
+                                .query(String.class)
+                                .single())
+                .contains("EST_CRYPTO_KEY");
+    }
+
+    @Test
     void identityLockedByAnotherConnectionIsSkippedAsBusy() throws SQLException {
         claim("prod");
         identity("idn_a", "a@cognition.ai");
